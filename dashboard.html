@@ -1,0 +1,1591 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>StoreCheck — Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f1f5f9;color:#1e293b}
+:root{
+  --sidebar-w:256px;--sidebar-collapsed:64px;
+  --green:#22c55e;--green-dark:#16a34a;--green-light:#dcfce7;
+  --blue:#3b82f6;--orange:#f59e0b;--red:#ef4444;--purple:#8b5cf6;
+  --slate-900:#0f172a;--slate-800:#1e293b;--slate-700:#334155;--slate-600:#475569;
+  --slate-400:#94a3b8;--slate-200:#e2e8f0;--slate-100:#f1f5f9;--slate-50:#f8fafc;
+}
+
+/* SCROLLBAR */
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:3px}
+
+/* LAYOUT */
+#app{display:flex;height:100vh;overflow:hidden}
+
+/* SIDEBAR */
+.sidebar{
+  width:var(--sidebar-w);min-width:var(--sidebar-w);
+  background:var(--slate-900);
+  display:flex;flex-direction:column;
+  transition:width .25s ease,min-width .25s ease;
+  overflow:hidden;position:relative;z-index:50;
+}
+.sidebar.collapsed{width:var(--sidebar-collapsed);min-width:var(--sidebar-collapsed)}
+.sidebar-logo{
+  display:flex;align-items:center;gap:12px;
+  padding:20px 16px;border-bottom:1px solid rgba(255,255,255,.08);
+  min-height:64px;cursor:pointer;
+}
+.sidebar-logo-icon{
+  width:36px;height:36px;min-width:36px;
+  background:var(--green);border-radius:8px;
+  display:flex;align-items:center;justify-content:center;
+  font-weight:800;font-size:16px;color:#fff;
+}
+.sidebar-logo-text{overflow:hidden;white-space:nowrap;transition:opacity .2s}
+.sidebar-logo-text h2{font-size:15px;font-weight:700;color:#fff;line-height:1.2}
+.sidebar-logo-text p{font-size:11px;color:var(--slate-400)}
+.sidebar.collapsed .sidebar-logo-text{opacity:0;pointer-events:none}
+
+.sidebar-nav{flex:1;overflow-y:auto;overflow-x:hidden;padding:8px 0}
+.nav-section-label{
+  font-size:10px;font-weight:600;letter-spacing:.08em;
+  color:var(--slate-600);padding:16px 16px 4px;
+  white-space:nowrap;overflow:hidden;
+  transition:opacity .2s;
+}
+.sidebar.collapsed .nav-section-label{opacity:0}
+
+.nav-item{
+  display:flex;align-items:center;gap:12px;
+  padding:9px 16px;cursor:pointer;
+  color:var(--slate-400);font-size:13.5px;font-weight:500;
+  white-space:nowrap;border-radius:0;
+  transition:background .15s,color .15s;
+  position:relative;border-left:3px solid transparent;
+}
+.nav-item:hover{background:rgba(255,255,255,.06);color:#fff}
+.nav-item.active{background:rgba(34,197,94,.12);color:var(--green);border-left-color:var(--green)}
+.nav-item.active .nav-icon{color:var(--green)}
+.nav-icon{font-size:18px;min-width:20px;text-align:center;transition:color .15s}
+.nav-label{overflow:hidden;transition:opacity .2s,width .2s;width:160px}
+.sidebar.collapsed .nav-label{opacity:0;width:0}
+.nav-badge{
+  background:var(--red);color:#fff;
+  font-size:10px;font-weight:700;padding:2px 6px;border-radius:10px;
+  margin-left:auto;transition:opacity .2s;
+}
+.sidebar.collapsed .nav-badge{opacity:0}
+
+.nav-sub{
+  overflow:hidden;max-height:0;transition:max-height .3s ease;
+  background:rgba(0,0,0,.15);
+}
+.nav-sub.open{max-height:400px}
+.nav-sub-item{
+  display:flex;align-items:center;gap:10px;
+  padding:8px 16px 8px 44px;cursor:pointer;
+  color:var(--slate-400);font-size:12.5px;
+  transition:background .15s,color .15s;
+  white-space:nowrap;overflow:hidden;
+}
+.nav-sub-item:hover{background:rgba(255,255,255,.05);color:#fff}
+.nav-sub-item.active{color:var(--green)}
+.sidebar.collapsed .nav-sub{display:none}
+
+.nav-chevron{
+  margin-left:auto;font-size:11px;
+  transition:transform .25s;opacity:.5;
+}
+.nav-chevron.open{transform:rotate(90deg)}
+
+/* MAIN CONTENT */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+
+/* HEADER */
+.header{
+  height:64px;background:#fff;border-bottom:1px solid var(--slate-200);
+  display:flex;align-items:center;padding:0 24px;gap:16px;
+  flex-shrink:0;
+}
+.header-title{font-size:16px;font-weight:600;color:var(--slate-800);flex:1}
+.header-store{
+  display:flex;align-items:center;gap:8px;
+  background:var(--slate-100);border-radius:8px;padding:6px 12px;
+  font-size:13px;color:var(--slate-600);font-weight:500;
+}
+.header-store .dot{width:8px;height:8px;border-radius:50%;background:var(--green)}
+
+/* DATA SOURCE TOGGLE */
+.ds-toggle{
+  display:flex;align-items:center;gap:0;
+  background:var(--slate-100);border-radius:8px;padding:3px;
+  border:1px solid var(--slate-200);
+}
+.ds-btn{
+  padding:5px 12px;border-radius:6px;font-size:12px;font-weight:600;
+  cursor:pointer;transition:all .2s;border:none;background:transparent;
+  color:var(--slate-500);
+}
+.ds-btn.active{background:#fff;color:var(--slate-800);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.ds-btn.active.mercury{color:var(--green-dark)}
+.ds-btn.active.ruby{color:#e11d48}
+
+.header-user{
+  display:flex;align-items:center;gap:8px;
+  color:var(--slate-600);font-size:13px;cursor:pointer;
+}
+.avatar{
+  width:32px;height:32px;background:var(--green);border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  color:#fff;font-size:13px;font-weight:700;
+}
+
+/* PAGE CONTENT */
+.page{flex:1;overflow-y:auto;padding:24px}
+
+/* BREADCRUMB */
+.breadcrumb{display:flex;align-items:center;gap:6px;margin-bottom:20px;font-size:13px;color:var(--slate-400)}
+.breadcrumb span{color:var(--slate-600);font-weight:500}
+.breadcrumb .sep{font-size:10px}
+
+/* KPI CARDS */
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-bottom:24px}
+.kpi-card{
+  background:#fff;border-radius:12px;padding:20px;
+  border:1px solid var(--slate-200);
+  display:flex;flex-direction:column;gap:6px;
+}
+.kpi-card-label{font-size:12px;font-weight:600;color:var(--slate-400);letter-spacing:.04em;text-transform:uppercase}
+.kpi-card-value{font-size:26px;font-weight:700;color:var(--slate-800);line-height:1}
+.kpi-card-sub{font-size:12px;color:var(--slate-400);display:flex;align-items:center;gap:4px}
+.kpi-card-sub .up{color:var(--green)}
+.kpi-card-sub .down{color:var(--red)}
+.kpi-icon{font-size:28px;margin-bottom:4px}
+
+/* TABS */
+.tabs{display:flex;gap:0;border-bottom:2px solid var(--slate-200);margin-bottom:24px}
+.tab{
+  padding:10px 18px;font-size:13.5px;font-weight:500;
+  color:var(--slate-500);cursor:pointer;
+  border-bottom:2px solid transparent;margin-bottom:-2px;
+  transition:all .15s;white-space:nowrap;
+}
+.tab:hover{color:var(--slate-800)}
+.tab.active{color:var(--green-dark);border-bottom-color:var(--green);font-weight:600}
+
+/* CARD */
+.card{background:#fff;border-radius:12px;border:1px solid var(--slate-200);overflow:hidden}
+.card-header{
+  padding:16px 20px;border-bottom:1px solid var(--slate-200);
+  display:flex;align-items:center;justify-content:space-between;
+}
+.card-title{font-size:14px;font-weight:600;color:var(--slate-700)}
+.card-body{padding:0}
+
+/* FILTER BAR */
+.filter-bar{
+  background:#fff;border-radius:12px;border:1px solid var(--slate-200);
+  padding:16px 20px;margin-bottom:20px;
+  display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+}
+.filter-bar label{font-size:13px;color:var(--slate-500);font-weight:500}
+.filter-toggle{display:flex;border-radius:8px;overflow:hidden;border:1px solid var(--slate-200)}
+.filter-toggle button{
+  padding:6px 14px;font-size:12.5px;font-weight:500;
+  border:none;cursor:pointer;transition:all .15s;background:#fff;color:var(--slate-500);
+}
+.filter-toggle button.active{background:var(--green);color:#fff}
+select.filter-select,input.filter-input{
+  padding:7px 12px;border:1px solid var(--slate-200);border-radius:8px;
+  font-size:13px;color:var(--slate-700);outline:none;background:#fff;
+  cursor:pointer;
+}
+select.filter-select:focus,input.filter-input:focus{border-color:var(--green)}
+.btn{
+  padding:7px 18px;border-radius:8px;font-size:13px;font-weight:600;
+  border:none;cursor:pointer;transition:all .15s;
+}
+.btn-primary{background:var(--green);color:#fff}
+.btn-primary:hover{background:var(--green-dark)}
+.btn-outline{background:#fff;color:var(--slate-600);border:1px solid var(--slate-200)}
+.btn-outline:hover{background:var(--slate-50)}
+.btn-icon{background:transparent;border:1px solid var(--slate-200);color:var(--slate-500);padding:7px 10px}
+
+/* TABLE */
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px}
+thead tr{background:var(--slate-50)}
+th{
+  padding:10px 14px;text-align:left;font-size:11.5px;font-weight:700;
+  color:var(--slate-500);letter-spacing:.06em;text-transform:uppercase;
+  border-bottom:1px solid var(--slate-200);cursor:pointer;white-space:nowrap;
+}
+th:hover{color:var(--slate-700)}
+td{
+  padding:11px 14px;border-bottom:1px solid var(--slate-100);
+  color:var(--slate-700);white-space:nowrap;
+}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:var(--slate-50)}
+.td-right{text-align:right}
+.td-mono{font-family:monospace;font-size:13px}
+.tr-total td{background:var(--slate-50);font-weight:700;color:var(--slate-800);border-top:2px solid var(--slate-200)}
+
+/* STATUS BADGES */
+.badge{display:inline-flex;align-items:center;padding:3px 8px;border-radius:20px;font-size:11px;font-weight:600}
+.badge-green{background:var(--green-light);color:var(--green-dark)}
+.badge-blue{background:#dbeafe;color:#1d4ed8}
+.badge-orange{background:#fef3c7;color:#92400e}
+.badge-red{background:#fee2e2;color:#991b1b}
+.badge-gray{background:var(--slate-100);color:var(--slate-600)}
+
+/* CHARTS */
+.chart-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:20px;margin-bottom:24px}
+.chart-card{background:#fff;border-radius:12px;border:1px solid var(--slate-200);padding:20px}
+.chart-card h3{font-size:13px;font-weight:600;color:var(--slate-600);margin-bottom:16px}
+.chart-wrap{position:relative;height:200px}
+
+/* MODAL */
+.modal-overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,.5);
+  display:flex;align-items:center;justify-content:center;z-index:1000;
+  backdrop-filter:blur(2px);
+}
+.modal{
+  background:#fff;border-radius:16px;width:480px;max-width:90vw;
+  box-shadow:0 20px 60px rgba(0,0,0,.2);overflow:hidden;
+}
+.modal-header{
+  padding:20px 24px;border-bottom:1px solid var(--slate-200);
+  display:flex;align-items:center;justify-content:space-between;
+}
+.modal-header h2{font-size:16px;font-weight:700}
+.modal-close{background:none;border:none;font-size:20px;cursor:pointer;color:var(--slate-400)}
+.modal-body{padding:24px}
+.modal-footer{padding:16px 24px;border-top:1px solid var(--slate-200);display:flex;justify-content:flex-end;gap:10px}
+.form-group{margin-bottom:16px}
+.form-label{display:block;font-size:13px;font-weight:600;color:var(--slate-600);margin-bottom:6px}
+.form-input{
+  width:100%;padding:9px 12px;border:1px solid var(--slate-200);
+  border-radius:8px;font-size:13.5px;outline:none;transition:border-color .15s;
+}
+.form-input:focus{border-color:var(--green)}
+.form-hint{font-size:11.5px;color:var(--slate-400);margin-top:4px}
+.input-group{display:flex;gap:8px}
+.input-group .form-input{flex:1}
+
+/* TOGGLE SWITCH */
+.switch{position:relative;display:inline-flex;align-items:center;cursor:pointer;gap:8px;font-size:13px}
+.switch input{display:none}
+.switch-track{
+  width:40px;height:22px;background:var(--slate-300);
+  border-radius:11px;transition:background .2s;position:relative;
+}
+.switch input:checked ~ .switch-track{background:var(--green)}
+.switch-thumb{
+  position:absolute;top:3px;left:3px;
+  width:16px;height:16px;background:#fff;border-radius:50%;
+  transition:left .2s;box-shadow:0 1px 3px rgba(0,0,0,.2);
+}
+.switch input:checked ~ .switch-track .switch-thumb{left:21px}
+
+/* CONNECTION STATUS */
+.conn-status{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:4px 10px;border-radius:20px;font-size:12px;font-weight:500;
+}
+.conn-status.connected{background:#dcfce7;color:#166534}
+.conn-status.disconnected{background:#fee2e2;color:#991b1b}
+.conn-dot{width:7px;height:7px;border-radius:50%;background:currentColor}
+
+/* EMPTY STATE */
+.empty-state{
+  padding:60px 20px;text-align:center;color:var(--slate-400);
+}
+.empty-state .icon{font-size:48px;margin-bottom:12px}
+.empty-state p{font-size:14px}
+
+/* SECTION HERO */
+.section-hero{
+  background:linear-gradient(135deg,var(--slate-900) 0%,var(--slate-800) 100%);
+  border-radius:12px;padding:24px;margin-bottom:24px;color:#fff;
+  display:flex;align-items:center;justify-content:space-between;
+}
+.section-hero h1{font-size:22px;font-weight:700}
+.section-hero p{font-size:13px;color:var(--slate-400);margin-top:4px}
+
+/* SCORE CARDS */
+.score-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:24px}
+.score-card{
+  background:#fff;border-radius:12px;border:1px solid var(--slate-200);
+  padding:16px;text-align:center;
+}
+.score-circle{
+  width:48px;height:48px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:20px;font-weight:800;color:#fff;margin:0 auto 10px;
+}
+.score-f{background:var(--red)}
+.score-a{background:var(--green)}
+.score-b{background:#3b82f6}
+.score-c{background:var(--orange)}
+.score-d{background:#f97316}
+.score-label{font-size:11px;font-weight:700;color:var(--slate-400);letter-spacing:.06em;text-transform:uppercase}
+.score-pct{font-size:18px;font-weight:700;color:var(--slate-800);margin-top:2px}
+.score-trend{font-size:12px;margin-top:2px}
+.score-trend.up{color:var(--green)}
+.score-trend.down{color:var(--red)}
+
+/* FUEL SPECIFIC */
+.fuel-type-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--slate-100)}
+.fuel-type-row:last-child{border-bottom:none}
+
+/* TOOLTIP */
+[title]{position:relative}
+
+/* RESPONSIVE */
+@media(max-width:768px){
+  .sidebar{position:fixed;z-index:100;height:100%;transform:translateX(0)}
+  .score-grid{grid-template-columns:repeat(3,1fr)}
+  .kpi-grid{grid-template-columns:repeat(2,1fr)}
+}
+
+/* PRINT HELPERS */
+.no-print{}
+@media print{.sidebar,.header,.filter-bar .btn,.no-print{display:none}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script type="text/babel">
+const { useState, useEffect, useRef, useCallback, useMemo } = React;
+
+/* ─── MOCK DATA (matches real Mercury data) ─── */
+const MOCK = {
+  store: { name: 'KS3', id: 'kwikserve03', email: '455861@thinkcstore.com' },
+  sales: {
+    summary: {
+      sales: [
+        { category: 'Fuel', count: 2427, amount: 8954.26 },
+        { category: 'Grocery', count: 1343, amount: 6905.22 },
+        { category: 'Lottery', count: 151, amount: 2717.00 },
+        { category: 'Lottery Payout', count: 0, amount: -1888.00 },
+        { category: 'Financial Svcs', count: 0, amount: 0.00 },
+        { category: 'Tax Collected', count: null, amount: 420.05 },
+      ],
+      payments: [
+        { category: 'Cash Transactions', amount: 3823.00 },
+        { category: 'MOP - Network Transactions', amount: 13143.72 },
+        { category: 'MOP - Other', amount: 16.18 },
+        { category: 'Local Credits', amount: 0.00 },
+        { category: 'Local Payments', amount: 0.00 },
+        { category: 'Paid In / Paid Out', amount: 35.00 },
+      ],
+      discounts: [{ item:'Fuel', amount:0 }, { item:'Grocery', amount:166.14 }],
+      plu: { sales:62.38, cost:37.61, grossMargin:40 },
+      difference: [{ item:'Sales-Payments', amount:-90.63 }, { item:'Network - Jobber Batches', amount:13143.72 }],
+      safeLoan: 0.00,
+    },
+    daily: [
+      { date:'05/03/2026', fuelVol:449.56, fuel:1762.18, grocery:1929.39, lottery:638.50, payouts:-454.00, financial:0, nonFuel:2113.89, tax:122.60, total:3998.67, mop:3004.14, inOut:15.00, cashDrop:924.00, atmDrop:0.00, diff:-55.53, status:'Complete' },
+      { date:'05/02/2026', fuelVol:1078.81, fuel:3926.84, grocery:2223.44, lottery:909.50, payouts:-611.00, financial:0, nonFuel:2521.94, tax:134.20, total:6582.98, mop:5029.22, inOut:10.00, cashDrop:1511.00, atmDrop:0.00, diff:-32.76, status:'Confirmed' },
+      { date:'05/01/2026', fuelVol:898.84, fuel:3265.24, grocery:2752.39, lottery:1169.00, payouts:-823.00, financial:0, nonFuel:3098.39, tax:163.25, total:6526.88, mop:5126.54, inOut:10.00, cashDrop:1388.00, atmDrop:0.00, diff:-2.34, status:'Confirmed' },
+    ],
+    currentShift: {
+      startTime:'05/04/2026 03:03:05',
+      fuel: [
+        { type:'Diesel', vol:21.88, amount:105.00 },
+        { type:'Plus', vol:7.32, amount:30.00 },
+        { type:'Regular', vol:276.89, amount:1074.72 },
+      ],
+      tax: 69.52,
+      payments: [
+        { mop:'Cash', vol:53, amount:875.95 },
+        { mop:'Change', vol:33, amount:-377.47 },
+        { mop:'Credit', vol:55, amount:1448.88 },
+        { mop:'Debit', vol:20, amount:300.98 },
+        { mop:'Lottery', vol:8, amount:338.00 },
+        { mop:'Mobile', vol:2, amount:54.04 },
+      ],
+      scanned: [
+        { dept:'Alternative Snacks', qty:2, amount:5.88 },
+        { dept:'Automotive Products', qty:3, amount:23.97 },
+        { dept:'Beer', qty:14, amount:87.06 },
+        { dept:'Candy', qty:5, amount:13.45 },
+        { dept:'Cigarettes', qty:50, amount:295.04 },
+        { dept:'General Merchandise', qty:4, amount:9.46 },
+        { dept:'Health Beauty Care', qty:5, amount:8.55 },
+        { dept:'Hot Dispensed Beverage', qty:4, amount:7.36 },
+        { dept:'Other Tobacco', qty:13, amount:147.22 },
+        { dept:'Package Beverage', qty:63, amount:189.96 },
+        { dept:'Packaged Bread', qty:2, amount:4.78 },
+        { dept:'Packaged Sweet Snack', qty:8, amount:17.62 },
+      ],
+      unscanned: [
+        { dept:'Hot Food', qty:23, amount:74.97 },
+        { dept:'Kratom', qty:4, amount:46.00 },
+        { dept:'Lottery Gaming', qty:2, amount:118.00 },
+        { dept:'Novelties', qty:17, amount:117.67 },
+      ],
+      lottery: [{ type:'LOTTO SCRATCH', qty:26, amount:244.00 }],
+    },
+  },
+  grocery: {
+    departments: [
+      { dept:'Alternative Snacks', tax:'LOW', count:10, sale:38.50, cost:19.44, rebate:0, gp:19.06, margin:50 },
+      { dept:'Automotive Products', tax:'HIGH', count:1, sale:3.99, cost:2.19, rebate:0, gp:1.80, margin:45 },
+      { dept:'Beer', tax:'HIGH', count:152, sale:889.05, cost:679.80, rebate:0, gp:209.25, margin:24 },
+      { dept:'Candy', tax:'LOW', count:58, sale:167.54, cost:89.44, rebate:0, gp:78.10, margin:47 },
+      { dept:'Cigarettes', tax:'HIGH', count:89, sale:512.40, cost:430.00, rebate:0, gp:82.40, margin:16 },
+      { dept:'General Merchandise', tax:'HIGH', count:22, sale:65.88, cost:35.20, rebate:0, gp:30.68, margin:47 },
+      { dept:'Health Beauty Care', tax:'HIGH', count:15, sale:44.25, cost:28.10, rebate:0, gp:16.15, margin:37 },
+      { dept:'Hot Dispensed Beverage', tax:'LOW', count:34, sale:51.00, cost:18.00, rebate:0, gp:33.00, margin:65 },
+      { dept:'Ice', tax:'LOW', count:4, sale:11.96, cost:4.00, rebate:0, gp:7.96, margin:67 },
+      { dept:'Other Tobacco', tax:'HIGH', count:38, sale:220.14, cost:185.00, rebate:0, gp:35.14, margin:16 },
+      { dept:'Package Beverage', tax:'LOW', count:189, sale:567.00, cost:270.00, rebate:0, gp:297.00, margin:52 },
+    ],
+  },
+  lottery: {
+    sales: [
+      { date:'05/03/2026', instantSales:638.50, onlineSales:0, totalSales:638.50, payouts:454.00, netRevenue:184.50 },
+      { date:'05/02/2026', instantSales:909.50, onlineSales:0, totalSales:909.50, payouts:611.00, netRevenue:298.50 },
+      { date:'05/01/2026', instantSales:1169.00, onlineSales:0, totalSales:1169.00, payouts:823.00, netRevenue:346.00 },
+    ],
+  },
+  fuel: {
+    margins: [
+      { date:'05/03/2026', product:'Regular', vol:276.89, retail:1074.72, cost:940.00, margin:134.72, cpp:0.487 },
+      { date:'05/02/2026', product:'Regular', vol:830.00, retail:3220.00, cost:2822.00, margin:398.00, cpp:0.479 },
+      { date:'05/01/2026', product:'Diesel', vol:210.00, retail:980.00, cost:862.00, margin:118.00, cpp:0.562 },
+    ],
+    jobberBatches: [
+      { date:'05/03/2026', jobber:'Kwikserve Fuels', product:'Regular', vol:1500, invoice:5250.00, status:'Posted' },
+      { date:'05/01/2026', jobber:'Kwikserve Fuels', product:'Diesel', vol:800, invoice:3200.00, status:'Posted' },
+    ],
+  },
+  analytics: {
+    overall: { grade:'F', pct:51, trend:'down' },
+    financial: { grade:'F', pct:256, trend:'down' },
+    operational: { grade:'A', pct:48, trend:'up' },
+    sales: { grade:'C', pct:10, trend:'up' },
+    technical: { grade:'C', pct:5, trend:'down' },
+    chartSales: [14200, 16800, 15200, 18400, 17100, 19200, 16500],
+    chartExpenses: [9800, 11200, 10400, 12100, 11600, 12800, 11200],
+    chartIncome: [4400, 5600, 4800, 6300, 5500, 6400, 5300],
+    chartLabels: ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],
+  },
+  expenses: {
+    list: [
+      { date:'05/03/2026', category:'Electricity', vendor:'PowerCo', ref:'INV-4521', amount:1250.00, status:'Paid' },
+      { date:'05/02/2026', category:'Water', vendor:'City Water', ref:'INV-2310', amount:185.00, status:'Paid' },
+      { date:'05/01/2026', category:'Insurance', vendor:'AIG', ref:'INV-8812', amount:420.00, status:'Pending' },
+      { date:'04/28/2026', category:'Cleaning', vendor:'CleanCo', ref:'INV-1109', amount:95.00, status:'Paid' },
+      { date:'04/25/2026', category:'Maintenance', vendor:'FixIt Pro', ref:'INV-3305', amount:340.00, status:'Paid' },
+    ],
+  },
+};
+
+/* ─── DATA SERVICE ─── */
+const DataService = {
+  source: 'mercury',
+  rubyConfig: { baseUrl:'', username:'', password:'', port:'' },
+
+  async fetchMercury(path, data={}) {
+    try {
+      const resp = await fetch('https://monecloud.aboveo.com' + path, {
+        method:'POST', credentials:'include',
+        headers:{ 'Content-Type':'application/x-www-form-urlencoded' },
+        body: new URLSearchParams(data).toString(),
+      });
+      if (!resp.ok) throw new Error('HTTP ' + resp.status);
+      return await resp.json();
+    } catch(e) {
+      console.warn('Mercury fetch failed, using mock data:', e.message);
+      return null;
+    }
+  },
+
+  async fetchRubyPOS(endpoint, params={}) {
+    const { baseUrl, username, password } = this.rubyConfig;
+    if (!baseUrl) return null;
+    try {
+      const resp = await fetch(`${baseUrl}${endpoint}`, {
+        method:'POST',
+        headers:{
+          'Authorization':'Basic ' + btoa(`${username}:${password}`),
+          'Content-Type':'application/json',
+        },
+        body: JSON.stringify(params),
+      });
+      return await resp.json();
+    } catch(e) {
+      console.warn('Ruby POS fetch failed:', e.message);
+      return null;
+    }
+  },
+
+  async testRubyConnection() {
+    const { baseUrl, username, password } = this.rubyConfig;
+    if (!baseUrl) return false;
+    try {
+      const resp = await fetch(`${baseUrl}/api/status`, {
+        headers:{ 'Authorization':'Basic ' + btoa(`${username}:${password}`) },
+      });
+      return resp.ok;
+    } catch { return false; }
+  },
+
+  get(key) { return MOCK[key]; },
+};
+
+/* ─── HELPERS ─── */
+const fmt = (n, currency='£') => n == null ? '—' : `${currency}${Math.abs(n).toFixed(2)}${n < 0 ? ' CR' : ''}`;
+const fmtNum = (n) => n == null ? '—' : n.toLocaleString();
+
+const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+/* ─── SMALL COMPONENTS ─── */
+const Badge = ({type='gray', children}) => (
+  <span className={`badge badge-${type}`}>{children}</span>
+);
+
+const KPICard = ({label, value, sub, icon, color, trend}) => (
+  <div className="kpi-card">
+    {icon && <div className="kpi-icon">{icon}</div>}
+    <div className="kpi-card-label">{label}</div>
+    <div className="kpi-card-value" style={color?{color}:{}}>{value}</div>
+    {sub && <div className="kpi-card-sub">{sub}</div>}
+  </div>
+);
+
+const FilterBar = ({mode, setMode, month, setMonth, year, setYear, onGet, extra}) => (
+  <div className="filter-bar">
+    <label>View by</label>
+    <div className="filter-toggle">
+      <button className={mode==='date'?'active':''} onClick={()=>setMode('date')}>Date</button>
+      <button className={mode==='month'?'active':''} onClick={()=>setMode('month')}>Month</button>
+    </div>
+    {mode==='month' && <>
+      <label>Month</label>
+      <select className="filter-select" value={month} onChange={e=>setMonth(e.target.value)}>
+        {months.map((m,i)=><option key={m} value={i+1}>{m}</option>)}
+      </select>
+    </>}
+    <label>Year</label>
+    <select className="filter-select" value={year} onChange={e=>setYear(e.target.value)}>
+      {[2024,2025,2026].map(y=><option key={y}>{y}</option>)}
+    </select>
+    <button className="btn btn-primary" onClick={onGet}>Get Results</button>
+    <button className="btn btn-outline">🖨 Print</button>
+    <button className="btn btn-outline">📥 Export</button>
+    {extra}
+  </div>
+);
+
+/* ─── CHART COMPONENT ─── */
+const LineChart = ({labels, datasets, height=200}) => {
+  const ref = useRef();
+  const chartRef = useRef();
+  useEffect(() => {
+    if (chartRef.current) chartRef.current.destroy();
+    const ctx = ref.current.getContext('2d');
+    chartRef.current = new Chart(ctx, {
+      type:'line',
+      data: { labels, datasets: datasets.map(d => ({
+        ...d, borderWidth:2, pointRadius:3, tension:0.4, fill:true,
+        backgroundColor: d.borderColor + '18',
+      }))},
+      options: {
+        responsive:true, maintainAspectRatio:false,
+        plugins:{ legend:{ position:'bottom', labels:{font:{size:11}} } },
+        scales:{
+          x:{ grid:{display:false}, ticks:{font:{size:11}} },
+          y:{ grid:{color:'#f1f5f9'}, ticks:{font:{size:11}, callback:v=>'£'+v.toLocaleString()} },
+        },
+      },
+    });
+    return () => chartRef.current?.destroy();
+  }, [labels, datasets]);
+  return <div className="chart-wrap" style={{height}}><canvas ref={ref}/></div>;
+};
+
+const BarChart = ({labels, datasets, height=200}) => {
+  const ref = useRef();
+  const chartRef = useRef();
+  useEffect(() => {
+    if (chartRef.current) chartRef.current.destroy();
+    const ctx = ref.current.getContext('2d');
+    chartRef.current = new Chart(ctx, {
+      type:'bar',
+      data: { labels, datasets },
+      options: {
+        responsive:true, maintainAspectRatio:false,
+        plugins:{ legend:{ position:'bottom', labels:{font:{size:11}} } },
+        scales:{
+          x:{ grid:{display:false}, ticks:{font:{size:11}} },
+          y:{ grid:{color:'#f1f5f9'}, ticks:{font:{size:11}, callback:v=>'£'+v.toLocaleString()} },
+        },
+      },
+    });
+    return () => chartRef.current?.destroy();
+  }, [labels, datasets]);
+  return <div className="chart-wrap" style={{height}}><canvas ref={ref}/></div>;
+};
+
+/* ─── SIDEBAR ─── */
+const NAV = [
+  { id:'dashboard', label:'Dashboard', icon:'📊', sub:[
+    { id:'dashboard-analytics', label:'Analytics' },
+    { id:'dashboard-summary', label:'Summary' },
+    { id:'dashboard-som', label:'SOM' },
+  ]},
+  { id:'store-sales', label:'Store Sales', icon:'🏪', sub:[
+    { id:'sales-summary', label:'Sales Summary' },
+    { id:'sales-day', label:'Sales by Day' },
+    { id:'sales-shifts', label:'Shifts' },
+    { id:'sales-current', label:'Current Shift', badge:'LIVE' },
+  ]},
+  { id:'grocery', label:'Grocery', icon:'🛒', sub:[
+    { id:'grocery-sales', label:'Grocery Sales' },
+    { id:'grocery-purchases', label:'Purchases' },
+    { id:'grocery-pricebook', label:'Pricebook / Deals' },
+    { id:'grocery-inventory', label:'Inventory' },
+    { id:'grocery-search', label:'Search / Add Item' },
+  ]},
+  { id:'lottery', label:'Lottery', icon:'🎰' },
+  { id:'fuel', label:'Fuel', icon:'⛽', sub:[
+    { id:'fuel-jobber', label:'Jobber Management' },
+    { id:'fuel-margins', label:'Fuel Margins' },
+    { id:'fuel-ust', label:'UST Readings' },
+  ]},
+  { id:'financial', label:'Financial Services', icon:'💳', sub:[
+    { id:'financial-atm', label:'ATM' },
+    { id:'financial-other', label:'Other Income' },
+    { id:'financial-services', label:'Financial Services' },
+    { id:'financial-house', label:'House Accounts' },
+  ]},
+  { id:'expenses', label:'Operating Expenses', icon:'💰' },
+  { id:'reports', label:'Reports', icon:'📈' },
+  { id:'scan-data', label:'Scan Data', icon:'📦' },
+  { id:'transactions', label:'Store Transactions', icon:'🔄' },
+  { id:'mostedge', label:'MostEdge TV', icon:'📺' },
+  { id:'setup', label:'Setup & Admin', icon:'⚙️', sub:[
+    { id:'setup-alerts', label:'Alerts & SMS' },
+    { id:'setup-users', label:'System Admin' },
+    { id:'setup-preferences', label:'Preferences' },
+    { id:'setup-pos', label:'POS Settings' },
+    { id:'setup-location', label:'Location Info' },
+    { id:'setup-jobber', label:'Jobber & Fuel Mgmt' },
+    { id:'setup-lottery', label:'Lottery Settings' },
+  ]},
+];
+
+const Sidebar = ({active, setActive, collapsed, setCollapsed}) => {
+  const [openMenus, setOpenMenus] = useState(['store-sales','dashboard']);
+
+  const toggle = (id) => setOpenMenus(prev =>
+    prev.includes(id) ? prev.filter(x=>x!==id) : [...prev, id]
+  );
+
+  const navigate = (id, parentId) => {
+    setActive(id);
+    if (parentId && !openMenus.includes(parentId)) toggle(parentId);
+  };
+
+  const isActiveGroup = (item) =>
+    active === item.id || (item.sub && item.sub.some(s => s.id === active));
+
+  return (
+    <aside className={`sidebar ${collapsed?'collapsed':''}`}>
+      <div className="sidebar-logo" onClick={()=>setCollapsed(!collapsed)}>
+        <div className="sidebar-logo-icon">SC</div>
+        <div className="sidebar-logo-text">
+          <h2>StoreCheck</h2>
+          <p>storecheck.io</p>
+        </div>
+      </div>
+
+      <div className="sidebar-nav">
+        <div className="nav-section-label">MAIN MENU</div>
+        {NAV.map(item => (
+          <div key={item.id}>
+            <div
+              className={`nav-item ${isActiveGroup(item)?'active':''}`}
+              onClick={() => item.sub ? toggle(item.id) : navigate(item.id)}
+            >
+              <span className="nav-icon">{item.icon}</span>
+              <span className="nav-label">{item.label}</span>
+              {item.sub && (
+                <span className={`nav-chevron ${openMenus.includes(item.id)?'open':''}`}>▶</span>
+              )}
+            </div>
+            {item.sub && (
+              <div className={`nav-sub ${openMenus.includes(item.id)?'open':''}`}>
+                {item.sub.map(sub => (
+                  <div
+                    key={sub.id}
+                    className={`nav-sub-item ${active===sub.id?'active':''}`}
+                    onClick={()=>navigate(sub.id, item.id)}
+                  >
+                    {sub.label}
+                    {sub.badge && <span className="nav-badge">{sub.badge}</span>}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+
+      <div style={{padding:'12px 16px',borderTop:'1px solid rgba(255,255,255,.08)'}}>
+        <div className="nav-item" style={{padding:'8px 0'}}>
+          <span className="nav-icon">🔑</span>
+          <span className="nav-label" style={{fontSize:12,color:'var(--slate-400)'}}>Tickets & Support</span>
+        </div>
+      </div>
+    </aside>
+  );
+};
+
+/* ─── HEADER ─── */
+const Header = ({page, source, setSource, store, onSettingsClick}) => {
+  const pageLabel = (() => {
+    for (const n of NAV) {
+      if (n.id === page) return n.label;
+      if (n.sub) { const s = n.sub.find(x=>x.id===page); if(s) return n.label + ' › ' + s.label; }
+    }
+    return page;
+  })();
+
+  return (
+    <header className="header">
+      <div className="header-title">{pageLabel}</div>
+      <div className="header-store">
+        <div className="dot"/>
+        <span>{store.name}</span>
+        <span style={{color:'var(--slate-400)'}}>#{store.id}</span>
+      </div>
+
+      {/* DATA SOURCE TOGGLE */}
+      <div className="ds-toggle">
+        <button
+          className={`ds-btn ${source==='mercury'?'active mercury':''}`}
+          onClick={()=>setSource('mercury')}
+        >🟢 Mercury</button>
+        <button
+          className={`ds-btn ${source==='ruby'?'active ruby':''}`}
+          onClick={()=>{ setSource('ruby'); onSettingsClick(); }}
+        >🔴 Ruby POS</button>
+      </div>
+
+      <div className="header-user" onClick={onSettingsClick} title="Account settings">
+        <div className="avatar">K</div>
+        <span>{store.email.split('@')[0]}</span>
+      </div>
+    </header>
+  );
+};
+
+/* ─── RUBY POS MODAL ─── */
+const RubyPOSModal = ({config, setConfig, onClose, onTest}) => {
+  const [testing, setTesting] = useState(false);
+  const [testResult, setTestResult] = useState(null);
+  const [local, setLocal] = useState(config);
+
+  const handleTest = async () => {
+    setTesting(true); setTestResult(null);
+    DataService.rubyConfig = local;
+    const ok = await DataService.testRubyConnection();
+    setTestResult(ok);
+    setTesting(false);
+  };
+
+  return (
+    <div className="modal-overlay" onClick={e=>e.target===e.currentTarget&&onClose()}>
+      <div className="modal">
+        <div className="modal-header">
+          <h2>🔴 Ruby POS Connection</h2>
+          <button className="modal-close" onClick={onClose}>×</button>
+        </div>
+        <div className="modal-body">
+          <p style={{fontSize:13,color:'var(--slate-500)',marginBottom:20}}>
+            Connect to your Ruby POS system via local network (RJ45) or remote domain.
+            Once configured, all data will pull directly from Ruby instead of Mercury.
+          </p>
+
+          <div className="form-group">
+            <label className="form-label">Connection Type</label>
+            <div className="filter-toggle" style={{display:'inline-flex'}}>
+              <button
+                className={local.type==='local'?'active':''}
+                onClick={()=>setLocal({...local,type:'local'})}
+              >🔌 Local (RJ45)</button>
+              <button
+                className={local.type==='remote'?'active':''}
+                onClick={()=>setLocal({...local,type:'remote'})}
+              >🌐 Remote Domain</button>
+            </div>
+          </div>
+
+          {local.type==='local' ? (
+            <div className="form-group">
+              <label className="form-label">Local IP Address</label>
+              <div className="input-group">
+                <input className="form-input" placeholder="192.168.1.100"
+                  value={local.ip||''} onChange={e=>setLocal({...local,ip:e.target.value,baseUrl:`http://${e.target.value}:${local.port||8080}`})}/>
+                <input className="form-input" style={{width:80}} placeholder="Port"
+                  value={local.port||''} onChange={e=>setLocal({...local,port:e.target.value,baseUrl:`http://${local.ip||''}:${e.target.value}`})}/>
+              </div>
+              <div className="form-hint">Connect the RJ45 cable from your Ruby POS terminal to the network, then enter its local IP address.</div>
+            </div>
+          ) : (
+            <div className="form-group">
+              <label className="form-label">Domain / URL</label>
+              <input className="form-input" placeholder="https://yourstore.rubystems.com"
+                value={local.baseUrl||''} onChange={e=>setLocal({...local,baseUrl:e.target.value})}/>
+            </div>
+          )}
+
+          <div className="form-group">
+            <label className="form-label">Username</label>
+            <input className="form-input" placeholder="admin"
+              value={local.username||''} onChange={e=>setLocal({...local,username:e.target.value})}/>
+          </div>
+          <div className="form-group">
+            <label className="form-label">Password</label>
+            <input className="form-input" type="password" placeholder="••••••••"
+              value={local.password||''} onChange={e=>setLocal({...local,password:e.target.value})}/>
+          </div>
+
+          {testResult !== null && (
+            <div className={`conn-status ${testResult?'connected':'disconnected'}`} style={{marginBottom:12}}>
+              <div className="conn-dot"/>
+              {testResult ? 'Connected successfully!' : 'Connection failed — check settings'}
+            </div>
+          )}
+        </div>
+        <div className="modal-footer">
+          <button className="btn btn-outline" onClick={handleTest} disabled={testing}>
+            {testing ? 'Testing…' : '🔌 Test Connection'}
+          </button>
+          <button className="btn btn-outline" onClick={onClose}>Cancel</button>
+          <button className="btn btn-primary" onClick={()=>{ setConfig(local); DataService.rubyConfig=local; onClose(); }}>
+            Save & Switch
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/* ─── PAGES ─── */
+
+/* Dashboard Analytics */
+const DashboardAnalytics = () => {
+  const a = MOCK.analytics;
+  const scores = [
+    { key:'overall', label:'Overall', ...a.overall },
+    { key:'financial', label:'Financial', ...a.financial },
+    { key:'operational', label:'Operational', ...a.operational },
+    { key:'sales', label:'Sales', ...a.sales },
+    { key:'technical', label:'Technical', ...a.technical },
+  ];
+  return (
+    <div>
+      <div className="section-hero">
+        <div>
+          <h1>Business Performance</h1>
+          <p>Store KS3 • {new Date().toLocaleDateString('en-GB',{month:'long',year:'numeric'})}</p>
+        </div>
+        <div style={{textAlign:'right',color:'var(--slate-400)',fontSize:13}}>
+          <div>vs. Market Benchmark</div>
+          <div style={{fontSize:11,marginTop:4}}>Updated today</div>
+        </div>
+      </div>
+
+      <div className="score-grid">
+        {scores.map(s => (
+          <div className="score-card" key={s.key}>
+            <div className={`score-circle score-${s.grade.toLowerCase()}`}>{s.grade}</div>
+            <div className="score-label">{s.label}</div>
+            <div className="score-pct">{s.pct}%</div>
+            <div className={`score-trend ${s.trend}`}>{s.trend==='up'?'↑':'↓'} market</div>
+          </div>
+        ))}
+      </div>
+
+      <div className="chart-grid">
+        <div className="chart-card">
+          <h3>📈 Sales (£) — This Week</h3>
+          <LineChart
+            labels={a.chartLabels}
+            datasets={[{ label:'Sales', data:a.chartSales, borderColor:'#22c55e' }]}
+          />
+        </div>
+        <div className="chart-card">
+          <h3>💸 Expenses (£) — This Week</h3>
+          <LineChart
+            labels={a.chartLabels}
+            datasets={[{ label:'Expenses', data:a.chartExpenses, borderColor:'#ef4444' }]}
+          />
+        </div>
+        <div className="chart-card">
+          <h3>💰 Net Income (£) — This Week</h3>
+          <BarChart
+            labels={a.chartLabels}
+            datasets={[{ label:'Income', data:a.chartIncome, backgroundColor:'#3b82f680', borderColor:'#3b82f6', borderWidth:1 }]}
+          />
+        </div>
+        <div className="chart-card">
+          <h3>⛽ Fuel Margin (¢/gal) — This Week</h3>
+          <LineChart
+            labels={a.chartLabels}
+            datasets={[{ label:'Fuel Margin', data:[48.7,47.9,56.2,49.1,51.3,53.8,50.2], borderColor:'#f59e0b' }]}
+          />
+        </div>
+      </div>
+
+      <div className="chart-grid" style={{gridTemplateColumns:'repeat(3,1fr)'}}>
+        {[
+          { title:'Sales Improvement Opportunities', count:0 },
+          { title:'Expense Improvement Opportunities', count:0 },
+          { title:'Income Improvement Opportunities', count:0 },
+        ].map(o => (
+          <div className="chart-card" key={o.title}>
+            <h3>{o.title}</h3>
+            {o.count === 0
+              ? <div className="empty-state" style={{padding:'24px 0'}}><div className="icon" style={{fontSize:28}}>✅</div><p>No opportunities found</p></div>
+              : <div style={{color:'var(--red)',fontWeight:700}}>{o.count} Found</div>
+            }
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+/* Sales Summary */
+const SalesSummary = () => {
+  const [mode, setMode] = useState('month');
+  const [month, setMonth] = useState(5);
+  const [year, setYear] = useState(2026);
+  const d = MOCK.sales.summary;
+  const totalSales = d.sales.reduce((s,r)=>s+(r.amount||0),0);
+  const totalPay = d.payments.reduce((s,r)=>s+r.amount,0);
+
+  return (
+    <div>
+      <div className="kpi-grid" style={{gridTemplateColumns:'repeat(4,1fr)'}}>
+        <KPICard icon="⛽" label="Fuel Sales" value={fmt(8954.26)} sub={<>2,427 transactions</>}/>
+        <KPICard icon="🛒" label="Grocery Sales" value={fmt(6905.22)} sub={<>1,343 items</>}/>
+        <KPICard icon="🎰" label="Lottery" value={fmt(2717.00)} sub={<>Net: {fmt(829.00)}</>}/>
+        <KPICard icon="💰" label="Total Sales" value={fmt(totalSales)} sub={<>Payments: {fmt(totalPay)}</>} color="var(--green-dark)"/>
+      </div>
+
+      <FilterBar mode={mode} setMode={setMode} month={month} setMonth={setMonth} year={year} setYear={setYear} onGet={()=>{}}/>
+
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:20}}>
+        {/* Sales */}
+        <div className="card">
+          <div className="card-header"><span className="card-title">Sales by Category</span></div>
+          <div className="table-wrap">
+            <table>
+              <thead><tr><th>Category</th><th className="td-right">Count</th><th className="td-right">Amount</th></tr></thead>
+              <tbody>
+                {d.sales.map(r=>(
+                  <tr key={r.category}><td>{r.category}</td>
+                    <td className="td-right">{r.count!=null?fmtNum(r.count):'—'}</td>
+                    <td className="td-right td-mono" style={{color:r.amount<0?'var(--red)':''}}>{fmt(r.amount)}</td>
+                  </tr>
+                ))}
+                <tr className="tr-total"><td>Total</td><td className="td-right"></td><td className="td-right td-mono">{fmt(totalSales)}</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Payments */}
+        <div>
+          <div className="card" style={{marginBottom:16}}>
+            <div className="card-header"><span className="card-title">Payments</span></div>
+            <div className="table-wrap">
+              <table>
+                <thead><tr><th>Category</th><th className="td-right">Amount</th></tr></thead>
+                <tbody>
+                  {d.payments.map(r=>(
+                    <tr key={r.category}><td>{r.category}</td>
+                      <td className="td-right td-mono">{fmt(r.amount)}</td>
+                    </tr>
+                  ))}
+                  <tr className="tr-total"><td>Total</td><td className="td-right td-mono">{fmt(totalPay)}</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div className="card">
+            <div className="card-header"><span className="card-title">Difference</span></div>
+            <div className="table-wrap">
+              <table><tbody>
+                {d.difference.map(r=>(
+                  <tr key={r.item}><td>{r.item}</td>
+                    <td className="td-right td-mono" style={{color:r.amount<0?'var(--red)':''}}>{fmt(r.amount)}</td>
+                  </tr>
+                ))}
+                <tr><td>Safe Loan</td><td className="td-right td-mono">{fmt(d.safeLoan)}</td></tr>
+              </tbody></table>
+            </div>
+          </div>
+        </div>
+
+        {/* Discounts + PLU */}
+        <div>
+          <div className="card" style={{marginBottom:16}}>
+            <div className="card-header"><span className="card-title">Discounts</span></div>
+            <div className="table-wrap">
+              <table><tbody>
+                {d.discounts.map(r=>(
+                  <tr key={r.item}><td>{r.item}</td><td className="td-right td-mono">{fmt(r.amount)}</td></tr>
+                ))}
+              </tbody></table>
+            </div>
+          </div>
+          <div className="card">
+            <div className="card-header"><span className="card-title">PLU Summary</span></div>
+            <div className="table-wrap">
+              <table><tbody>
+                <tr><td>PLU Sales</td><td className="td-right td-mono">{fmt(d.plu.sales)}</td></tr>
+                <tr><td>PLU Cost</td><td className="td-right td-mono">{fmt(d.plu.cost)}</td></tr>
+                <tr className="tr-total"><td>Gross Margin %</td><td className="td-right">{d.plu.grossMargin}%</td></tr>
+              </tbody></table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/* Sales by Day */
+const SalesDay = () => {
+  const [mode,setMode]=useState('month');
+  const [month,setMonth]=useState(5);
+  const [year,setYear]=useState(2026);
+  const rows = MOCK.sales.daily;
+  const cols = ['Date','Fuel Vol','Fuel','Grocery','Lottery','Payouts','Financial','Non-Fuel','Tax','Total','MOP/EBT','In/Out','Cash Drop','ATM Drop','Diff','Status'];
+
+  return (
+    <div>
+      <div className="kpi-grid" style={{gridTemplateColumns:'repeat(4,1fr)'}}>
+        <KPICard icon="📅" label="Days Shown" value={rows.length} sub="May 2026"/>
+        <KPICard icon="⛽" label="Total Fuel Vol" value={fmtNum(rows.reduce((s,r)=>s+r.fuelVol,0).toFixed(2))} sub="Gallons"/>
+        <KPICard icon="💰" label="Total Revenue" value={fmt(rows.reduce((s,r)=>s+r.total,0))} sub="All days"/>
+        <KPICard icon="🏦" label="Total MOP" value={fmt(rows.reduce((s,r)=>s+r.mop,0))} sub="Network transactions"/>
+      </div>
+      <FilterBar mode={mode} setMode={setMode} month={month} setMonth={setMonth} year={year} setYear={setYear} onGet={()=>{}}/>
+      <div className="card">
+        <div className="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th><th className="td-right">Fuel Vol</th><th className="td-right">Fuel</th>
+                <th className="td-right">Grocery</th><th className="td-right">Lottery</th><th className="td-right">Payouts</th>
+                <th className="td-right">Non-Fuel</th><th className="td-right">Tax</th><th className="td-right">Total</th>
+                <th className="td-right">MOP</th><th className="td-right">In/Out</th><th className="td-right">Cash Drop</th>
+                <th className="td-right">Diff</th><th>Status</th><th>Report</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map(r=>(
+                <tr key={r.date}>
+                  <td><strong>{r.date}</strong></td>
+                  <td className="td-right td-mono">{r.fuelVol.toFixed(2)}</td>
+                  <td className="td-right td-mono">{fmt(r.fuel)}</td>
+                  <td className="td-right td-mono">{fmt(r.grocery)}</td>
+                  <td className="td-right td-mono">{fmt(r.lottery)}</td>
+                  <td className="td-right td-mono" style={{color:'var(--red)'}}>{fmt(r.payouts)}</td>
+                  <td className="td-right td-mono">{fmt(r.nonFuel)}</td>
+                  <td className="td-right td-mono">{fmt(r.tax)}</td>
+                  <td className="td-right td-mono"><strong>{fmt(r.total)}</strong></td>
+                  <td className="td-right td-mono">{fmt(r.mop)}</td>
+                  <td className="td-right td-mono">{fmt(r.inOut)}</td>
+                  <td className="td-right td-mono">{fmt(r.cashDrop)}</td>
+                  <td className="td-right td-mono" style={{color:r.diff<0?'var(--red)':'var(--green)'}}>{fmt(r.diff)}</td>
+                  <td><Badge type={r.status==='Complete'?'green':'blue'}>{r.status}</Badge></td>
+                  <td style={{display:'flex',gap:4}}>
+                    <button className="btn btn-icon" title="PDF">📄</button>
+                    <button className="btn btn-icon" title="Email">📧</button>
+                  </td>
+                </tr>
+              ))}
+              <tr className="tr-total">
+                <td>Total</td>
+                <td className="td-right td-mono">{rows.reduce((s,r)=>s+r.fuelVol,0).toFixed(2)}</td>
+                {['fuel','grocery','lottery','payouts','nonFuel','tax','total','mop','inOut','cashDrop'].map(k=>(
+                  <td key={k} className="td-right td-mono">{fmt(rows.reduce((s,r)=>s+r[k],0))}</td>
+                ))}
+                <td className="td-right td-mono">{fmt(rows.reduce((s,r)=>s+r.diff,0))}</td>
+                <td colSpan={2}/>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/* Current Shift */
+const CurrentShift = () => {
+  const s = MOCK.sales.currentShift;
+  const fuelTotal = s.fuel.reduce((a,r)=>({vol:a.vol+r.vol,amount:a.amount+r.amount}),{vol:0,amount:0});
+  const scannedTotal = s.scanned.reduce((a,r)=>({qty:a.qty+r.qty,amount:a.amount+r.amount}),{qty:0,amount:0});
+  const unscannedTotal = s.unscanned.reduce((a,r)=>({qty:a.qty+r.qty,amount:a.amount+r.amount}),{qty:0,amount:0});
+
+  return (
+    <div>
+      <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:20}}>
+        <div className="conn-status connected"><div className="conn-dot"/>Live</div>
+        <span style={{fontSize:13,color:'var(--slate-500)'}}>Shift started: <strong>{s.startTime}</strong></span>
+        <button className="btn btn-outline" style={{marginLeft:'auto'}}>🔄 Refresh</button>
+      </div>
+
+      <div className="kpi-grid" style={{gridTemplateColumns:'repeat(4,1fr)',marginBottom:24}}>
+        <KPICard icon="⛽" label="Fuel Revenue" value={fmt(fuelTotal.amount)} sub={`${fuelTotal.vol.toFixed(2)} gal`}/>
+        <KPICard icon="🛒" label="Scanned Items" value={fmt(scannedTotal.amount)} sub={`${scannedTotal.qty} items`}/>
+        <KPICard icon="🏷️" label="Unscanned Items" value={fmt(unscannedTotal.amount)} sub={`${unscannedTotal.qty} items`}/>
+        <KPICard icon="🎰" label="Lottery" value={fmt(s.lottery[0].amount)} sub={`${s.lottery[0].qty} tickets`}/>
+      </div>
+
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:20,marginBottom:20}}>
+        <div className="card">
+          <div className="card-header"><span className="card-title">⛽ Fuel Sales</span></div>
+          <div className="table-wrap"><table>
+            <thead><tr><th>Fuel Type</th><th className="td-right">Volume (gal)</th><th className="td-right">Amount</th></tr></thead>
+            <tbody>
+              {s.fuel.map(r=><tr key={r.type}><td>{r.type}</td><td className="td-right td-mono">{r.vol.toFixed(2)}</td><td className="td-right td-mono">{fmt(r.amount)}</td></tr>)}
+              <tr className="tr-total"><td>Total</td><td className="td-right td-mono">{fuelTotal.vol.toFixed(2)}</td><td className="td-right td-mono">{fmt(fuelTotal.amount)}</td></tr>
+              <tr><td style={{color:'var(--slate-400)'}}>Tax Collected</td><td/><td className="td-right td-mono">{fmt(s.tax)}</td></tr>
+            </tbody>
+          </table></div>
+        </div>
+        <div className="card">
+          <div className="card-header"><span className="card-title">💳 Payments by MOP</span></div>
+          <div className="table-wrap"><table>
+            <thead><tr><th>Method</th><th className="td-right">Count</th><th className="td-right">Amount</th></tr></thead>
+            <tbody>
+              {s.payments.map(r=><tr key={r.mop}><td>{r.mop}</td><td className="td-right">{r.vol}</td><td className="td-right td-mono" style={{color:r.amount<0?'var(--red)':''}}>{fmt(r.amount)}</td></tr>)}
+            </tbody>
+          </table></div>
+        </div>
+      </div>
+
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:20}}>
+        <div className="card">
+          <div className="card-header"><span className="card-title">✅ Scanned Items by Department</span></div>
+          <div className="table-wrap"><table>
+            <thead><tr><th>Department</th><th className="td-right">Qty</th><th className="td-right">Amount</th></tr></thead>
+            <tbody>
+              {s.scanned.map(r=><tr key={r.dept}><td>{r.dept}</td><td className="td-right">{r.qty}</td><td className="td-right td-mono">{fmt(r.amount)}</td></tr>)}
+              <tr className="tr-total"><td>Total</td><td className="td-right">{scannedTotal.qty}</td><td className="td-right td-mono">{fmt(scannedTotal.amount)}</td></tr>
+            </tbody>
+          </table></div>
+        </div>
+        <div>
+          <div className="card" style={{marginBottom:16}}>
+            <div className="card-header"><span className="card-title">🏷️ Un-Scanned Items</span></div>
+            <div className="table-wrap"><table>
+              <thead><tr><th>Department</th><th className="td-right">Qty</th><th className="td-right">Amount</th></tr></thead>
+              <tbody>
+                {s.unscanned.map(r=><tr key={r.dept}><td>{r.dept}</td><td className="td-right">{r.qty}</td><td className="td-right td-mono">{fmt(r.amount)}</td></tr>)}
+                <tr className="tr-total"><td>Total</td><td className="td-right">{unscannedTotal.qty}</td><td className="td-right td-mono">{fmt(unscannedTotal.amount)}</td></tr>
+              </tbody>
+            </table></div>
+          </div>
+          <div className="card">
+            <div className="card-header"><span className="card-title">🎰 Lottery Sales</span></div>
+            <div className="table-wrap"><table>
+              <thead><tr><th>Type</th><th className="td-right">Qty</th><th className="td-right">Amount</th></tr></thead>
+              <tbody>
+                {s.lottery.map(r=><tr key={r.type}><td>{r.type}</td><td className="td-right">{r.qty}</td><td className="td-right td-mono">{fmt(r.amount)}</td></tr>)}
+              </tbody>
+            </table></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/* Grocery Sales */
+const GrocerySales = () => {
+  const [mode,setMode]=useState('month');
+  const [month,setMonth]=useState(5);
+  const [year,setYear]=useState(2026);
+  const [search,setSearch]=useState('');
+  const [tab,setTab]=useState('departments');
+  const rows = MOCK.grocery.departments.filter(r=>r.dept.toLowerCase().includes(search.toLowerCase()));
+  const totals = rows.reduce((a,r)=>({count:a.count+r.count,sale:a.sale+r.sale,cost:a.cost+r.cost,gp:a.gp+r.gp}),{count:0,sale:0,cost:0,gp:0});
+
+  return (
+    <div>
+      <div className="kpi-grid" style={{gridTemplateColumns:'repeat(4,1fr)'}}>
+        <KPICard icon="🛒" label="Total Items Sold" value={fmtNum(1343)} sub="This month"/>
+        <KPICard icon="💵" label="Total Sales" value={fmt(6905.22)} sub="Retail price"/>
+        <KPICard icon="📦" label="Total Cost" value={fmt(totals.cost)} sub="Cost of goods"/>
+        <KPICard icon="📊" label="Gross Profit" value={fmt(totals.gp)} sub={`${Math.round(totals.gp/totals.sale*100)||0}% margin`} color="var(--green-dark)"/>
+      </div>
+
+      <div className="tabs">
+        {[['departments','🏪 Store Departments'],['top-selling','🔥 Top Selling / Categories'],['inventory','📦 Audit Inventory']].map(([id,label])=>(
+          <div key={id} className={`tab ${tab===id?'active':''}`} onClick={()=>setTab(id)}>{label}</div>
+        ))}
+      </div>
+
+      <div className="filter-bar">
+        <input className="filter-input" placeholder="🔍 Search department…" value={search} onChange={e=>setSearch(e.target.value)} style={{width:240}}/>
+        <div style={{marginLeft:'auto',display:'flex',gap:8}}>
+          <FilterBar mode={mode} setMode={setMode} month={month} setMonth={setMonth} year={year} setYear={setYear} onGet={()=>{}}/>
+        </div>
+      </div>
+
+      <div className="card">
+        <div className="table-wrap"><table>
+          <thead><tr>
+            <th>Department</th><th>Tax</th><th className="td-right">Count</th>
+            <th className="td-right">Sale Price</th><th className="td-right">Cost Price</th>
+            <th className="td-right">Rebate</th><th className="td-right">Gross Profit</th><th className="td-right">Margin %</th>
+          </tr></thead>
+          <tbody>
+            {rows.map(r=>(
+              <tr key={r.dept}>
+                <td><strong>{r.dept}</strong></td>
+                <td><Badge type={r.tax==='HIGH'?'orange':'gray'}>{r.tax}</Badge></td>
+                <td className="td-right">{fmtNum(r.count)}</td>
+                <td className="td-right td-mono">{fmt(r.sale)}</td>
+                <td className="td-right td-mono">{fmt(r.cost)}</td>
+                <td className="td-right td-mono">{fmt(r.rebate)}</td>
+                <td className="td-right td-mono" style={{color:'var(--green-dark)',fontWeight:600}}>{fmt(r.gp)}</td>
+                <td className="td-right">
+                  <span style={{
+                    color: r.margin>40?'var(--green-dark)':r.margin>20?'var(--orange)':'var(--red)',
+                    fontWeight:600
+                  }}>{r.margin}%</span>
+                </td>
+              </tr>
+            ))}
+            <tr className="tr-total">
+              <td>Total</td><td/><td className="td-right">{fmtNum(totals.count)}</td>
+              <td className="td-right td-mono">{fmt(totals.sale)}</td>
+              <td className="td-right td-mono">{fmt(totals.cost)}</td>
+              <td className="td-right td-mono">£0.00</td>
+              <td className="td-right td-mono">{fmt(totals.gp)}</td>
+              <td className="td-right">{Math.round(totals.gp/totals.sale*100)}%</td>
+            </tr>
+          </tbody>
+        </table></div>
+      </div>
+    </div>
+  );
+};
+
+/* Lottery */
+const Lottery = () => {
+  const [mode,setMode]=useState('month');
+  const [month,setMonth]=useState(5);
+  const [year,setYear]=useState(2026);
+  const rows = MOCK.lottery.sales;
+  const totals = rows.reduce((a,r)=>({instantSales:a.instantSales+r.instantSales,payouts:a.payouts+r.payouts,netRevenue:a.netRevenue+r.netRevenue}),{instantSales:0,payouts:0,netRevenue:0});
+
+  return (
+    <div>
+      <div className="kpi-grid" style={{gridTemplateColumns:'repeat(4,1fr)'}}>
+        <KPICard icon="🎰" label="Total Lottery Sales" value={fmt(totals.instantSales)} sub="Instant tickets"/>
+        <KPICard icon="💸" label="Total Payouts" value={fmt(totals.payouts)} sub="Winnings paid"/>
+        <KPICard icon="💰" label="Net Lottery Revenue" value={fmt(totals.netRevenue)} sub="Sales minus payouts" color="var(--green-dark)"/>
+        <KPICard icon="📈" label="Payout Ratio" value={`${Math.round(totals.payouts/totals.instantSales*100)}%`} sub="Industry avg: ~65%"/>
+      </div>
+      <FilterBar mode={mode} setMode={setMode} month={month} setMonth={setMonth} year={year} setYear={setYear} onGet={()=>{}}/>
+      <div style={{display:'grid',gridTemplateColumns:'2fr 1fr',gap:20}}>
+        <div className="card">
+          <div className="card-header"><span className="card-title">Lottery Sales by Day</span></div>
+          <div className="table-wrap"><table>
+            <thead><tr>
+              <th>Date</th><th className="td-right">Instant Sales</th><th className="td-right">Online Sales</th>
+              <th className="td-right">Total Sales</th><th className="td-right">Payouts</th><th className="td-right">Net Revenue</th>
+            </tr></thead>
+            <tbody>
+              {rows.map(r=>(
+                <tr key={r.date}>
+                  <td>{r.date}</td>
+                  <td className="td-right td-mono">{fmt(r.instantSales)}</td>
+                  <td className="td-right td-mono">{fmt(r.onlineSales)}</td>
+                  <td className="td-right td-mono">{fmt(r.totalSales)}</td>
+                  <td className="td-right td-mono" style={{color:'var(--red)'}}>{fmt(r.payouts)}</td>
+                  <td className="td-right td-mono" style={{color:'var(--green-dark)',fontWeight:600}}>{fmt(r.netRevenue)}</td>
+                </tr>
+              ))}
+              <tr className="tr-total">
+                <td>Total</td>
+                <td className="td-right td-mono">{fmt(totals.instantSales)}</td>
+                <td className="td-right td-mono">£0.00</td>
+                <td className="td-right td-mono">{fmt(totals.instantSales)}</td>
+                <td className="td-right td-mono">{fmt(totals.payouts)}</td>
+                <td className="td-right td-mono" style={{color:'var(--green-dark)'}}>{fmt(totals.netRevenue)}</td>
+              </tr>
+            </tbody>
+          </table></div>
+        </div>
+        <div className="chart-card">
+          <h3>📊 Sales vs Payouts</h3>
+          <BarChart
+            labels={rows.map(r=>r.date.slice(0,5))}
+            datasets={[
+              { label:'Sales', data:rows.map(r=>r.instantSales), backgroundColor:'#22c55e80', borderColor:'#22c55e', borderWidth:1 },
+              { label:'Payouts', data:rows.map(r=>r.payouts), backgroundColor:'#ef444480', borderColor:'#ef4444', borderWidth:1 },
+            ]}
+          />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/* Fuel */
+const Fuel = ({sub}) => {
+  const [mode,setMode]=useState('month');
+  const [month,setMonth]=useState(5);
+  const [year,setYear]=useState(2026);
+
+  if (sub==='fuel-jobber') return (
+    <div>
+      <div className="kpi-grid" style={{gridTemplateColumns:'repeat(3,1fr)'}}>
+        <KPICard icon="🚛" label="Total Deliveries" value={MOCK.fuel.jobberBatches.length} sub="This month"/>
+        <KPICard icon="⛽" label="Total Volume" value={fmtNum(MOCK.fuel.jobberBatches.reduce((s,r)=>s+r.vol,0))} sub="Gallons"/>
+        <KPICard icon="💰" label="Total Invoice" value={fmt(MOCK.fuel.jobberBatches.reduce((s,r)=>s+r.invoice,0))} sub="Jobber cost"/>
+      </div>
+      <FilterBar mode={mode} setMode={setMode} month={month} setMonth={setMonth} year={year} setYear={setYear} onGet={()=>{}}/>
+      <div className="card">
+        <div className="table-wrap"><table>
+          <thead><tr><th>Date</th><th>Jobber</th><th>Product</th><th className="td-right">Volume (gal)</th><th className="td-right">Invoice</th><th>Status</th></tr></thead>
+          <tbody>
+            {MOCK.fuel.jobberBatches.map((r,i)=>(
+              <tr key={i}><td>{r.date}</td><td>{r.jobber}</td><td>{r.product}</td>
+                <td className="td-right td-mono">{fmtNum(r.vol)}</td>
+                <td className="td-right td-mono">{fmt(r.invoice)}</td>
+                <td><Badge type="green">{r.status}</Badge></td>
+              </tr>
+            ))}
+          </tbody>
+        </table></div>
+      </div>
+    </div>
+  );
+
+  if (sub==='fuel-margins') return (
+    <div>
+      <div className="kpi-grid" style={{gridTemplateColumns:'repeat(4,1fr)'}}>
+        <KPICard icon="📊" label="Avg CPG Margin" value="$0.509" sub="Cents per gallon"/>
+        <KPICard icon="⛽" label="Total Volume" value={fmtNum(MOCK.fuel.margins.reduce((s,r)=>s+r.vol,0).toFixed(2))} sub="Gallons sold"/>
+        <KPICard icon="💰" label="Total Retail" value={fmt(MOCK.fuel.margins.reduce((s,r)=>s+r.retail,0))} sub="Gross fuel sales"/>
+        <KPICard icon="📈" label="Total Margin" value={fmt(MOCK.fuel.margins.reduce((s,r)=>s+r.margin,0))} color="var(--green-dark)"/>
+      </div>
+      <FilterBar mode={mode} setMode={setMode} month={month} setMonth={setMonth} year={year} setYear={setYear} onGet={()=>{}}/>
+      <div className="card">
+        <div className="table-wrap"><table>
+          <thead><tr><th>Date</th><th>Product</th><th className="td-right">Volume</th><th className="td-right">Retail</th><th className="td-right">Cost</th><th className="td-right">Margin £</th><th className="td-right">CPG</th></tr></thead>
+          <tbody>
+            {MOCK.fuel.margins.map((r,i)=>(
+              <tr key={i}><td>{r.date}</td><td>{r.product}</td>
+                <td className="td-right td-mono">{r.vol.toFixed(2)}</td>
+                <td className="td-right td-mono">{fmt(r.retail)}</td>
+                <td className="td-right td-mono">{fmt(r.cost)}</td>
+                <td className="td-right td-mono" style={{color:'var(--green-dark)',fontWeight:600}}>{fmt(r.margin)}</td>
+                <td className="td-right td-mono">{r.cpp.toFixed(3)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table></div>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="empty-state">
+      <div className="icon">⛽</div>
+      <p>UST Readings — select from sidebar</p>
+    </div>
+  );
+};
+
+/* Operating Expenses */
+const OperatingExpenses = () => {
+  const [mode,setMode]=useState('month');
+  const [month,setMonth]=useState(5);
+  const [year,setYear]=useState(2026);
+  const rows = MOCK.expenses.list;
+  const total = rows.reduce((s,r)=>s+r.amount,0);
+
+  return (
+    <div>
+      <div className="kpi-grid" style={{gridTemplateColumns:'repeat(4,1fr)'}}>
+        <KPICard icon="📋" label="Total Expenses" value={fmt(total)} sub="This month"/>
+        <KPICard icon="✅" label="Paid" value={fmt(rows.filter(r=>r.status==='Paid').reduce((s,r)=>s+r.amount,0))} sub={`${rows.filter(r=>r.status==='Paid').length} invoices`}/>
+        <KPICard icon="⏳" label="Pending" value={fmt(rows.filter(r=>r.status==='Pending').reduce((s,r)=>s+r.amount,0))} sub={`${rows.filter(r=>r.status==='Pending').length} invoices`} color="var(--orange)"/>
+        <KPICard icon="📈" label="vs Last Month" value="+2.4%" sub="Above average"/>
+      </div>
+      <FilterBar mode={mode} setMode={setMode} month={month} setMonth={setMonth} year={year} setYear={setYear} onGet={()=>{}}
+        extra={<button className="btn btn-primary">+ Add Expense</button>}
+      />
+      <div className="card">
+        <div className="table-wrap"><table>
+          <thead><tr><th>Date</th><th>Category</th><th>Vendor</th><th>Reference</th><th className="td-right">Amount</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody>
+            {rows.map((r,i)=>(
+              <tr key={i}>
+                <td>{r.date}</td><td>{r.category}</td><td>{r.vendor}</td><td style={{color:'var(--slate-400)'}}>{r.ref}</td>
+                <td className="td-right td-mono">{fmt(r.amount)}</td>
+                <td><Badge type={r.status==='Paid'?'green':'orange'}>{r.status}</Badge></td>
+                <td style={{display:'flex',gap:4}}>
+                  <button className="btn btn-icon" title="View">👁</button>
+                  <button className="btn btn-icon" title="Edit">✏️</button>
+                </td>
+              </tr>
+            ))}
+            <tr className="tr-total"><td colSpan={4}>Total</td><td className="td-right td-mono">{fmt(total)}</td><td colSpan={2}/></tr>
+          </tbody>
+        </table></div>
+      </div>
+    </div>
+  );
+};
+
+/* Setup */
+const Setup = ({sub}) => {
+  const sections = {
+    'setup-alerts': { title:'Alerts & SMS Preferences', icon:'🔔', desc:'Configure who receives SMS alerts and what triggers them.' },
+    'setup-users': { title:'System Admin — Users', icon:'👥', desc:'Manage user accounts, roles, and permissions.' },
+    'setup-preferences': { title:'Location Preferences', icon:'⚙️', desc:'Tax rates, currency, date formats, and display settings.' },
+    'setup-pos': { title:'POS System Information', icon:'🖥️', desc:'Connect and configure your Point of Sale terminal.' },
+    'setup-location': { title:'Location Information', icon:'📍', desc:'Store address, contact info, and operating hours.' },
+    'setup-jobber': { title:'Jobber & Fuel Management', icon:'🚛', desc:'Configure fuel suppliers, jobber accounts, and tank info.' },
+    'setup-lottery': { title:'Lottery Settings', icon:'🎰', desc:'Lottery commission rates, machine settings, and reporting.' },
+  };
+  const s = sections[sub] || sections['setup-preferences'];
+  return (
+    <div>
+      <div className="section-hero">
+        <div>
+          <h1>{s.icon} {s.title}</h1>
+          <p>{s.desc}</p>
+        </div>
+      </div>
+      <div className="card" style={{padding:32,textAlign:'center'}}>
+        <div style={{fontSize:48,marginBottom:16}}>{s.icon}</div>
+        <div style={{fontSize:16,fontWeight:600,color:'var(--slate-700)',marginBottom:8}}>{s.title}</div>
+        <div style={{color:'var(--slate-400)',fontSize:14,marginBottom:24}}>{s.desc}</div>
+        <button className="btn btn-primary">⚙️ Configure Settings</button>
+      </div>
+    </div>
+  );
+};
+
+/* Generic placeholder for other sections */
+const Placeholder = ({title, icon, desc}) => (
+  <div>
+    <div className="section-hero">
+      <div><h1>{icon} {title}</h1><p>{desc}</p></div>
+    </div>
+    <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:16,marginBottom:24}}>
+      {[1,2,3].map(i=><div key={i} className="kpi-card" style={{height:80,background:'var(--slate-100)',border:'2px dashed var(--slate-200)',display:'flex',alignItems:'center',justifyContent:'center',color:'var(--slate-400)'}}>Loading data…</div>)}
+    </div>
+    <div className="card" style={{padding:60,textAlign:'center',color:'var(--slate-400)'}}>
+      <div style={{fontSize:48,marginBottom:12}}>{icon}</div>
+      <div style={{fontSize:15,fontWeight:600,marginBottom:4}}>{title}</div>
+      <div style={{fontSize:13}}>Connect to Mercury or Ruby POS to view live data</div>
+      <div style={{marginTop:16,display:'flex',gap:8,justifyContent:'center'}}>
+        <button className="btn btn-primary">🔌 Connect Data Source</button>
+        <button className="btn btn-outline">📂 Load Sample Data</button>
+      </div>
+    </div>
+  </div>
+);
+
+/* ─── MAIN APP ─── */
+const App = () => {
+  const [page, setPage] = useState('sales-summary');
+  const [collapsed, setCollapsed] = useState(false);
+  const [source, setSource] = useState('mercury');
+  const [showRubyModal, setShowRubyModal] = useState(false);
+  const [rubyConfig, setRubyConfig] = useState({ type:'local', ip:'', port:'8080', baseUrl:'', username:'', password:'' });
+
+  const store = MOCK.store;
+
+  const renderPage = () => {
+    switch(page) {
+      case 'dashboard-analytics': return <DashboardAnalytics/>;
+      case 'dashboard-summary': return <Placeholder title="Dashboard Summary" icon="📋" desc="High-level store performance summary and key metrics."/>;
+      case 'dashboard-som': return <Placeholder title="SOM Report" icon="🎯" desc="Share of Market analysis and competitive benchmarking."/>;
+      case 'sales-summary': return <SalesSummary/>;
+      case 'sales-day': return <SalesDay/>;
+      case 'sales-shifts': return <SalesDay/>; // reuse pattern
+      case 'sales-current': return <CurrentShift/>;
+      case 'grocery-sales': return <GrocerySales/>;
+      case 'grocery-purchases': return <Placeholder title="Grocery Purchases" icon="📦" desc="Track all grocery purchase orders and invoices from vendors."/>;
+      case 'grocery-pricebook': return <Placeholder title="Pricebook & Deals" icon="🏷️" desc="Manage product pricing, promotions, and deal configurations."/>;
+      case 'grocery-inventory': return <Placeholder title="Inventory" icon="📋" desc="Real-time inventory levels, shrink tracking, and reorder points."/>;
+      case 'grocery-search': return <Placeholder title="Search / Add Item" icon="🔍" desc="Search products by PLU, barcode, or name. Add new items."/>;
+      case 'lottery': return <Lottery/>;
+      case 'fuel-jobber': return <Fuel sub="fuel-jobber"/>;
+      case 'fuel-margins': return <Fuel sub="fuel-margins"/>;
+      case 'fuel-ust': return <Fuel sub="fuel-ust"/>;
+      case 'financial-atm': return <Placeholder title="ATM Cash Drops" icon="🏧" desc="Record and reconcile ATM cash drops and settlements."/>;
+      case 'financial-other': return <Placeholder title="Other Income" icon="💵" desc="Track miscellaneous income sources beyond core POS categories."/>;
+      case 'financial-services': return <Placeholder title="Financial Services" icon="💳" desc="Money orders, bill pay, and financial service transactions."/>;
+      case 'financial-house': return <Placeholder title="House Accounts" icon="🏠" desc="Manage local credit accounts and customer house account balances."/>;
+      case 'expenses': return <OperatingExpenses/>;
+      case 'reports': return <Placeholder title="Reports" icon="📈" desc="Generate and download detailed financial and operational reports."/>;
+      case 'scan-data': return <Placeholder title="Scan Data" icon="📦" desc="Barcode scan data, PLU movement, and inventory reconciliation."/>;
+      case 'transactions': return <Placeholder title="Store Transactions" icon="🔄" desc="Full transaction log with filtering, search, and export."/>;
+      case 'mostedge': return <Placeholder title="MostEdge TV" icon="📺" desc="Digital signage and promotional content management."/>;
+      default:
+        if (page.startsWith('setup-')) return <Setup sub={page}/>;
+        return <Placeholder title={page} icon="📄" desc=""/>;
+    }
+  };
+
+  return (
+    <div id="app">
+      <Sidebar active={page} setActive={setPage} collapsed={collapsed} setCollapsed={setCollapsed}/>
+      <div className="main">
+        <Header
+          page={page}
+          source={source}
+          setSource={setSource}
+          store={store}
+          onSettingsClick={()=>setShowRubyModal(true)}
+        />
+        <div className="page">
+          {renderPage()}
+        </div>
+      </div>
+      {showRubyModal && (
+        <RubyPOSModal
+          config={rubyConfig}
+          setConfig={setRubyConfig}
+          onClose={()=>setShowRubyModal(false)}
+        />
+      )}
+    </div>
+  );
+};
+
+ReactDOM.createRoot(document.getElementById('app')).render(<App/>);
+</script>
+</body>
+</html>
