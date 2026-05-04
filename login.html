@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>StoreCheck — Login</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',sans-serif;background:#f8fafc;min-height:100vh;display:flex;flex-direction:column}
+:root{--green:#22c55e;--green-dark:#16a34a;--dark:#0f172a;--slate:#1e293b;--gray:#64748b;--border:#e2e8f0}
+nav{padding:20px 5%;display:flex;align-items:center;justify-content:space-between}
+.nav-logo{display:flex;align-items:center;gap:10px;font-size:18px;font-weight:800;color:var(--dark);text-decoration:none}
+.nav-logo-mark{width:32px;height:32px;background:var(--green);border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px;font-weight:900}
+.auth-wrap{flex:1;display:flex;align-items:center;justify-content:center;padding:40px 20px}
+.auth-card{background:#fff;border-radius:16px;border:1px solid var(--border);padding:40px;width:100%;max-width:420px;box-shadow:0 4px 24px rgba(0,0,0,.06)}
+.auth-header{text-align:center;margin-bottom:32px}
+.auth-logo-mark{width:52px;height:52px;background:var(--green);border-radius:14px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:22px;font-weight:900;margin:0 auto 16px}
+.auth-title{font-size:22px;font-weight:800;color:var(--dark);margin-bottom:6px}
+.auth-sub{font-size:14px;color:var(--gray)}
+.auth-tabs{display:flex;background:#f1f5f9;border-radius:10px;padding:3px;margin-bottom:28px}
+.auth-tab{flex:1;padding:9px;text-align:center;font-size:14px;font-weight:600;border-radius:8px;cursor:pointer;transition:all .2s;color:var(--gray);border:none;background:transparent}
+.auth-tab.active{background:#fff;color:var(--dark);box-shadow:0 1px 4px rgba(0,0,0,.1)}
+.form-group{margin-bottom:16px}
+.form-label{display:block;font-size:13px;font-weight:600;color:var(--slate);margin-bottom:6px}
+.form-input{width:100%;padding:11px 14px;border:1.5px solid var(--border);border-radius:9px;font-size:14px;font-family:'Inter',sans-serif;outline:none;transition:border-color .15s;color:var(--dark);background:#fff}
+.form-input:focus{border-color:var(--green)}
+.btn-submit{width:100%;padding:13px;background:var(--green);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;transition:all .2s;font-family:'Inter',sans-serif;margin-top:8px}
+.btn-submit:hover{background:var(--green-dark);transform:translateY(-1px);box-shadow:0 4px 16px rgba(34,197,94,.3)}
+.btn-submit:disabled{background:#94a3b8;transform:none;box-shadow:none;cursor:not-allowed}
+.forgot-link{display:block;text-align:right;font-size:13px;color:var(--green-dark);font-weight:500;margin-top:-8px;margin-bottom:16px;text-decoration:none}
+.alert{padding:12px 14px;border-radius:9px;font-size:13.5px;margin-bottom:16px;display:none}
+.alert-error{background:#fee2e2;color:#991b1b;border:1px solid #fecaca}
+.alert-success{background:#dcfce7;color:#166534;border:1px solid #bbf7d0}
+.alert.show{display:block}
+.role-select-wrap{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+.role-option{border:1.5px solid var(--border);border-radius:10px;padding:12px;cursor:pointer;transition:all .15s;text-align:center}
+.role-option:hover{border-color:var(--green)}
+.role-option.selected{border-color:var(--green);background:#f0fdf4}
+.role-option input{display:none}
+.role-option-icon{font-size:22px;margin-bottom:4px}
+.role-option-label{font-size:13px;font-weight:600;color:var(--dark)}
+.role-option-desc{font-size:11px;color:var(--gray);margin-top:2px}
+.terms{font-size:12px;color:var(--gray);text-align:center;margin-top:16px;line-height:1.5}
+.terms a{color:var(--green-dark)}
+.auth-footer{text-align:center;padding:20px;font-size:13px;color:var(--gray)}
+.auth-footer a{color:var(--green-dark);font-weight:600;text-decoration:none}
+</style>
+</head>
+<body>
+<nav>
+  <a href="index.html" class="nav-logo"><div class="nav-logo-mark">SC</div>StoreCheck</a>
+  <span style="font-size:13px;color:var(--gray)">Need help? <a href="mailto:hello@storecheck.io" style="color:var(--green-dark)">Contact us</a></span>
+</nav>
+<div class="auth-wrap">
+  <div class="auth-card">
+    <div class="auth-header">
+      <div class="auth-logo-mark">SC</div>
+      <div class="auth-title" id="authTitle">Welcome back</div>
+      <div class="auth-sub" id="authSub">Log in to your StoreCheck account</div>
+    </div>
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="loginTab" onclick="switchTab('login')">Log in</button>
+      <button class="auth-tab" id="signupTab" onclick="switchTab('signup')">Sign up free</button>
+    </div>
+    <div id="alertBox" class="alert"></div>
+    <form id="loginForm" onsubmit="handleLogin(event)">
+      <div class="form-group"><label class="form-label">Email address</label><input type="email" class="form-input" id="loginEmail" placeholder="you@yourstore.com" required/></div>
+      <div class="form-group"><label class="form-label">Password</label><input type="password" class="form-input" id="loginPassword" placeholder="••••••••" required/></div>
+      <a href="#" class="forgot-link" onclick="handleForgot(event)">Forgot password?</a>
+      <button type="submit" class="btn-submit" id="loginBtn">Log in →</button>
+      <div class="terms" style="margin-top:12px"><a href="dashboard.html" style="color:var(--green-dark)">Continue as guest (demo mode)</a></div>
+    </form>
+    <form id="signupForm" style="display:none" onsubmit="handleSignup(event)">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="form-group"><label class="form-label">First name</label><input type="text" class="form-input" id="signupFirst" placeholder="Philip" required/></div>
+        <div class="form-group"><label class="form-label">Last name</label><input type="text" class="form-input" id="signupLast" placeholder="Desmond" required/></div>
+      </div>
+      <div class="form-group"><label class="form-label">Email address</label><input type="email" class="form-input" id="signupEmail" placeholder="you@yourstore.com" required/></div>
+      <div class="form-group"><label class="form-label">Store name</label><input type="text" class="form-input" id="signupStore" placeholder="My C-Store" required/></div>
+      <div class="form-group"><label class="form-label">Password</label><input type="password" class="form-input" id="signupPassword" placeholder="Min. 8 characters" required minlength="8"/></div>
+      <div class="form-group">
+        <label class="form-label">Your role</label>
+        <div class="role-select-wrap">
+          <label class="role-option selected" id="roleOwner"><input type="radio" name="role" value="owner" checked/><div class="role-option-icon">🏪</div><div class="role-option-label">Owner</div><div class="role-option-desc">Full access + admin</div></label>
+          <label class="role-option" id="roleManager"><input type="radio" name="role" value="manager"/><div class="role-option-icon">👤</div><div class="role-option-label">Manager</div><div class="role-option-desc">View & reports only</div></label>
+        </div>
+      </div>
+      <button type="submit" class="btn-submit" id="signupBtn">Create free account →</button>
+      <div class="terms">By signing up you agree to our <a href="#">Terms</a> and <a href="#">Privacy Policy</a></div>
+    </form>
+  </div>
+</div>
+<div class="auth-footer">© 2026 StoreCheck · <a href="index.html">Back to home</a></div>
+<script>
+const SUPABASE_URL = 'YOUR_SUPABASE_URL';
+const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+let supabase = null;
+try { supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY); } catch(e) {}
+if (window.location.hash === '#signup') switchTab('signup');
+async function checkSession() { if (!supabase) return; const { data: { session } } = await supabase.auth.getSession(); if (session) window.location.href = 'dashboard.html'; }
+checkSession();
+function switchTab(tab) {
+  const isLogin = tab === 'login';
+  document.getElementById('loginTab').classList.toggle('active', isLogin);
+  document.getElementById('signupTab').classList.toggle('active', !isLogin);
+  document.getElementById('loginForm').style.display = isLogin ? 'block' : 'none';
+  document.getElementById('signupForm').style.display = isLogin ? 'none' : 'block';
+  document.getElementById('authTitle').textContent = isLogin ? 'Welcome back' : 'Get started free';
+  document.getElementById('authSub').textContent = isLogin ? 'Log in to your StoreCheck account' : 'Create your account in under a minute';
+  clearAlert();
+}
+document.querySelectorAll('.role-option').forEach(el => { el.addEventListener('click', () => { document.querySelectorAll('.role-option').forEach(r => r.classList.remove('selected')); el.classList.add('selected'); }); });
+function showAlert(msg, type='error') { const box = document.getElementById('alertBox'); box.textContent = msg; box.className = 'alert alert-'+type+' show'; }
+function clearAlert() { document.getElementById('alertBox').className = 'alert'; }
+async function handleLogin(e) {
+  e.preventDefault(); clearAlert();
+  const btn = document.getElementById('loginBtn');
+  btn.disabled = true; btn.textContent = 'Logging in…';
+  if (!supabase || SUPABASE_URL === 'YOUR_SUPABASE_URL') { setTimeout(() => { window.location.href = 'dashboard.html'; }, 800); return; }
+  const { error } = await supabase.auth.signInWithPassword({ email: document.getElementById('loginEmail').value, password: document.getElementById('loginPassword').value });
+  if (error) { showAlert(error.message); btn.disabled = false; btn.textContent = 'Log in →'; } else { window.location.href = 'dashboard.html'; }
+}
+async function handleSignup(e) {
+  e.preventDefault(); clearAlert();
+  const btn = document.getElementById('signupBtn');
+  btn.disabled = true; btn.textContent = 'Creating account…';
+  if (!supabase || SUPABASE_URL === 'YOUR_SUPABASE_URL') { showAlert('✅ Account created! Redirecting…', 'success'); setTimeout(() => { window.location.href = 'dashboard.html'; }, 1200); return; }
+  const { error } = await supabase.auth.signUp({ email: document.getElementById('signupEmail').value, password: document.getElementById('signupPassword').value, options: { data: { first_name: document.getElementById('signupFirst').value, last_name: document.getElementById('signupLast').value, store_name: document.getElementById('signupStore').value, role: document.querySelector('input[name="role"]:checked').value } } });
+  if (error) { showAlert(error.message); btn.disabled = false; btn.textContent = 'Create free account →'; } else { showAlert('✅ Check your email to confirm your account!', 'success'); btn.disabled = false; btn.textContent = 'Create free account →'; }
+}
+async function handleForgot(e) {
+  e.preventDefault();
+  const email = document.getElementById('loginEmail').value;
+  if (!email) { showAlert('Enter your email address first'); return; }
+  if (!supabase || SUPABASE_URL === 'YOUR_SUPABASE_URL') { showAlert('Password reset email sent! (demo mode)', 'success'); return; }
+  await supabase.auth.resetPasswordForEmail(email);
+  showAlert('Password reset email sent — check your inbox!', 'success');
+}
+</script>
+</body>
+</html>
