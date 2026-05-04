@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>StoreCheck — Modern C-Store Analytics</title>
+<meta name="description" content="StoreCheck — Modern shift reporting and analytics for convenience stores. Works with Mercury POS and Ruby POS."/>
+<meta name="keywords" content="convenience store software, c-store analytics, shift reporting, Mercury POS dashboard, Ruby POS reporting"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--green:#22c55e;--green-dark:#16a34a;--green-light:#dcfce7;--dark:#0f172a;--slate:#1e293b;--gray:#64748b;--border:#e2e8f0;--bg:#f8fafc}
+body{font-family:'Inter',sans-serif;color:var(--slate);background:#fff;line-height:1.6}
+a{text-decoration:none;color:inherit}
+nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(255,255,255,.95);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:0 5%;height:68px;display:flex;align-items:center;justify-content:space-between}
+.nav-logo{display:flex;align-items:center;gap:10px;font-size:20px;font-weight:800;color:var(--dark)}
+.nav-logo-mark{width:36px;height:36px;background:var(--green);border-radius:9px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:16px;font-weight:900}
+.nav-links{display:flex;align-items:center;gap:32px}
+.nav-links a{font-size:14px;font-weight:500;color:var(--gray);transition:color .15s}
+.nav-links a:hover{color:var(--dark)}
+.nav-cta{display:flex;align-items:center;gap:10px}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:9px 20px;border-radius:9px;font-size:14px;font-weight:600;cursor:pointer;transition:all .2s;border:none}
+.btn-ghost{background:transparent;color:var(--slate);border:1px solid var(--border)}
+.btn-ghost:hover{background:var(--bg)}
+.btn-primary{background:var(--green);color:#fff}
+.btn-primary:hover{background:var(--green-dark);transform:translateY(-1px);box-shadow:0 4px 12px rgba(34,197,94,.3)}
+.btn-lg{padding:14px 28px;font-size:15px;border-radius:10px}
+.btn-dark{background:var(--dark);color:#fff}
+.hero{padding:140px 5% 100px;background:linear-gradient(180deg,#fff 0%,var(--bg) 100%);text-align:center;position:relative;overflow:hidden}
+.hero-badge{display:inline-flex;align-items:center;gap:6px;background:var(--green-light);color:var(--green-dark);padding:6px 14px;border-radius:20px;font-size:13px;font-weight:600;margin-bottom:24px;border:1px solid rgba(34,197,94,.2)}
+.hero h1{font-size:clamp(40px,6vw,72px);font-weight:900;line-height:1.05;color:var(--dark);margin-bottom:24px;letter-spacing:-2px}
+.hero h1 .highlight{color:var(--green)}
+.hero p{font-size:clamp(16px,2vw,20px);color:var(--gray);max-width:580px;margin:0 auto 40px;line-height:1.7}
+.hero-cta{display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+.hero-sub{font-size:13px;color:var(--gray)}
+.hero-sub span{color:var(--green-dark);font-weight:600}
+.preview-wrap{margin:60px auto 0;max-width:1100px;background:var(--dark);border-radius:16px;padding:3px;box-shadow:0 40px 80px rgba(0,0,0,.2)}
+.preview-bar{background:#1e293b;border-radius:13px 13px 0 0;padding:12px 16px;display:flex;align-items:center;gap:8px}
+.dot-r{width:12px;height:12px;border-radius:50%;background:#ef4444}
+.dot-y{width:12px;height:12px;border-radius:50%;background:#f59e0b}
+.dot-g{width:12px;height:12px;border-radius:50%;background:#22c55e}
+.preview-url{flex:1;background:rgba(255,255,255,.05);border-radius:6px;padding:4px 12px;font-size:12px;color:#64748b;text-align:center;margin:0 12px}
+.preview-inner{background:var(--bg);border-radius:0 0 13px 13px;padding:20px;overflow:hidden}
+.preview-grid{display:grid;grid-template-columns:200px 1fr;gap:16px;height:360px}
+.preview-sidebar{background:var(--dark);border-radius:10px;padding:16px}
+.preview-sidebar-logo{display:flex;align-items:center;gap:8px;margin-bottom:20px}
+.preview-sidebar-logo-mark{width:28px;height:28px;background:var(--green);border-radius:6px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:900}
+.preview-sidebar-logo-text{font-size:13px;font-weight:700;color:#fff}
+.preview-nav-item{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:7px;font-size:12px;color:#94a3b8;margin-bottom:2px}
+.preview-nav-item.active{background:rgba(34,197,94,.15);color:var(--green)}
+.preview-main{display:flex;flex-direction:column;gap:12px;overflow:hidden}
+.preview-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.preview-kpi{background:#fff;border-radius:9px;padding:14px;border:1px solid var(--border)}
+.preview-kpi-label{font-size:10px;color:var(--gray);font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px}
+.preview-kpi-value{font-size:20px;font-weight:800;color:var(--dark)}
+.preview-kpi-sub{font-size:10px;color:var(--green-dark);margin-top:2px}
+.preview-table{background:#fff;border-radius:9px;border:1px solid var(--border);flex:1;overflow:hidden}
+.logos{padding:40px 5%;text-align:center;border-bottom:1px solid var(--border)}
+.logos p{font-size:13px;color:var(--gray);margin-bottom:20px;font-weight:500}
+.logo-row{display:flex;align-items:center;justify-content:center;gap:48px;flex-wrap:wrap}
+.logo-item{font-size:15px;font-weight:700;color:#94a3b8;letter-spacing:.5px}
+.section-label{font-size:13px;font-weight:700;color:var(--green-dark);letter-spacing:.08em;text-transform:uppercase;margin-bottom:12px}
+.section-title{font-size:clamp(28px,4vw,44px);font-weight:800;color:var(--dark);margin-bottom:16px;letter-spacing:-1px;line-height:1.15}
+.section-sub{font-size:17px;color:var(--gray);max-width:600px;margin:0 auto}
+.problem{padding:80px 5%;max-width:900px;margin:0 auto;text-align:center}
+.pain-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;margin-top:48px;text-align:left}
+.pain-card{background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:24px}
+.pain-icon{font-size:28px;margin-bottom:12px}
+.pain-title{font-size:15px;font-weight:700;color:var(--dark);margin-bottom:6px}
+.pain-desc{font-size:13.5px;color:var(--gray);line-height:1.6}
+.features{padding:80px 5%;background:var(--bg)}
+.features-inner{max-width:1100px;margin:0 auto}
+.features-header{text-align:center;margin-bottom:56px}
+.features-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:24px}
+.feature-card{background:#fff;border:1px solid var(--border);border-radius:14px;padding:28px;transition:transform .2s,box-shadow .2s}
+.feature-card:hover{transform:translateY(-4px);box-shadow:0 12px 32px rgba(0,0,0,.08)}
+.feature-icon{width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;margin-bottom:16px}
+.feature-icon.green{background:var(--green-light)}
+.feature-icon.blue{background:#dbeafe}
+.feature-icon.orange{background:#fef3c7}
+.feature-icon.purple{background:#ede9fe}
+.feature-icon.teal{background:#ccfbf1}
+.feature-icon.red{background:#fee2e2}
+.feature-title{font-size:16px;font-weight:700;color:var(--dark);margin-bottom:8px}
+.feature-desc{font-size:14px;color:var(--gray);line-height:1.65}
+.how{padding:80px 5%;max-width:900px;margin:0 auto;text-align:center}
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:32px;margin-top:48px}
+.step{text-align:center}
+.step-num{width:56px;height:56px;border-radius:50%;background:var(--green);color:#fff;font-size:20px;font-weight:800;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;box-shadow:0 4px 16px rgba(34,197,94,.3)}
+.step-title{font-size:16px;font-weight:700;color:var(--dark);margin-bottom:8px}
+.step-desc{font-size:14px;color:var(--gray)}
+.integrations{padding:60px 5%;background:var(--dark);text-align:center}
+.integrations h2{font-size:28px;font-weight:800;color:#fff;margin-bottom:8px}
+.integrations p{color:#94a3b8;font-size:15px;margin-bottom:40px}
+.int-cards{display:flex;align-items:center;justify-content:center;gap:20px;flex-wrap:wrap}
+.int-card{background:#1e293b;border:1px solid #334155;border-radius:14px;padding:24px 36px;color:#fff}
+.int-card-name{font-size:18px;font-weight:700;margin-bottom:4px}
+.int-card-sub{font-size:12px;color:#64748b}
+.int-arrow{font-size:28px;color:#334155}
+.pricing{padding:80px 5%;text-align:center}
+.pricing-inner{max-width:900px;margin:0 auto}
+.pricing-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:24px;margin-top:48px;text-align:left}
+.pricing-card{background:var(--bg);border:1px solid var(--border);border-radius:16px;padding:32px;position:relative}
+.pricing-card.popular{background:#fff;border:2px solid var(--green);box-shadow:0 8px 32px rgba(34,197,94,.15)}
+.popular-badge{position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:var(--green);color:#fff;padding:4px 16px;border-radius:20px;font-size:12px;font-weight:700;white-space:nowrap}
+.pricing-plan{font-size:13px;font-weight:700;color:var(--green-dark);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px}
+.pricing-price{font-size:40px;font-weight:900;color:var(--dark);line-height:1}
+.pricing-price sup{font-size:20px;vertical-align:top;margin-top:8px}
+.pricing-price span{font-size:15px;font-weight:400;color:var(--gray)}
+.pricing-desc{font-size:14px;color:var(--gray);margin:12px 0 24px;line-height:1.6}
+.pricing-features{list-style:none;margin-bottom:28px}
+.pricing-features li{display:flex;align-items:center;gap:10px;font-size:14px;color:var(--slate);padding:6px 0;border-bottom:1px solid var(--border)}
+.pricing-features .check{color:var(--green);font-weight:700}
+.pricing-features .x{color:#cbd5e1}
+.cta-section{padding:100px 5%;background:linear-gradient(135deg,var(--dark) 0%,#1e293b 100%);text-align:center}
+.cta-section h2{font-size:clamp(32px,5vw,52px);font-weight:900;color:#fff;margin-bottom:16px;letter-spacing:-1.5px;line-height:1.1}
+.cta-section p{font-size:18px;color:#94a3b8;margin-bottom:40px;max-width:500px;margin-left:auto;margin-right:auto}
+.cta-buttons{display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap}
+footer{padding:40px 5%;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px}
+.footer-logo{display:flex;align-items:center;gap:8px;font-size:16px;font-weight:800;color:var(--dark)}
+.footer-logo-mark{width:28px;height:28px;background:var(--green);border-radius:7px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:900}
+.footer-links{display:flex;gap:24px}
+.footer-links a{font-size:13px;color:var(--gray);transition:color .15s}
+.footer-copy{font-size:13px;color:var(--gray)}
+@media(max-width:768px){.nav-links{display:none}.steps{grid-template-columns:1fr}.preview-grid{grid-template-columns:1fr}.preview-sidebar{display:none}.int-cards{flex-direction:column}}
+</style>
+</head>
+<body>
+<nav>
+  <div class="nav-logo"><div class="nav-logo-mark">SC</div>StoreCheck</div>
+  <div class="nav-links"><a href="#features">Features</a><a href="#how">How it works</a><a href="#pricing">Pricing</a></div>
+  <div class="nav-cta"><a href="login.html" class="btn btn-ghost">Log in</a><a href="login.html#signup" class="btn btn-primary">Start free →</a></div>
+</nav>
+<section class="hero">
+  <div class="hero-badge">✅ Works with Mercury POS & Ruby POS</div>
+  <h1>Your store.<br/><span class="highlight">Checked.</span> Every shift.</h1>
+  <p>The modern analytics dashboard built for convenience store owners. Real-time shift reports, fuel margins, grocery, lottery — all in one clean view.</p>
+  <div class="hero-cta"><a href="login.html#signup" class="btn btn-primary btn-lg">Start for free →</a><a href="dashboard.html" class="btn btn-ghost btn-lg">See live demo</a></div>
+  <div class="hero-sub"><span>Free forever</span> for 1 store · No credit card needed</div>
+  <div class="preview-wrap">
+    <div class="preview-bar"><div class="dot-r"></div><div class="dot-y"></div><div class="dot-g"></div><div class="preview-url">storecheck.io/dashboard</div></div>
+    <div class="preview-inner">
+      <div class="preview-grid">
+        <div class="preview-sidebar">
+          <div class="preview-sidebar-logo"><div class="preview-sidebar-logo-mark">SC</div><div class="preview-sidebar-logo-text">StoreCheck</div></div>
+          <div class="preview-nav-item active">📊 Dashboard</div>
+          <div class="preview-nav-item">🏪 Store Sales</div>
+          <div class="preview-nav-item">🛒 Grocery</div>
+          <div class="preview-nav-item">⛽ Fuel</div>
+          <div class="preview-nav-item">🎰 Lottery</div>
+          <div class="preview-nav-item">💰 Expenses</div>
+        </div>
+        <div class="preview-main">
+          <div class="preview-kpis">
+            <div class="preview-kpi"><div class="preview-kpi-label">Fuel Sales</div><div class="preview-kpi-value">£8,954</div><div class="preview-kpi-sub">↑ 2,427 transactions</div></div>
+            <div class="preview-kpi"><div class="preview-kpi-label">Grocery</div><div class="preview-kpi-value">£6,905</div><div class="preview-kpi-sub">↑ 1,343 items</div></div>
+            <div class="preview-kpi"><div class="preview-kpi-label">Lottery Net</div><div class="preview-kpi-value">£829</div><div class="preview-kpi-sub">↑ 151 tickets</div></div>
+            <div class="preview-kpi"><div class="preview-kpi-label">Total Sales</div><div class="preview-kpi-value">£17,108</div><div class="preview-kpi-sub" style="color:#22c55e">↑ May 2026</div></div>
+          </div>
+          <div class="preview-table"><div style="padding:10px 14px;border-bottom:1px solid #e2e8f0;font-size:11px;font-weight:700;color:#64748b;display:flex;justify-content:space-between"><span>Sales by Day</span><span style="color:#22c55e">May 2026</span></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+<div class="logos"><p>Connects directly with your existing POS system</p><div class="logo-row"><div class="logo-item">MERCURY POS</div><div class="logo-item">·</div><div class="logo-item">RUBY POS</div><div class="logo-item">·</div><div class="logo-item">GILBARCO</div><div class="logo-item">·</div><div class="logo-item">VERIFONE</div></div></div>
+<section class="problem"><div class="section-label">The problem</div><h2 class="section-title">Still fighting with outdated store software?</h2><p class="section-sub">Most c-store owners spend more time wrestling with their reporting tools than actually running their store.</p><div class="pain-grid"><div class="pain-card"><div class="pain-icon">😤</div><div class="pain-title">Confusing, outdated UI</div><div class="pain-desc">Puzzle-piece navigation, grey tables, and interfaces that look like they were built in 2005.</div></div><div class="pain-card"><div class="pain-icon">📊</div><div class="pain-title">No real analytics</div><div class="pain-desc">Raw numbers with no context, no trends, no charts. You can't spot problems until it's too late.</div></div><div class="pain-card"><div class="pain-icon">👥</div><div class="pain-title">Can't share with your team</div><div class="pain-desc">Want your accountant or area manager to see the data? There's no clean way to share it.</div></div><div class="pain-card"><div class="pain-icon">📱</div><div class="pain-title">Not mobile-friendly</div><div class="pain-desc">You're at the store, something comes up, and the reporting tool barely works on your phone.</div></div></div></section>
+<section class="features" id="features"><div class="features-inner"><div class="features-header"><div class="section-label">What you get</div><h2 class="section-title">Everything you need,<br/>nothing you don't</h2></div><div class="features-grid"><div class="feature-card"><div class="feature-icon green">📊</div><div class="feature-title">Real-time shift dashboard</div><div class="feature-desc">See your current shift — fuel, grocery, lottery, payments — updating live as the day runs.</div></div><div class="feature-card"><div class="feature-icon blue">⛽</div><div class="feature-title">Fuel margin tracking</div><div class="feature-desc">Track CPG margins, volume, jobber batches, and UST readings. Spot margin compression before it hits your bottom line.</div></div><div class="feature-card"><div class="feature-icon orange">🛒</div><div class="feature-title">Grocery analytics</div><div class="feature-desc">Gross profit by department, top-selling categories, margin percentages.</div></div><div class="feature-card"><div class="feature-icon purple">👥</div><div class="feature-title">Multi-user with roles</div><div class="feature-desc">Invite your accountant, area manager, or business partner. Set admin or viewer roles.</div></div><div class="feature-card"><div class="feature-icon teal">🔄</div><div class="feature-title">Mercury & Ruby POS ready</div><div class="feature-desc">Switch between data sources with a single toggle — no disruption.</div></div><div class="feature-card"><div class="feature-icon red">📱</div><div class="feature-title">Works on any device</div><div class="feature-desc">Check your numbers from your phone, tablet, or laptop. One link, anywhere.</div></div></div></div></section>
+<section class="how" id="how"><div class="section-label">Getting started</div><h2 class="section-title">Up and running in minutes</h2><p class="section-sub">No IT team. No installation. Just sign up and connect your store.</p><div class="steps"><div class="step"><div class="step-num">1</div><div class="step-title">Create your account</div><div class="step-desc">Sign up free with your email. No credit card, no commitment.</div></div><div class="step"><div class="step-num">2</div><div class="step-title">Connect your POS</div><div class="step-desc">Enter your Mercury or Ruby POS credentials. StoreCheck securely pulls your data automatically.</div></div><div class="step"><div class="step-num">3</div><div class="step-title">Check your store</div><div class="step-desc">Your live dashboard is ready. Share the link with anyone who needs visibility.</div></div></div></section>
+<section class="integrations"><h2>Built for your existing setup</h2><p>Switch between data sources instantly</p><div class="int-cards"><div class="int-card"><div class="int-card-name">Mercury POS</div><div class="int-card-sub">MercuryOne / MoneCloud</div></div><div class="int-arrow">⇄</div><div class="int-card" style="border-color:#22c55e;background:rgba(34,197,94,.05)"><div class="int-card-name" style="color:#22c55e">StoreCheck</div><div class="int-card-sub" style="color:#64748b">Your modern dashboard</div></div><div class="int-arrow">⇄</div><div class="int-card"><div class="int-card-name">Ruby POS</div><div class="int-card-sub">Gilbarco / Wayne</div></div></div></section>
+<section class="pricing" id="pricing"><div class="pricing-inner"><div class="section-label">Pricing</div><h2 class="section-title">Simple, honest pricing</h2><p class="section-sub">Start free. Upgrade when you're ready.</p><div class="pricing-grid"><div class="pricing-card"><div class="pricing-plan">Free</div><div class="pricing-price"><sup>£</sup>0<span>/month</span></div><div class="pricing-desc">Perfect for getting started. One store, all the core features.</div><ul class="pricing-features"><li><span class="check">✓</span> 1 store location</li><li><span class="check">✓</span> All dashboard views</li><li><span class="check">✓</span> Mercury POS connection</li><li><span class="check">✓</span> 2 user accounts</li><li><span class="x">–</span> Ruby POS</li></ul><a href="login.html#signup" class="btn btn-ghost" style="width:100%;justify-content:center">Get started free</a></div><div class="pricing-card popular"><div class="popular-badge">Most popular</div><div class="pricing-plan">Pro</div><div class="pricing-price"><sup>£</sup>29<span>/month</span></div><div class="pricing-desc">Full visibility across every metric.</div><ul class="pricing-features"><li><span class="check">✓</span> Up to 5 stores</li><li><span class="check">✓</span> Mercury & Ruby POS</li><li><span class="check">✓</span> Unlimited users</li><li><span class="check">✓</span> Full data history</li><li><span class="check">✓</span> Priority support</li></ul><a href="login.html#signup" class="btn btn-primary" style="width:100%;justify-content:center">Start 14-day free trial →</a></div><div class="pricing-card"><div class="pricing-plan">Enterprise</div><div class="pricing-price" style="font-size:28px;padding-top:8px">Custom</div><div class="pricing-desc">For chains and multi-store operators.</div><ul class="pricing-features"><li><span class="check">✓</span> Unlimited stores</li><li><span class="check">✓</span> All Pro features</li><li><span class="check">✓</span> Custom integrations</li><li><span class="check">✓</span> Dedicated account manager</li></ul><a href="mailto:hello@storecheck.io" class="btn btn-ghost" style="width:100%;justify-content:center">Contact us</a></div></div></div></section>
+<section class="cta-section"><h2>Ready to check your store?</h2><p>Join store owners who've replaced messy reports with clean, live dashboards.</p><div class="cta-buttons"><a href="login.html#signup" class="btn btn-primary btn-lg">Start free — no card needed →</a><a href="dashboard.html" class="btn btn-lg" style="background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.2)">See live demo</a></div></section>
+<footer><div class="footer-logo"><div class="footer-logo-mark">SC</div>StoreCheck</div><div class="footer-links"><a href="#features">Features</a><a href="#pricing">Pricing</a><a href="login.html">Login</a><a href="mailto:hello@storecheck.io">Contact</a></div><div class="footer-copy">© 2026 StoreCheck. All rights reserved.</div></footer>
+</body>
+</html>
