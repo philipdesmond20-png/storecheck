@@ -122,6 +122,13 @@ footer{padding:40px 5%;border-top:1px solid var(--border);display:flex;align-ite
 .footer-links{display:flex;gap:24px}
 .footer-links a{font-size:13px;color:var(--gray);transition:color .15s}
 .footer-copy{font-size:13px;color:var(--gray)}
+
+/* QUICK CHANGE LATER: Enable live demo buttons by removing .demo-disabled and restoring href="dashboard.html" */
+.demo-disabled{
+  pointer-events:none;
+  opacity:.55;
+  cursor:not-allowed;
+}
 @media(max-width:768px){.nav-links{display:none}.steps{grid-template-columns:1fr}.preview-grid{grid-template-columns:1fr}.preview-sidebar{display:none}.int-cards{flex-direction:column}}
 </style>
 </head>
@@ -135,7 +142,7 @@ footer{padding:40px 5%;border-top:1px solid var(--border);display:flex;align-ite
   <div class="hero-badge">✅ Gilbarco & Ruby ready</div>
   <h1>Your store.<br/><span class="highlight">Checked.</span> Every shift.</h1>
   <p>The modern analytics dashboard built for convenience store owners. Shift reports, fuel margins, grocery, lottery — all in one clean view.</p>
-  <div class="hero-cta"><a href="login.html#signup" class="btn btn-primary btn-lg">Start now →</a><a href="dashboard.html" class="btn btn-ghost btn-lg">See live demo</a></div>
+  <div class="hero-cta"><a href="login.html#signup" class="btn btn-primary btn-lg">Start now →</a><!-- QUICK CHANGE LATER: Replace href="#" with href="dashboard.html" and remove demo-disabled to enable live demo --><a href="#" class="btn btn-ghost btn-lg demo-disabled" aria-disabled="true" onclick="return false;">See live demo</a></div>
   <div class="hero-sub"><span>Simple monthly pricing</span> for store operators</div>
   <div class="preview-wrap">
     <div class="preview-bar"><div class="dot-r"></div><div class="dot-y"></div><div class="dot-g"></div><div class="preview-url">storecheck.io/dashboard</div></div>
@@ -168,8 +175,208 @@ footer{padding:40px 5%;border-top:1px solid var(--border);display:flex;align-ite
 <section class="features" id="features"><div class="features-inner"><div class="features-header"><div class="section-label">What you get</div><h2 class="section-title">Everything you need,<br/>nothing you don't</h2></div><div class="features-grid"><div class="feature-card"><div class="feature-icon green">📊</div><div class="feature-title">Real-time shift dashboard</div><div class="feature-desc">See your current shift — fuel, grocery, lottery, payments — updating live as the day runs.</div></div><div class="feature-card"><div class="feature-icon blue">⛽</div><div class="feature-title">Fuel margin tracking</div><div class="feature-desc">Track CPG margins, volume, jobber batches, and UST readings. Spot margin compression before it hits your bottom line.</div></div><div class="feature-card"><div class="feature-icon orange">🛒</div><div class="feature-title">Grocery analytics</div><div class="feature-desc">Gross profit by department, top-selling categories, margin percentages.</div></div><div class="feature-card"><div class="feature-icon purple">👥</div><div class="feature-title">Multi-user with roles</div><div class="feature-desc">Invite your accountant, area manager, or business partner. Set admin or viewer roles.</div></div><div class="feature-card"><div class="feature-icon teal">🔄</div><div class="feature-title">Gilbarco & Ruby ready</div><div class="feature-desc">Switch between data sources with a single toggle — no disruption.</div></div><div class="feature-card"><div class="feature-icon red">📱</div><div class="feature-title">Works on any device</div><div class="feature-desc">Check your numbers from your phone, tablet, or laptop. One link, anywhere.</div></div></div></div></section>
 <section class="how" id="how"><div class="section-label">Getting started</div><h2 class="section-title">Up and running in minutes</h2><p class="section-sub">No IT team. No installation. Just sign up and connect your store.</p><div class="steps"><div class="step"><div class="step-num">1</div><div class="step-title">Create your account</div><div class="step-desc">Sign up free with your email. No credit card, no commitment.</div></div><div class="step"><div class="step-num">2</div><div class="step-title">Connect your POS</div><div class="step-desc">Enter your Gilbarco or Ruby POS credentials. StoreCheck securely pulls your data automatically.</div></div><div class="step"><div class="step-num">3</div><div class="step-title">Check your store</div><div class="step-desc">Your live dashboard is ready. Share the link with anyone who needs visibility.</div></div></div></section>
 <section class="integrations"><h2>Built for your existing setup</h2><p>Switch between data sources instantly</p><div class="int-cards"><div class="int-card"><div class="int-card-name">Gilbarco POS</div><div class="int-card-sub">Gilbarco / Ruby</div></div><div class="int-arrow">⇄</div><div class="int-card" style="border-color:#22c55e;background:rgba(34,197,94,.05)"><div class="int-card-name" style="color:#22c55e">StoreCheck</div><div class="int-card-sub" style="color:#64748b">Your modern dashboard</div></div><div class="int-arrow">⇄</div><div class="int-card"><div class="int-card-name">Ruby POS</div><div class="int-card-sub">Gilbarco / Wayne</div></div></div></section>
-<section class="pricing" id="pricing"><div class="pricing-inner"><div class="section-label">Pricing</div><h2 class="section-title">Simple, honest pricing</h2><p class="section-sub">Start simple. Upgrade when you're ready.</p><div class="pricing-grid"><div class="pricing-card"><div class="pricing-plan">Starter</div><div class="pricing-price"><sup>$</sup>189<span>/month</span></div><div class="pricing-desc">Perfect for one store, with all the core dashboard features.</div><ul class="pricing-features"><li><span class="check">✓</span> 1 store location</li><li><span class="check">✓</span> All dashboard views</li><li><span class="check">✓</span> Gilbarco POS connection</li><li><span class="check">✓</span> 2 user accounts</li><li><span class="x">–</span> Ruby POS</li></ul><a href="login.html#signup" class="btn btn-ghost" style="width:100%;justify-content:center">Get started</a></div><div class="pricing-card popular"><div class="popular-badge">Most popular</div><div class="pricing-plan">Pro</div><div class="pricing-price"><sup>$</sup>250<span>/month</span></div><div class="pricing-desc">Full visibility across every metric.</div><ul class="pricing-features"><li><span class="check">✓</span> Up to 5 stores</li><li><span class="check">✓</span> Gilbarco & Ruby POS</li><li><span class="check">✓</span> Unlimited users</li><li><span class="check">✓</span> Full data history</li><li><span class="check">✓</span> Priority support</li></ul><a href="login.html#signup" class="btn btn-primary" style="width:100%;justify-content:center">Start now →</a></div><div class="pricing-card"><div class="pricing-plan">Enterprise</div><div class="pricing-price" style="font-size:28px;padding-top:8px">Custom</div><div class="pricing-desc">For chains and multi-store operators.</div><ul class="pricing-features"><li><span class="check">✓</span> Unlimited stores</li><li><span class="check">✓</span> All Pro features</li><li><span class="check">✓</span> Custom integrations</li><li><span class="check">✓</span> Dedicated account manager</li></ul><a href="mailto:hello@storecheck.io" class="btn btn-ghost" style="width:100%;justify-content:center">Contact us</a></div></div></div></section>
-<section class="cta-section"><h2>Ready to check your store?</h2><p>Join store owners who've replaced messy reports with clean, live dashboards.</p><div class="cta-buttons"><a href="login.html#signup" class="btn btn-primary btn-lg">Start now →</a><a href="dashboard.html" class="btn btn-lg" style="background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.2)">See live demo</a></div></section>
+<section class="pricing" id="pricing">
+  <div class="pricing-inner">
+    <div class="section-label">Pricing</div>
+    <h2 class="section-title">Simple, honest pricing</h2>
+    <p class="section-sub">Each plan is valid for one store location. Custom plans are available for larger operators.</p>
+
+    <style>
+      .pricing-compare-grid{
+        --plan-head-h:190px;
+        --row-h:72px;
+        display:grid;
+        grid-template-columns:minmax(180px,.72fr) repeat(3,minmax(250px,1fr));
+        gap:24px;
+        margin-top:48px;
+        text-align:left;
+        align-items:start;
+      }
+
+      .pricing-label-column{
+        padding-top:calc(var(--plan-head-h) + 32px);
+      }
+
+      .pricing-label-list,
+      .pricing-plan-list{
+        list-style:none;
+        margin:0;
+        padding:0;
+      }
+
+      .pricing-card.compare-card{
+        display:flex;
+        flex-direction:column;
+        padding:32px;
+      }
+
+      .pricing-card-head{
+        height:var(--plan-head-h);
+        display:flex;
+        flex-direction:column;
+      }
+
+      .pricing-card-head .pricing-desc{
+        margin-bottom:0;
+      }
+
+      .pricing-row-label,
+      .pricing-row-item{
+        height:var(--row-h);
+        min-height:var(--row-h);
+        display:flex;
+        align-items:center;
+        border-bottom:1px solid var(--border);
+        font-size:14px;
+        line-height:1.35;
+      }
+
+      .pricing-row-label{
+        color:var(--dark);
+        font-weight:800;
+      }
+
+      .pricing-row-item{
+        gap:10px;
+        color:var(--slate);
+        padding:6px 0;
+      }
+
+      .pricing-row-item .check{
+        color:var(--green);
+        font-weight:800;
+        flex-shrink:0;
+      }
+
+      .pricing-card-footer{
+        padding-top:24px;
+      }
+
+      @media(max-width:1000px){
+        .pricing-compare-grid{
+          grid-template-columns:1fr;
+        }
+
+        .pricing-label-column{
+          display:none;
+        }
+
+        .pricing-card.compare-card{
+          padding:28px;
+        }
+
+        .pricing-card-head{
+          height:auto;
+          min-height:0;
+          margin-bottom:18px;
+        }
+
+        .pricing-row-item{
+          height:auto;
+          min-height:64px;
+          align-items:flex-start;
+          flex-direction:column;
+          gap:4px;
+          padding:10px 0;
+        }
+
+        .pricing-row-item::before{
+          content:attr(data-label);
+          display:block;
+          font-size:11px;
+          text-transform:uppercase;
+          letter-spacing:.06em;
+          color:var(--gray);
+          font-weight:800;
+        }
+      }
+    </style>
+
+    <div class="pricing-compare-grid">
+      <div class="pricing-label-column">
+        <ul class="pricing-label-list">
+          <li class="pricing-row-label">Best for</li>
+          <li class="pricing-row-label">Core value</li>
+          <li class="pricing-row-label">Dashboard</li>
+          <li class="pricing-row-label">Expense tracking</li>
+          <li class="pricing-row-label">Daily store summary</li>
+          <li class="pricing-row-label">Trend insights</li>
+          <li class="pricing-row-label">Variance insights</li>
+          <li class="pricing-row-label">Access</li>
+          <li class="pricing-row-label">Support</li>
+        </ul>
+      </div>
+
+      <div class="pricing-card compare-card">
+        <div class="pricing-card-head">
+          <div class="pricing-plan">Starter</div>
+          <div class="pricing-price"><sup>$</sup>189<span>/month/store</span></div>
+          <div class="pricing-desc">Daily visibility for owners who prefer checking reports.</div>
+        </div>
+        <ul class="pricing-plan-list">
+          <li class="pricing-row-item" data-label="Best for"><span class="check">✓</span> Owners who want daily visibility and prefer checking reports</li>
+          <li class="pricing-row-item" data-label="Core value"><span class="check">✓</span> Daily visibility</li>
+          <li class="pricing-row-item" data-label="Dashboard"><span class="check">✓</span> Sales, fuel, grocery, lottery, cash & variance views</li>
+          <li class="pricing-row-item" data-label="Expense tracking"><span class="check">✓</span> Manual entry on website</li>
+          <li class="pricing-row-item" data-label="Daily store summary"><span class="check">✓</span> Website dashboard only</li>
+          <li class="pricing-row-item" data-label="Trend insights"><span class="check">✓</span> Full history</li>
+          <li class="pricing-row-item" data-label="Variance insights"><span class="check">✓</span> Dashboard view</li>
+          <li class="pricing-row-item" data-label="Access"><span class="check">✓</span> Website only</li>
+          <li class="pricing-row-item" data-label="Support"><span class="check">✓</span> Standard support</li>
+        </ul>
+        <div class="pricing-card-footer">
+          <a href="login.html#signup" class="btn btn-ghost" style="width:100%;justify-content:center">Get started</a>
+        </div>
+      </div>
+
+      <div class="pricing-card popular compare-card">
+        <div class="popular-badge">Most popular</div>
+        <div class="pricing-card-head">
+          <div class="pricing-plan">Pro</div>
+          <div class="pricing-price"><sup>$</sup>250<span>/month/store</span></div>
+          <div class="pricing-desc">Automated owner control with reports, highlights, and mobile access.</div>
+        </div>
+        <ul class="pricing-plan-list">
+          <li class="pricing-row-item" data-label="Best for"><span class="check">✓</span> Owners who want automated reports and highlights</li>
+          <li class="pricing-row-item" data-label="Core value"><span class="check">✓</span> Automated owner control</li>
+          <li class="pricing-row-item" data-label="Dashboard"><span class="check">✓</span> Sales, fuel, grocery, lottery, cash & variance views</li>
+          <li class="pricing-row-item" data-label="Expense tracking"><span class="check">✓</span> Photo-based automatic updater</li>
+          <li class="pricing-row-item" data-label="Daily store summary"><span class="check">✓</span> Website + WhatsApp + email notification</li>
+          <li class="pricing-row-item" data-label="Trend insights"><span class="check">✓</span> Full history + side-by-side comparison</li>
+          <li class="pricing-row-item" data-label="Variance insights"><span class="check">✓</span> Dashboard view + automatic variance reason highlights</li>
+          <li class="pricing-row-item" data-label="Access"><span class="check">✓</span> Website + mobile app access</li>
+          <li class="pricing-row-item" data-label="Support"><span class="check">✓</span> Priority support</li>
+        </ul>
+        <div class="pricing-card-footer">
+          <a href="login.html#signup" class="btn btn-primary" style="width:100%;justify-content:center">Start Pro →</a>
+        </div>
+      </div>
+
+      <div class="pricing-card compare-card">
+        <div class="pricing-card-head">
+          <div class="pricing-plan">Custom</div>
+          <div class="pricing-price" style="font-size:28px;padding-top:8px">Custom</div>
+          <div class="pricing-desc">For larger operators, custom workflows, or multi-store requirements.</div>
+        </div>
+        <ul class="pricing-plan-list">
+          <li class="pricing-row-item" data-label="Best for"><span class="check">✓</span> Larger operators and custom workflow needs</li>
+          <li class="pricing-row-item" data-label="Core value"><span class="check">✓</span> Custom store control setup</li>
+          <li class="pricing-row-item" data-label="Dashboard"><span class="check">✓</span> Custom reporting dashboards</li>
+          <li class="pricing-row-item" data-label="Expense tracking"><span class="check">✓</span> Custom expense workflows</li>
+          <li class="pricing-row-item" data-label="Daily store summary"><span class="check">✓</span> Custom notifications and report delivery</li>
+          <li class="pricing-row-item" data-label="Trend insights"><span class="check">✓</span> Custom reporting and comparison views</li>
+          <li class="pricing-row-item" data-label="Variance insights"><span class="check">✓</span> Custom variance rules and highlights</li>
+          <li class="pricing-row-item" data-label="Access"><span class="check">✓</span> Website + mobile app options</li>
+          <li class="pricing-row-item" data-label="Support"><span class="check">✓</span> Dedicated onboarding support</li>
+        </ul>
+        <div class="pricing-card-footer">
+          <a href="mailto:hello@storecheck.io" class="btn btn-ghost" style="width:100%;justify-content:center">Contact us</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+<section class="cta-section"><h2>Ready to check your store?</h2><p>Join store owners who've replaced messy reports with clean, live dashboards.</p><div class="cta-buttons"><a href="login.html#signup" class="btn btn-primary btn-lg">Start now →</a><!-- QUICK CHANGE LATER: Replace href="#" with href="dashboard.html" and remove demo-disabled to enable live demo --><a href="#" class="btn btn-lg demo-disabled" aria-disabled="true" onclick="return false;" style="background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.2)">See live demo</a></div></section>
 <footer><div class="footer-logo"><div class="footer-logo-mark">SC</div>StoreCheck</div><div class="footer-links"><a href="#features">Features</a><a href="#pricing">Pricing</a><a href="login.html">Login</a><a href="mailto:hello@storecheck.io">Contact</a></div><div class="footer-copy">© 2026 StoreCheck. All rights reserved.</div></footer>
 </body>
 </html>
