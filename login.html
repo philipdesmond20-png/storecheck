@@ -46,6 +46,20 @@ nav{padding:20px 5%;display:flex;align-items:center;justify-content:space-betwee
 .terms a{color:var(--green-dark)}
 .auth-footer{text-align:center;padding:20px;font-size:13px;color:var(--gray)}
 .auth-footer a{color:var(--green-dark);font-weight:600;text-decoration:none}
+
+/* QUICK CHANGE LATER: Enable guest demo by removing .guest-demo-disabled and restoring href="dashboard.html" */
+.guest-demo-disabled{
+  pointer-events:none;
+  opacity:.55;
+  cursor:not-allowed;
+  text-decoration:none;
+}
+.demo-note{
+  display:block;
+  margin-top:6px;
+  font-size:12px;
+  color:var(--gray);
+}
 </style>
 </head>
 <body>
@@ -70,7 +84,11 @@ nav{padding:20px 5%;display:flex;align-items:center;justify-content:space-betwee
       <div class="form-group"><label class="form-label">Password</label><input type="password" class="form-input" id="loginPassword" placeholder="••••••••" required/></div>
       <a href="#" class="forgot-link" onclick="handleForgot(event)">Forgot password?</a>
       <button type="submit" class="btn-submit" id="loginBtn">Log in →</button>
-      <div class="terms" style="margin-top:12px"><a href="dashboard.html" style="color:var(--green-dark)">Continue as guest (demo mode)</a></div>
+      <div class="terms" style="margin-top:12px">
+        <!-- QUICK CHANGE LATER: Replace href="#" with href="dashboard.html" and remove guest-demo-disabled to enable guest demo mode -->
+        <a href="#" class="guest-demo-disabled" aria-disabled="true" onclick="return false;" style="color:var(--green-dark)">Continue as guest (demo mode)</a>
+        <span class="demo-note">Demo mode is currently disabled. Please log in or create an account.</span>
+      </div>
     </form>
     <form id="signupForm" style="display:none" onsubmit="handleSignup(event)">
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
