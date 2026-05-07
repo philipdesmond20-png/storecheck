@@ -104,6 +104,7 @@ button,input{font:inherit}
 
 .sb-logo{
   display:flex;
+  flex-direction:column;
   justify-content:center;
   align-items:center;
   padding:6px 6px 22px;
@@ -116,6 +117,7 @@ button,input{font:inherit}
   display:flex;
   flex-direction:column;
   align-items:center;
+  justify-content:center;
   gap:10px;
 }
 .sb-logo-icon{
@@ -133,9 +135,20 @@ button,input{font:inherit}
   letter-spacing:-0.04em;
   box-shadow:0 10px 24px rgba(39,198,107,0.18);
 }
-.sb-logo-text h2{font-size:17px;font-weight:700;letter-spacing:-0.03em}
-.sb-logo-text p{font-size:12px;color:var(--text-3);margin-top:2px}
-.sb-logo-text{display:flex;flex-direction:column;align-items:center}
+.sb-logo-text{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+}
+.sb-logo-text h2{
+  font-size:17px;
+  font-weight:700;
+  letter-spacing:-0.03em;
+  text-align:center;
+}
+.sb-logo-text p{display:none}
 .sb-nav{
   flex:1;
   padding:16px 0;
