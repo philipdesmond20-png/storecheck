@@ -3537,6 +3537,12 @@ const ATTACHMENT_UPLOAD_EVENTS = [
   { id: 'ATU-604', attachmentId: 'ATT-392', fileName: 'weekly-summary-demo.pdf', module: 'Reports', record: 'Weekly Summary PDF', time: '2026-05-08 08:04', actor: 'StoreCheck demo', route: '/localCredits/uploadDocument', action: 'Saved upload packet', status: 'Queued', note: 'Report bundle packet exported while live file upload remained pending.' },
 ];
 
+const ATTACHMENT_DOWNLOAD_EVENTS = [
+  { id: 'ATD-701', attachmentId: 'ATT-401', fileName: 'INV-88412.pdf', module: 'Purchases', record: 'Metro Beverage Wholesale', time: '2026-05-09 08:13', actor: 'Store manager', route: '/localCredits/downloadDocument?fileName=', action: 'Downloaded reference', status: 'Delivered', note: 'Invoice reference opened for owner reconciliation.' },
+  { id: 'ATD-702', attachmentId: 'ATT-398', fileName: 'QCS-5510.pdf', module: 'Operating Expenses', record: 'Quick Clean Supply', time: '2026-05-08 15:11', actor: 'Office admin', route: '/localCredits/downloadDocument?fileName=', action: 'Saved download packet', status: 'Ready', note: 'Expense invoice packet exported for back-office follow-through.' },
+  { id: 'ATD-703', attachmentId: 'ATT-392', fileName: 'weekly-summary-demo.pdf', module: 'Reports', record: 'Weekly Summary PDF', time: '2026-05-08 08:06', actor: 'StoreCheck demo', route: '/localCredits/downloadDocument?fileName=', action: 'Previewed download packet', status: 'Ready', note: 'Report package route preview opened before live binary download wiring.' },
+];
+
 const HOUSE_ACCOUNT_SUMMARY = [
   { customer: 'Downtown Plumbing', previous: 418.22, payments: 120.0, purchases: 188.4, current: 486.62, docs: 2, contact: 'Fleet acct 204' },
   { customer: 'Northside Landscaping', previous: 112.15, payments: 60.0, purchases: 144.75, current: 196.9, docs: 1, contact: 'Crew card set' },
@@ -8478,6 +8484,7 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
   const [expenseTypeDraftName, setExpenseTypeDraftName] = useState('');
   const [attachments, setAttachments] = useState(ATTACHMENT_LIBRARY);
   const [attachmentUploadEvents, setAttachmentUploadEvents] = useState(ATTACHMENT_UPLOAD_EVENTS);
+  const [attachmentDownloadEvents, setAttachmentDownloadEvents] = useState(ATTACHMENT_DOWNLOAD_EVENTS);
   const [selectedLibraryAttachmentId, setSelectedLibraryAttachmentId] = useState(ATTACHMENT_LIBRARY[0].id);
   const [purchaseDraft, setPurchaseDraft] = useState({
     date: '2026-05-09',
@@ -8568,6 +8575,7 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
   const stagedInactiveCount = deadInventoryRows.filter((row) => row.stage === 'Staged InActive').length;
   const selectedLibraryAttachment = attachments.find((row) => row.id === selectedLibraryAttachmentId) || attachments[0];
   const selectedAttachmentUploadEvents = selectedLibraryAttachment ? attachmentUploadEvents.filter((row) => row.attachmentId === selectedLibraryAttachment.id) : [];
+  const selectedAttachmentDownloadEvents = selectedLibraryAttachment ? attachmentDownloadEvents.filter((row) => row.attachmentId === selectedLibraryAttachment.id) : [];
   const tabs = [
     { id: 'overview', label: 'Overview', icon: 'payments' },
     { id: 'purchase', label: 'Add Purchase', icon: 'pricebook' },
@@ -8626,6 +8634,24 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
       ...current,
     ]);
   };
+  const pushAttachmentDownloadEvent = ({ attachmentId, fileName, module, record, action, status, note }) => {
+    setAttachmentDownloadEvents((current) => [
+      {
+        id: `ATD-${current.length + 701}`,
+        attachmentId,
+        fileName,
+        module,
+        record,
+        time: buildPurchaseStamp(),
+        actor: 'StoreCheck demo',
+        route: '/localCredits/downloadDocument?fileName=',
+        action,
+        status,
+        note,
+      },
+      ...current,
+    ]);
+  };
   const addAttachment = (file, module, record, type) => {
     if (!file) return;
     const stamp = new Date().toLocaleString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
@@ -8652,8 +8678,20 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
     showNotice(`${file.name} added to the attachment library in demo mode.`);
   };
   const downloadAttachment = (item) => {
+    if (!item) return;
+    setSelectedLibraryAttachmentId(item.id);
     const body = JSON.stringify(item, null, 2);
     downloadTextData(body, 'application/json', item.fileName.replace(/\.[^.]+$/, '') + '-reference', 'json');
+    pushAttachmentDownloadEvent({
+      attachmentId: item.id,
+      fileName: item.fileName,
+      module: item.module,
+      record: item.record,
+      action: 'Downloaded reference',
+      status: 'Delivered',
+      note: 'Demo reference opened while the live download endpoint remained pending.',
+    });
+    showNotice(`${item.fileName} downloaded as a demo reference. Real binary download is still pending.`);
   };
   const previewAttachmentUploadPacket = (item = selectedLibraryAttachment) => {
     if (!item) return;
@@ -8701,6 +8739,53 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
     const rows = selectedAttachmentUploadEvents.length ? selectedAttachmentUploadEvents : attachmentUploadEvents;
     downloadTableData(rows, format, 'storecheck-module-attachment-upload-events');
     showNotice(`${fmtN(rows.length)} module upload events exported in ${format} format.`);
+  };
+  const previewAttachmentDownloadPacket = (item = selectedLibraryAttachment) => {
+    if (!item) return;
+    pushAttachmentDownloadEvent({
+      attachmentId: item.id,
+      fileName: item.fileName,
+      module: item.module,
+      record: item.record,
+      action: 'Previewed download packet',
+      status: 'Ready',
+      note: 'Owner opened the module download packet before live binary download wiring.',
+    });
+    openPacketPreview({
+      title: `Module Attachment Download Packet - ${item.fileName}`,
+      subtitle: `${item.module} · ${item.record}`,
+      headers: ['Module', 'Record', 'File', 'Type', 'Route', 'Added', 'Note'],
+      rows: [[item.module, item.record, item.fileName, item.type, `/localCredits/downloadDocument?fileName=${item.fileName}`, item.added, item.note]],
+    });
+    showNotice(`Module download packet preview opened for ${item.fileName}.`);
+  };
+  const saveAttachmentDownloadPacket = (item = selectedLibraryAttachment) => {
+    if (!item) return;
+    const itemEvents = attachmentDownloadEvents.filter((row) => row.attachmentId === item.id);
+    savePacket({
+      title: `Module Attachment Download Route Packet - ${item.fileName}`,
+      subtitle: `${item.module} · ${item.record}`,
+      route: '/localCredits/downloadDocument?fileName=',
+      note: 'Module attachment download replacement shell',
+      headers: ['Module', 'Record', 'File', 'Type', 'Added', 'Review State', 'Note'],
+      rows: [[item.module, item.record, item.fileName, item.type, item.added, itemEvents[0]?.status || 'Ready', item.note]],
+      filename: `storecheck-module-download-${slugify(item.module)}-${slugify(item.fileName.replace(/\.[^.]+$/, ''))}`,
+    });
+    pushAttachmentDownloadEvent({
+      attachmentId: item.id,
+      fileName: item.fileName,
+      module: item.module,
+      record: item.record,
+      action: 'Saved download packet',
+      status: 'Ready',
+      note: 'Route packet exported while the live download endpoint remained demo-only.',
+    });
+    showNotice(`Module download packet prepared for ${item.fileName}.`);
+  };
+  const exportAttachmentDownloadEvents = (format) => {
+    const rows = selectedAttachmentDownloadEvents.length ? selectedAttachmentDownloadEvents : attachmentDownloadEvents;
+    downloadTableData(rows, format, 'storecheck-module-attachment-download-events');
+    showNotice(`${fmtN(rows.length)} module download events exported in ${format} format.`);
   };
   const buildPacketHtml = ({ title, subtitle, route, note, headers, rows }) => `<!doctype html>
 <html lang="en">
@@ -10110,6 +10195,33 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
             <div className="attachment-card">
               <div className="purchase-panel-head">
                 <div>
+                  <h3>Module attachment download route</h3>
+                  <p>Keep the `/localCredits/downloadDocument?fileName=` packet and event trail visible for shared attachments before live binary download wiring.</p>
+                </div>
+              </div>
+              <div className="purchase-kv-list">
+                <div className="purchase-kv"><span>Route</span><span>{selectedLibraryAttachment ? `/localCredits/downloadDocument?fileName=${selectedLibraryAttachment.fileName}` : '/localCredits/downloadDocument?fileName='}</span></div>
+                <div className="purchase-kv"><span>Selected file</span><span>{selectedLibraryAttachment ? selectedLibraryAttachment.fileName : 'No attachment selected'}</span></div>
+                <div className="purchase-kv"><span>Record</span><span>{selectedLibraryAttachment ? selectedLibraryAttachment.record : 'Open'}</span></div>
+                <div className="purchase-kv"><span>Download events</span><span>{fmtN(selectedAttachmentDownloadEvents.length)}</span></div>
+                <div className="purchase-kv"><span>Latest event</span><span>{selectedAttachmentDownloadEvents[0]?.action || 'No events yet'}</span></div>
+              </div>
+              <div className="pricebook-actions" style={{ marginTop: 16 }}>
+                <button className="pricebook-btn" onClick={() => previewAttachmentDownloadPacket(selectedLibraryAttachment)}>
+                  <Icon name="report" size={15} /> Preview module download packet
+                </button>
+                <button className="pricebook-btn" onClick={() => saveAttachmentDownloadPacket(selectedLibraryAttachment)}>
+                  <Icon name="cash" size={15} /> Save module download packet
+                </button>
+                <button className="pricebook-btn primary" onClick={() => exportAttachmentDownloadEvents('CSV')}>
+                  <Icon name="save" size={15} /> Export module download log
+                </button>
+              </div>
+            </div>
+
+            <div className="attachment-card">
+              <div className="purchase-panel-head">
+                <div>
                   <h3>Owner view</h3>
                   <p>Keep document handling visible across modules instead of hiding files inside individual records.</p>
                 </div>
@@ -10120,6 +10232,7 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
                 <div className="purchase-kv"><span>Expense invoices</span><span>{fmtN(attachments.filter((item) => item.module === 'Operating Expenses').length)}</span></div>
                 <div className="purchase-kv"><span>Report packages</span><span>{fmtN(attachments.filter((item) => item.module === 'Reports').length)}</span></div>
                 <div className="purchase-kv"><span>Selected record</span><span>{selectedLibraryAttachment ? selectedLibraryAttachment.record : 'Open'}</span></div>
+                <div className="purchase-kv"><span>Latest download</span><span>{selectedAttachmentDownloadEvents[0]?.action || 'No download event yet'}</span></div>
               </div>
             </div>
 
@@ -10143,6 +10256,29 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
                     <div className="purchase-queue-meta">{item.module} · {item.record} · {item.note}</div>
                   </div>
                 )) : <div className="purchase-hint">No upload events are recorded for the selected attachment yet.</div>}
+              </div>
+            </div>
+
+            <div className="attachment-card">
+              <div className="purchase-panel-head">
+                <div>
+                  <h3>Module attachment download events</h3>
+                  <p>Owner-facing event visibility for the selected shared attachment download handoff.</p>
+                </div>
+              </div>
+              <div className="purchase-queue-list">
+                {selectedAttachmentDownloadEvents.length ? selectedAttachmentDownloadEvents.map((item) => (
+                  <div className="purchase-queue-row" key={item.id}>
+                    <div className="purchase-queue-top">
+                      <div>
+                        <div className="purchase-queue-title">{item.action}</div>
+                        <div className="purchase-queue-meta">{item.time} · {item.actor} · {item.route}</div>
+                      </div>
+                      <span className={`purchase-tag${item.status === 'Needs review' ? ' amber' : ' blue'}`}>{item.status}</span>
+                    </div>
+                    <div className="purchase-queue-meta">{item.module} · {item.record} · {item.note}</div>
+                  </div>
+                )) : <div className="purchase-hint">No download events are recorded for the selected attachment yet.</div>}
               </div>
             </div>
           </div>
