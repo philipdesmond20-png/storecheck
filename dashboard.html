@@ -5780,12 +5780,19 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
   const [vendorOrderRows, setVendorOrderRows] = useState(PURCHASE_VENDOR_ORDERS);
   const [invoiceReviewRows, setInvoiceReviewRows] = useState(PURCHASE_REVIEW_QUEUE.map((row) => ({ ...row, stage: 'Queued' })));
   const [purchaseLedgerRows, setPurchaseLedgerRows] = useState(PURCHASE_LEDGER);
+  const [expenseRows, setExpenseRows] = useState(
+    OPERATING_EXPENSES.map((row) => ({
+      ...row,
+      reconStatus: row.paymentType === 'Cash' ? 'Needs reconcile' : 'Filed',
+    }))
+  );
   const [costUpdateRows, setCostUpdateRows] = useState(COST_UPDATE_ROWS);
   const [deadInventoryRows, setDeadInventoryRows] = useState(DEAD_INVENTORY_ROWS.map((row) => ({ ...row, stage: 'Review' })));
   const [deadSelected, setDeadSelected] = useState(DEAD_INVENTORY_ROWS.slice(0, 2).map((row) => row.id));
   const [selectedOrderId, setSelectedOrderId] = useState(PURCHASE_VENDOR_ORDERS[0].id);
   const [selectedReviewId, setSelectedReviewId] = useState(PURCHASE_REVIEW_QUEUE[0].id);
   const [selectedLedgerId, setSelectedLedgerId] = useState(PURCHASE_LEDGER.find((row) => row.status !== 'Cleared')?.id || PURCHASE_LEDGER[0].id);
+  const [selectedExpenseId, setSelectedExpenseId] = useState(OPERATING_EXPENSES.find((row) => row.paymentType === 'Cash')?.id || OPERATING_EXPENSES[0].id);
   const [attachments, setAttachments] = useState(ATTACHMENT_LIBRARY);
   const [purchaseDraft, setPurchaseDraft] = useState({
     date: '2026-05-09',
@@ -5809,11 +5816,24 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
   const purchaseSpendTotal = PURCHASE_CATEGORY_SUMMARY.reduce((sum, row) => sum + row.expenses, 0);
   const purchaseRetailTotal = PURCHASE_CATEGORY_SUMMARY.reduce((sum, row) => sum + row.retail, 0);
   const paymentTotal = PURCHASE_PAYMENT_METHODS.reduce((sum, row) => sum + row.amount, 0);
+  const expenseCategorySummary = Object.values(
+    expenseRows.reduce((acc, row) => {
+      if (!acc[row.category]) {
+        acc[row.category] = { category: row.category, entries: 0, cash: 0, nonCash: 0, total: 0 };
+      }
+      acc[row.category].entries += 1;
+      acc[row.category].total += row.amount;
+      if (row.paymentType === 'Cash') acc[row.category].cash += row.amount;
+      else acc[row.category].nonCash += row.amount;
+      return acc;
+    }, {})
+  ).sort((a, b) => b.total - a.total);
+  const cashExpenseRows = expenseRows.filter((row) => row.paymentType === 'Cash');
   const cashPurchaseTotal = purchaseLedgerRows.filter((row) => row.paymentType === 'Cash').reduce((sum, row) => sum + row.storeExpense, 0);
-  const cashExpenseTotal = OPERATING_EXPENSES.filter((row) => row.paymentType === 'Cash').reduce((sum, row) => sum + row.amount, 0);
+  const cashExpenseTotal = cashExpenseRows.reduce((sum, row) => sum + row.amount, 0);
   const filteredVendorOrders = orderVendorFilter === 'All' ? vendorOrderRows : vendorOrderRows.filter((row) => row.vendor === orderVendorFilter);
   const filteredPurchaseLedger = vendorFilter === 'All' ? purchaseLedgerRows : purchaseLedgerRows.filter((row) => row.vendor === vendorFilter);
-  const filteredExpenses = vendorFilter === 'All' ? OPERATING_EXPENSES : OPERATING_EXPENSES.filter((row) => row.vendor === vendorFilter);
+  const filteredExpenses = vendorFilter === 'All' ? expenseRows : expenseRows.filter((row) => row.vendor === vendorFilter);
   const costFilteredRows = costUpdateRows.filter((row) => costCategory === 'All' || row.category === costCategory);
   const visibleCostUpdates = costFilteredRows.filter((row) => costView === 'Latest Updates' || (costView === 'Needs Confirm' ? row.status === 'Needs confirm' : row.status === 'Ready'));
   const filteredDeadInventory = deadInventoryRows.filter((row) => {
@@ -5827,15 +5847,18 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
   const activeVendors = VENDOR_MASTER.filter((row) => row.active).length;
   const pendingReviews = invoiceReviewRows.filter((row) => row.status !== 'Ready to post').length;
   const unclearedLedger = purchaseLedgerRows.filter((row) => row.status !== 'Cleared').length;
-  const expenseMonthTotal = OPERATING_EXPENSES.reduce((sum, row) => sum + row.amount, 0);
+  const expenseMonthTotal = expenseRows.reduce((sum, row) => sum + row.amount, 0);
+  const pendingExpenseRecon = cashExpenseRows.filter((row) => row.reconStatus !== 'Reconciled').length;
+  const reconciledExpenseCount = expenseRows.filter((row) => row.reconStatus === 'Reconciled').length;
   const pendingCostConfirms = costUpdateRows.filter((row) => row.status !== 'Ready').length;
   const deadInventoryUnits = deadInventoryRows.reduce((sum, row) => sum + row.inventory, 0);
   const deadInventoryCost = deadInventoryRows.reduce((sum, row) => sum + row.totalCost, 0);
-  const vendorOptions = ['All', ...uniqueValues([...purchaseLedgerRows, ...OPERATING_EXPENSES], 'vendor')];
+  const vendorOptions = ['All', ...uniqueValues([...purchaseLedgerRows, ...expenseRows], 'vendor')];
   const orderVendorOptions = ['All', ...uniqueValues(vendorOrderRows, 'vendor')];
   const selectedVendorOrder = filteredVendorOrders.find((row) => row.id === selectedOrderId) || filteredVendorOrders[0] || vendorOrderRows[0];
   const selectedInvoiceReview = invoiceReviewRows.find((row) => row.id === selectedReviewId) || invoiceReviewRows[0];
   const selectedLedger = filteredPurchaseLedger.find((row) => row.id === selectedLedgerId) || filteredPurchaseLedger[0] || purchaseLedgerRows[0];
+  const selectedExpense = filteredExpenses.find((row) => row.id === selectedExpenseId) || filteredExpenses[0] || expenseRows[0];
   const selectedDeadRows = deadInventoryRows.filter((row) => deadSelected.includes(row.id));
   const stagedInactiveCount = deadInventoryRows.filter((row) => row.stage === 'Staged InActive').length;
   const tabs = [
@@ -6138,6 +6161,60 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
     setSelectedReviewId(id);
     showNotice(`${id} marked ready to post in demo mode.`);
   };
+  const printExpenseSummaryPacket = () =>
+    openPacketPreview({
+      title: 'Operating Expense Summary',
+      subtitle: 'StoreCheck demo operating-expense summary',
+      headers: ['Category', 'Entries', 'Cash', 'EFT / Check', 'Total'],
+      rows: expenseCategorySummary.map((row) => [row.category, fmtN(row.entries), fmt(row.cash), fmt(row.nonCash), fmt(row.total)]),
+    });
+  const saveExpenseSummaryPacket = () => {
+    savePacket({
+      title: 'Operating Expense Summary Packet',
+      subtitle: `${expenseCategorySummary.length} visible categories`,
+      route: '/storeExpenses/purchaseindex',
+      note: 'Operating expense summary print replacement shell',
+      headers: ['Category', 'Entries', 'Cash', 'EFT / Check', 'Total'],
+      rows: expenseCategorySummary.map((row) => [row.category, fmtN(row.entries), fmt(row.cash), fmt(row.nonCash), fmt(row.total)]),
+      filename: 'storecheck-operating-expense-summary-packet',
+    });
+    showNotice('Operating expense summary packet saved in demo mode.');
+  };
+  const previewExpenseLedger = () =>
+    openPacketPreview({
+      title: 'Operating Expense Ledger',
+      subtitle: 'StoreCheck demo expense ledger',
+      headers: ['Date', 'Shift', 'Vendor', 'Category', 'Payment', 'Amount', 'Status'],
+      rows: filteredExpenses.map((row) => [row.date, row.shift, row.vendor, row.category, row.paymentType, fmt(row.amount), row.reconStatus]),
+    });
+  const saveExpenseLedgerPacket = (row = selectedExpense) => {
+    if (!row) return;
+    savePacket({
+      title: `Operating Expense Packet - ${row.id}`,
+      subtitle: `${row.vendor} · ${row.date}`,
+      route: '/storeExpenses/purchaseindex',
+      note: 'Operating expense ledger follow-through shell',
+      headers: ['Date', 'Shift', 'Vendor', 'Category', 'Payment', 'Amount', 'Status', 'Invoice', 'Note'],
+      rows: [[row.date, row.shift, row.vendor, row.category, row.paymentType, fmt(row.amount), row.reconStatus, row.invoice, row.note]],
+      filename: `storecheck-operating-expense-${row.id.toLowerCase()}`,
+    });
+    showNotice(`Expense packet prepared for ${row.vendor}.`);
+  };
+  const openExpenseRow = (id) => {
+    setSelectedExpenseId(id);
+    setPurchasePage('history');
+    showNotice(`${id} opened in the expense ledger.`);
+  };
+  const reconcileExpenseRow = (id) => {
+    setExpenseRows((current) => current.map((row) => (row.id === id ? { ...row, reconStatus: 'Reconciled' } : row)));
+    setSelectedExpenseId(id);
+    showNotice(`${id} marked reconciled in demo mode. Real expense-post endpoint is still pending.`);
+  };
+  const markExpenseNeedsReview = (id) => {
+    setExpenseRows((current) => current.map((row) => (row.id === id ? { ...row, reconStatus: 'Needs review' } : row)));
+    setSelectedExpenseId(id);
+    showNotice(`${id} moved to needs review in demo mode.`);
+  };
   const exportRows = (rows, format, filename) => downloadTableData(rows, format, filename);
 
   const renderExportButtons = (rows, filename) => (
@@ -6338,7 +6415,7 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
               </div>
               <div className="purchase-kv-list">
                 <div className="purchase-kv"><span>Invoices pending</span><span>{fmtN(invoiceReviewRows.length)}</span></div>
-                <div className="purchase-kv"><span>Ready to export</span><span>{fmtN(purchaseLedgerRows.length + OPERATING_EXPENSES.length)} rows</span></div>
+                <div className="purchase-kv"><span>Ready to export</span><span>{fmtN(purchaseLedgerRows.length + expenseRows.length)} rows</span></div>
                 <div className="purchase-kv"><span>Owner action needed</span><span>{pendingReviews} reviews</span></div>
               </div>
             </div>
@@ -6526,7 +6603,7 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
               <div className="purchase-form-field"><label>Shift</label><select className="pricebook-select" value={expenseDraft.shift} onChange={(e) => handleExpenseDraft('shift', e.target.value)}><option>Morning</option><option>Day</option><option>Afternoon</option><option>Evening</option></select></div>
               <div className="purchase-form-field"><label>Amount</label><input className="pricebook-input" value={expenseDraft.amount} onChange={(e) => handleExpenseDraft('amount', e.target.value)} /></div>
               <div className="purchase-form-field"><label>Payment type</label><select className="pricebook-select" value={expenseDraft.paymentType} onChange={(e) => handleExpenseDraft('paymentType', e.target.value)}>{['Cash', 'Check', 'EFT'].map((item) => <option key={item}>{item}</option>)}</select></div>
-              <div className="purchase-form-field"><label>Vendor</label><select className="pricebook-select" value={expenseDraft.vendor} onChange={(e) => handleExpenseDraft('vendor', e.target.value)}>{uniqueValues(OPERATING_EXPENSES, 'vendor').map((item) => <option key={item}>{item}</option>)}</select></div>
+              <div className="purchase-form-field"><label>Vendor</label><select className="pricebook-select" value={expenseDraft.vendor} onChange={(e) => handleExpenseDraft('vendor', e.target.value)}>{uniqueValues(expenseRows, 'vendor').map((item) => <option key={item}>{item}</option>)}</select></div>
               <div className="purchase-form-field"><label>Expense type</label><select className="pricebook-select" value={expenseDraft.category} onChange={(e) => handleExpenseDraft('category', e.target.value)}>{OPERATING_EXPENSE_TYPES.map((item) => <option key={item}>{item}</option>)}</select></div>
               <div className="purchase-form-field full"><label>Note</label><textarea className="pricebook-input" value={expenseDraft.note} onChange={(e) => handleExpenseDraft('note', e.target.value)} /></div>
               <div className="purchase-form-field full"><label>Invoice upload</label><input className="purchase-file" type="file" onChange={(e) => addAttachment(e.target.files?.[0], 'Operating Expenses', expenseDraft.vendor, 'Invoice')} /></div>
@@ -6546,13 +6623,30 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
 
           <div className="purchase-stack">
             <div className="purchase-note-card">
-              <h3>Operating expense summary</h3>
-              <p>Current demo totals for visibility while the real `/storeExpenses/purchaseindex` data still needs wiring.</p>
+              <div className="pricebook-toolbar" style={{ padding: 0 }}>
+                <div>
+                  <h3>Operating expense summary</h3>
+                  <p>Current demo totals for visibility while the real `/storeExpenses/purchaseindex` data still needs wiring.</p>
+                </div>
+                <div className="pricebook-actions">
+                  <button className="pricebook-btn" onClick={() => printExpenseSummaryPacket()}>
+                    <Icon name="report" size={15} /> Print
+                  </button>
+                  <button className="pricebook-btn" onClick={() => saveExpenseSummaryPacket()}>
+                    <Icon name="cash" size={15} /> Save packet
+                  </button>
+                </div>
+              </div>
               <div className="purchase-kv-list">
                 <div className="purchase-kv"><span>Month-to-date total</span><span>{fmt(expenseMonthTotal)}</span></div>
                 <div className="purchase-kv"><span>Cash expenses</span><span>{fmt(cashExpenseTotal)}</span></div>
                 <div className="purchase-kv"><span>EFT / Check</span><span>{fmt(expenseMonthTotal - cashExpenseTotal)}</span></div>
                 <div className="purchase-kv"><span>Visible expense types</span><span>{fmtN(OPERATING_EXPENSE_TYPES.length)}</span></div>
+                <div className="purchase-kv"><span>Cash pending reconcile</span><span>{fmtN(pendingExpenseRecon)}</span></div>
+                <div className="purchase-kv"><span>Reconciled rows</span><span>{fmtN(reconciledExpenseCount)}</span></div>
+              </div>
+              <div className="pricebook-filters" style={{ padding: '14px 0 0' }}>
+                {renderExportButtons(expenseCategorySummary, 'storecheck-operating-expense-summary')}
               </div>
             </div>
 
@@ -6560,18 +6654,58 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
               <h3>Cash expense visibility</h3>
               <p>Short list of the expense entries owners usually reconcile by hand.</p>
               <div className="purchase-history-list">
-                {OPERATING_EXPENSES.filter((row) => row.paymentType === 'Cash').map((row) => (
+                {cashExpenseRows.map((row) => (
                   <div className="purchase-history-row" key={row.id}>
                     <div className="purchase-history-top">
                       <div>
                         <div className="purchase-history-title">{row.vendor}</div>
                         <div className="purchase-history-meta">{row.date} · {row.shift} shift · {row.category}</div>
                       </div>
+                      <span className={`purchase-tag${toneClass(row.reconStatus)}`}>{row.reconStatus}</span>
+                    </div>
+                    <div className="purchase-history-bottom">
+                      <span className="purchase-history-meta">{row.note}</span>
                       <strong>{fmt(row.amount)}</strong>
                     </div>
-                    <div className="purchase-history-meta">{row.note}</div>
+                    <div className="pricebook-actions" style={{ marginTop: 12 }}>
+                      <button className="pricebook-btn" onClick={() => openExpenseRow(row.id)}>
+                        <Icon name="report" size={15} /> Open ledger
+                      </button>
+                      <button className="pricebook-btn" onClick={() => saveExpenseLedgerPacket(row)}>
+                        <Icon name="cash" size={15} /> Save packet
+                      </button>
+                      {row.reconStatus !== 'Reconciled' ? (
+                        <button className="pricebook-btn primary" onClick={() => reconcileExpenseRow(row.id)}>
+                          <Icon name="sync" size={15} /> Reconcile
+                        </button>
+                      ) : null}
+                    </div>
                   </div>
                 ))}
+              </div>
+            </div>
+
+            <div className="purchase-note-card">
+              <h3>Cash reconciliation</h3>
+              <p>Move cash-only expenses from entry into a clean owner review and ledger follow-through flow.</p>
+              <div className="purchase-kv-list">
+                <div className="purchase-kv"><span>Cash rows</span><span>{fmtN(cashExpenseRows.length)}</span></div>
+                <div className="purchase-kv"><span>Pending reconcile</span><span>{fmtN(pendingExpenseRecon)}</span></div>
+                <div className="purchase-kv"><span>Selected expense</span><span>{selectedExpense ? selectedExpense.vendor : 'None'}</span></div>
+                <div className="purchase-kv"><span>Current filter</span><span>{vendorFilter}</span></div>
+              </div>
+              <div className="pricebook-actions" style={{ marginTop: 16 }}>
+                <button className="pricebook-btn" onClick={() => previewExpenseLedger()}>
+                  <Icon name="report" size={15} /> Print ledger
+                </button>
+                <button className="pricebook-btn" onClick={() => selectedExpense && saveExpenseLedgerPacket(selectedExpense)}>
+                  <Icon name="cash" size={15} /> Save packet
+                </button>
+                {selectedExpense && selectedExpense.reconStatus !== 'Reconciled' ? (
+                  <button className="pricebook-btn primary" onClick={() => reconcileExpenseRow(selectedExpense.id)}>
+                    <Icon name="sync" size={15} /> Mark reconciled
+                  </button>
+                ) : null}
               </div>
             </div>
           </div>
@@ -6644,22 +6778,47 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
                   <div className="pricebook-detail-title">Operating expense ledger</div>
                   <div className="pricebook-detail-sub">Expense history that can be exported now and connected to real save/report endpoints later.</div>
                 </div>
+                <div className="pricebook-actions">
+                  <button className="pricebook-btn" onClick={() => previewExpenseLedger()}>
+                    <Icon name="report" size={15} /> Print
+                  </button>
+                  <button className="pricebook-btn" onClick={() => saveExpenseLedgerPacket()}>
+                    <Icon name="cash" size={15} /> Save packet
+                  </button>
+                  <button className="pricebook-btn primary" onClick={() => setPurchasePage('expense')}>
+                    <Icon name="cash" size={15} /> Add Expense
+                  </button>
+                </div>
+              </div>
+              <div className="pricebook-filters" style={{ padding: '0 20px 16px' }}>
                 {renderExportButtons(filteredExpenses, 'storecheck-operating-expense-ledger')}
               </div>
               <div className="mobile-table-scroll">
                 <table className="purchase-table">
-                  <thead><tr><th>Date</th><th>Shift</th><th>Vendor</th><th>Category</th><th>Payment</th><th className="purchase-right">Amount</th><th>Note</th><th>Invoice</th></tr></thead>
+                  <thead><tr><th>Date</th><th>Shift</th><th>Vendor</th><th>Category</th><th>Payment</th><th className="purchase-right">Amount</th><th>Status</th><th>Note</th><th>Invoice</th><th>Action</th></tr></thead>
                   <tbody>
                     {filteredExpenses.map((row) => (
-                      <tr key={row.id}>
+                      <tr key={row.id} onClick={() => setSelectedExpenseId(row.id)} style={{ cursor: 'pointer' }}>
                         <td>{row.date}</td>
                         <td>{row.shift}</td>
                         <td>{row.vendor}</td>
                         <td>{row.category}</td>
                         <td>{row.paymentType}</td>
                         <td className="purchase-right">{fmt(row.amount)}</td>
+                        <td><span className={`purchase-tag${toneClass(row.reconStatus)}`}>{row.reconStatus}</span></td>
                         <td>{row.note}</td>
                         <td>{row.invoice}</td>
+                        <td>
+                          {row.reconStatus !== 'Reconciled' ? (
+                            <button className="pricebook-btn primary" onClick={(e) => { e.stopPropagation(); reconcileExpenseRow(row.id); }}>
+                              <Icon name="sync" size={15} /> Reconcile
+                            </button>
+                          ) : (
+                            <button className="pricebook-btn" onClick={(e) => { e.stopPropagation(); markExpenseNeedsReview(row.id); }}>
+                              <Icon name="alert" size={15} /> Review
+                            </button>
+                          )}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -6675,6 +6834,7 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
                   <div className="purchase-kv"><span>Visible purchase rows</span><span>{fmtN(filteredPurchaseLedger.length)}</span></div>
                   <div className="purchase-kv"><span>Uncleared rows</span><span>{fmtN(filteredPurchaseLedger.filter((row) => row.status !== 'Cleared').length)}</span></div>
                   <div className="purchase-kv"><span>Visible expense rows</span><span>{fmtN(filteredExpenses.length)}</span></div>
+                  <div className="purchase-kv"><span>Cash pending reconcile</span><span>{fmtN(pendingExpenseRecon)}</span></div>
                   <div className="purchase-kv"><span>Selected vendor filter</span><span>{vendorFilter}</span></div>
                 </div>
               </div>
@@ -6711,6 +6871,45 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
                   </>
                 ) : (
                   <div className="purchase-hint">No ledger row is visible for the current filter.</div>
+                )}
+              </div>
+
+              <div className="purchase-note-card">
+                <h3>Selected expense row</h3>
+                <p>Keep operating-expense follow-through beside the purchase ledger so cash reconciliation stays visible.</p>
+                {selectedExpense ? (
+                  <>
+                    <div className="purchase-kv-list">
+                      <div className="purchase-kv"><span>Vendor</span><span>{selectedExpense.vendor}</span></div>
+                      <div className="purchase-kv"><span>Category</span><span>{selectedExpense.category}</span></div>
+                      <div className="purchase-kv"><span>Payment</span><span>{selectedExpense.paymentType}</span></div>
+                      <div className="purchase-kv"><span>Status</span><span>{selectedExpense.reconStatus}</span></div>
+                    </div>
+                    <div className="pricebook-actions" style={{ marginTop: 16 }}>
+                      <button className="pricebook-btn" onClick={() => saveExpenseLedgerPacket(selectedExpense)}>
+                        <Icon name="cash" size={15} /> Save packet
+                      </button>
+                      <button className="pricebook-btn" onClick={() => openPacketPreview({
+                        title: `Operating Expense Row - ${selectedExpense.id}`,
+                        subtitle: `${selectedExpense.vendor} · ${selectedExpense.date}`,
+                        headers: ['Date', 'Shift', 'Vendor', 'Category', 'Payment', 'Amount', 'Status', 'Invoice'],
+                        rows: [[selectedExpense.date, selectedExpense.shift, selectedExpense.vendor, selectedExpense.category, selectedExpense.paymentType, fmt(selectedExpense.amount), selectedExpense.reconStatus, selectedExpense.invoice]],
+                      })}>
+                        <Icon name="report" size={15} /> Print row
+                      </button>
+                      {selectedExpense.reconStatus !== 'Reconciled' ? (
+                        <button className="pricebook-btn primary" onClick={() => reconcileExpenseRow(selectedExpense.id)}>
+                          <Icon name="sync" size={15} /> Reconcile
+                        </button>
+                      ) : (
+                        <button className="pricebook-btn primary" onClick={() => markExpenseNeedsReview(selectedExpense.id)}>
+                          <Icon name="alert" size={15} /> Needs review
+                        </button>
+                      )}
+                    </div>
+                  </>
+                ) : (
+                  <div className="purchase-hint">No expense row is visible for the current filter.</div>
                 )}
               </div>
             </div>
