@@ -3558,6 +3558,13 @@ const HOUSE_ACCOUNT_UPLOAD_EVENTS = [
   { id: 'HAU-404', attachmentId: 'HAD-191', customer: 'Main Street Church Van', fileName: 'CHURCH-CASH-081.txt', time: '2026-05-06 13:09', actor: 'Store manager', route: '/localCredits/uploadDocument', action: 'Saved upload packet', status: 'Queued', note: 'Payment note exported while the live upload endpoint remained pending.' },
 ];
 
+const HOUSE_ACCOUNT_DOWNLOAD_EVENTS = [
+  { id: 'HADL-501', attachmentId: 'HAD-201', customer: 'Downtown Plumbing', fileName: 'PLUMB-0508.pdf', time: '2026-05-08 14:24', actor: 'Store manager', route: '/localCredits/downloadDocument?fileName=', action: 'Downloaded reference', status: 'Delivered', note: 'Charge slip reference opened for owner reconciliation.' },
+  { id: 'HADL-502', attachmentId: 'HAD-198', customer: 'Downtown Plumbing', fileName: 'PLUMB-STATEMENT-APR.pdf', time: '2026-05-01 09:14', actor: 'Office admin', route: '/localCredits/downloadDocument?fileName=', action: 'Saved download packet', status: 'Ready', note: 'Month-end statement packet exported for accounting review.' },
+  { id: 'HADL-503', attachmentId: 'HAD-194', customer: 'City Courier Service', fileName: 'COURIER-0507.pdf', time: '2026-05-07 16:49', actor: 'Store manager', route: '/localCredits/downloadDocument?fileName=', action: 'Held download review', status: 'Needs review', note: 'Reference stayed in review because the customer signature was blurred.' },
+  { id: 'HADL-504', attachmentId: 'HAD-191', customer: 'Main Street Church Van', fileName: 'CHURCH-CASH-081.txt', time: '2026-05-06 13:10', actor: 'StoreCheck demo', route: '/localCredits/downloadDocument?fileName=', action: 'Downloaded reference', status: 'Delivered', note: 'Payment note reference was opened for follow-through.' },
+];
+
 const STORE_LOCATIONS = [
   { id: 'main-street', name: 'Main Street Gas & Go', location: '123 Main Rd', manager: 'P. Desmond', status: 'Primary Store' },
   { id: 'sandy-cross', name: 'Sandy Cross Fuel Center', location: '88 Highway 29', manager: 'L. Harper', status: 'Satellite Store' },
@@ -10197,6 +10204,7 @@ const FinancialView = ({ currentLocation }) => {
   const [ledgerRows] = useState(HOUSE_ACCOUNT_LEDGER);
   const [houseAttachments, setHouseAttachments] = useState(HOUSE_ACCOUNT_ATTACHMENTS);
   const [houseUploadEvents, setHouseUploadEvents] = useState(HOUSE_ACCOUNT_UPLOAD_EVENTS);
+  const [houseDownloadEvents, setHouseDownloadEvents] = useState(HOUSE_ACCOUNT_DOWNLOAD_EVENTS);
   const [selectedCustomer, setSelectedCustomer] = useState(HOUSE_ACCOUNT_SUMMARY[0].customer);
   const [selectedAttachmentId, setSelectedAttachmentId] = useState(HOUSE_ACCOUNT_ATTACHMENTS[0].id);
   const [uploadCustomer, setUploadCustomer] = useState(HOUSE_ACCOUNT_SUMMARY[0].customer);
@@ -10217,6 +10225,7 @@ const FinancialView = ({ currentLocation }) => {
   const visibleLedgerRows = customerFilter === 'All' ? ledgerRows : ledgerRows.filter((row) => row.customer === customerFilter);
   const visibleAttachments = customerFilter === 'All' ? houseAttachments : houseAttachments.filter((row) => row.customer === customerFilter);
   const visibleHouseUploadEvents = customerFilter === 'All' ? houseUploadEvents : houseUploadEvents.filter((row) => row.customer === customerFilter);
+  const visibleHouseDownloadEvents = customerFilter === 'All' ? houseDownloadEvents : houseDownloadEvents.filter((row) => row.customer === customerFilter);
   const selectedAccount =
     visibleSummaryRows.find((row) => row.customer === selectedCustomer) ||
     summaryRows.find((row) => row.customer === selectedCustomer) ||
@@ -10228,6 +10237,7 @@ const FinancialView = ({ currentLocation }) => {
     visibleAttachments[0] ||
     houseAttachments[0];
   const selectedHouseUploadEvents = selectedAttachment ? houseUploadEvents.filter((row) => row.attachmentId === selectedAttachment.id) : [];
+  const selectedHouseDownloadEvents = selectedAttachment ? houseDownloadEvents.filter((row) => row.attachmentId === selectedAttachment.id) : [];
   const totalCurrent = summaryRows.reduce((sum, row) => sum + row.current, 0);
   const totalDocs = houseAttachments.length;
   const docsNeedingReview = houseAttachments.filter((row) => row.status !== 'Ready').length;
@@ -10296,6 +10306,23 @@ const FinancialView = ({ currentLocation }) => {
       ...current,
     ]);
   };
+  const pushHouseDownloadEvent = ({ attachmentId, customer, fileName, action, status, note }) => {
+    setHouseDownloadEvents((current) => [
+      {
+        id: `HADL-${current.length + 501}`,
+        attachmentId,
+        customer,
+        fileName,
+        time: buildFinancialStamp(),
+        actor: 'StoreCheck demo',
+        route: '/localCredits/downloadDocument?fileName=',
+        action,
+        status,
+        note,
+      },
+      ...current,
+    ]);
+  };
   const addHouseAttachment = (file) => {
     if (!file) return;
     const stamp = new Date().toLocaleString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
@@ -10323,6 +10350,14 @@ const FinancialView = ({ currentLocation }) => {
   const downloadHouseReference = (item = selectedAttachment) => {
     if (!item) return;
     downloadTextData(JSON.stringify(item, null, 2), 'application/json', item.fileName.replace(/\.[^.]+$/, '') + '-reference', 'json');
+    pushHouseDownloadEvent({
+      attachmentId: item.id,
+      customer: item.customer,
+      fileName: item.fileName,
+      action: 'Downloaded reference',
+      status: 'Delivered',
+      note: 'Demo reference opened while the live download endpoint remained pending.',
+    });
     showFinancialNotice(`${item.fileName} downloaded as a demo reference. Real \`/localCredits/downloadDocument\` wiring is still pending.`);
   };
   const previewHouseUploadPacket = (item = selectedAttachment) => {
@@ -10370,6 +10405,24 @@ const FinancialView = ({ currentLocation }) => {
     downloadTableData(rows, format, 'storecheck-house-account-upload-events');
     showFinancialNotice(`${fmtN(rows.length)} upload events exported in ${format} format.`);
   };
+  const previewHouseDownloadPacket = (item = selectedAttachment) => {
+    if (!item) return;
+    pushHouseDownloadEvent({
+      attachmentId: item.id,
+      customer: item.customer,
+      fileName: item.fileName,
+      action: 'Previewed download packet',
+      status: 'Ready',
+      note: 'Owner opened the route packet before live binary download wiring.',
+    });
+    openPacket({
+      title: `House Account Download Packet - ${item.customer}`,
+      subtitle: `${item.fileName} · ${item.type}`,
+      headers: ['Customer', 'File', 'Type', 'Status', 'Download Route', 'Added', 'Note'],
+      rows: [[item.customer, item.fileName, item.type, item.status, `/localCredits/downloadDocument?fileName=${item.fileName}`, item.added, item.note]],
+    });
+    showFinancialNotice(`Download packet preview opened for ${item.customer}.`);
+  };
   const saveAttachmentPacket = (item = selectedAttachment) => {
     if (!item) return;
     savePacket({
@@ -10381,7 +10434,20 @@ const FinancialView = ({ currentLocation }) => {
       rows: [[item.customer, item.fileName, item.type, item.status, item.added, item.note]],
       filename: `storecheck-house-account-attachment-${slugify(item.customer)}`,
     });
-    showFinancialNotice(`Attachment packet prepared for ${item.customer}.`);
+    pushHouseDownloadEvent({
+      attachmentId: item.id,
+      customer: item.customer,
+      fileName: item.fileName,
+      action: 'Saved download packet',
+      status: 'Ready',
+      note: 'Download route packet exported while the live endpoint remained demo-only.',
+    });
+    showFinancialNotice(`Download packet prepared for ${item.customer}.`);
+  };
+  const exportHouseDownloadEvents = (format) => {
+    const rows = selectedHouseDownloadEvents.length ? selectedHouseDownloadEvents : visibleHouseDownloadEvents;
+    downloadTableData(rows, format, 'storecheck-house-account-download-events');
+    showFinancialNotice(`${fmtN(rows.length)} download events exported in ${format} format.`);
   };
   const previewAccountDocs = (row = selectedAccount) => {
     if (!row) return;
@@ -10641,6 +10707,32 @@ const FinancialView = ({ currentLocation }) => {
             <div className="attachment-card">
               <div className="purchase-panel-head">
                 <div>
+                  <h3>House account download route</h3>
+                  <p>Keep the `/localCredits/downloadDocument?fileName=` packet and event trail visible before live binary download wiring.</p>
+                </div>
+              </div>
+              <div className="purchase-kv-list">
+                <div className="purchase-kv"><span>Route</span><span>{selectedAttachment ? `/localCredits/downloadDocument?fileName=${selectedAttachment.fileName}` : '/localCredits/downloadDocument?fileName='}</span></div>
+                <div className="purchase-kv"><span>Selected file</span><span>{selectedAttachment ? selectedAttachment.fileName : 'No attachment selected'}</span></div>
+                <div className="purchase-kv"><span>Download events</span><span>{fmtN(selectedHouseDownloadEvents.length)}</span></div>
+                <div className="purchase-kv"><span>Latest event</span><span>{selectedHouseDownloadEvents[0]?.action || 'No events yet'}</span></div>
+              </div>
+              <div className="pricebook-actions" style={{ marginTop: 16 }}>
+                <button className="pricebook-btn" onClick={() => previewHouseDownloadPacket(selectedAttachment)}>
+                  <Icon name="report" size={15} /> Preview download packet
+                </button>
+                <button className="pricebook-btn" onClick={() => saveAttachmentPacket(selectedAttachment)}>
+                  <Icon name="cash" size={15} /> Save download packet
+                </button>
+                <button className="pricebook-btn primary" onClick={() => exportHouseDownloadEvents('CSV')}>
+                  <Icon name="save" size={15} /> Export download log
+                </button>
+              </div>
+            </div>
+
+            <div className="attachment-card">
+              <div className="purchase-panel-head">
+                <div>
                   <h3>House account upload events</h3>
                   <p>Owner-facing event visibility for the selected house-account upload handoff.</p>
                 </div>
@@ -10658,6 +10750,29 @@ const FinancialView = ({ currentLocation }) => {
                     <div className="purchase-queue-meta">{item.customer} · {item.fileName} · {item.note}</div>
                   </div>
                 )) : <div className="purchase-hint">No upload events are recorded for the selected attachment yet.</div>}
+              </div>
+            </div>
+
+            <div className="attachment-card">
+              <div className="purchase-panel-head">
+                <div>
+                  <h3>House account download events</h3>
+                  <p>Owner-facing event visibility for the selected house-account download handoff.</p>
+                </div>
+              </div>
+              <div className="purchase-queue-list">
+                {selectedHouseDownloadEvents.length ? selectedHouseDownloadEvents.map((item) => (
+                  <div className="purchase-queue-row" key={item.id}>
+                    <div className="purchase-queue-top">
+                      <div>
+                        <div className="purchase-queue-title">{item.action}</div>
+                        <div className="purchase-queue-meta">{item.time} · {item.actor} · {item.route}</div>
+                      </div>
+                      <span className={`purchase-tag${item.status === 'Needs review' ? ' amber' : ' blue'}`}>{item.status}</span>
+                    </div>
+                    <div className="purchase-queue-meta">{item.customer} · {item.fileName} · {item.note}</div>
+                  </div>
+                )) : <div className="purchase-hint">No download events are recorded for the selected attachment yet.</div>}
               </div>
             </div>
           </div>
