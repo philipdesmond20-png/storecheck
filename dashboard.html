@@ -2068,6 +2068,44 @@ button,input{font:inherit}
   font-size:12px;
   font-weight:700;
 }
+.purchase-inline-filters{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+}
+.purchase-badge-list{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin-top:16px;
+}
+.purchase-badge{
+  display:inline-flex;
+  align-items:center;
+  min-height:34px;
+  border-radius:999px;
+  padding:0 12px;
+  background:rgba(59,130,246,.1);
+  color:#2563EB;
+  font-size:12px;
+  font-weight:800;
+}
+.purchase-callout{
+  margin-top:16px;
+  padding:14px 16px;
+  border:1px solid rgba(245,158,11,.22);
+  border-radius:18px;
+  background:#FFF9EE;
+  color:#9A5A00;
+  font-size:13px;
+  font-weight:800;
+  line-height:1.5;
+}
+.purchase-checkbox{
+  width:16px;
+  height:16px;
+  accent-color:#27C66B;
+}
 .purchase-status-dot{
   display:inline-flex;
   width:9px;
@@ -3191,6 +3229,20 @@ const VENDOR_CODES = [
   'northeast sale',
   'pepsi',
   'store expance',
+];
+
+const COST_UPDATE_ROWS = [
+  { id: 'CU-901', updatedAt: '2026-05-09 07:14', upc: '049000028911', itemName: 'Coca-Cola 20oz', category: 'Cold Drinks', prevCost: 1.04, newCost: 1.12, retail: 2.49, rebate: 0.05, margin: 57, group: 'Beverage Singles', source: 'Metro Beverage Wholesale', status: 'Needs confirm' },
+  { id: 'CU-896', updatedAt: '2026-05-08 12:42', upc: '028400589317', itemName: 'Doritos Nacho 2.75oz', category: 'Chips', prevCost: 0.84, newCost: 0.91, retail: 1.99, rebate: 0, margin: 54, group: 'Front Counter Snacks', source: 'Sunrise Snacks Distributor', status: 'Ready' },
+  { id: 'CU-894', updatedAt: '2026-05-08 10:06', upc: '012000171171', itemName: 'Pepsi 20oz', category: 'Cold Drinks', prevCost: 1.01, newCost: 1.08, retail: 2.39, rebate: 0.03, margin: 56, group: 'Beverage Singles', source: 'Metro Beverage Wholesale', status: 'Needs confirm' },
+  { id: 'CU-889', updatedAt: '2026-05-07 16:55', upc: '071235004221', itemName: 'Motor Oil 1 qt', category: 'Automotive', prevCost: 2.92, newCost: 3.1, retail: 5.99, rebate: 0, margin: 48, group: 'Car Care Wall', source: 'Quick Clean Supply', status: 'Ready' },
+];
+
+const DEAD_INVENTORY_ROWS = [
+  { id: 'DI-1204', upc: '041000002504', department: 'Grocery', itemName: 'Canned Soup Family Size', retail: 4.99, cost: 3.1, inventory: 18, totalCost: 55.8, totalRetail: 89.82, lastSold: '2025-10-18', criteria: '12 Months', action: 'Review markdown' },
+  { id: 'DI-1191', upc: '070847012112', department: 'Car Care', itemName: 'Glass Cleaner Wipes', retail: 5.49, cost: 3.42, inventory: 11, totalCost: 37.62, totalRetail: 60.39, lastSold: '2025-08-06', criteria: '15 Months', action: 'Inactivate candidate' },
+  { id: 'DI-1180', upc: '099482000771', department: 'General Merchandise', itemName: 'Travel Sewing Kit', retail: 3.99, cost: 2.18, inventory: 24, totalCost: 52.32, totalRetail: 95.76, lastSold: '2025-06-21', criteria: '18 Months', action: 'Bundle or markdown' },
+  { id: 'DI-1172', upc: '080000753214', department: 'Beverages', itemName: 'Energy Shot Citrus', retail: 2.99, cost: 1.84, inventory: 9, totalCost: 16.56, totalRetail: 26.91, lastSold: '2025-11-04', criteria: '6 Months', action: 'Front counter move' },
 ];
 
 const uniqueValues = (rows, key) => [...new Set(rows.map((row) => row[key]))].sort();
@@ -5157,6 +5209,12 @@ const PricebookView = ({ pricebookPage, setPricebookPage }) => {
 const PurchasesView = ({ purchasePage, setPurchasePage }) => {
   const [notice, setNotice] = useState('');
   const [vendorFilter, setVendorFilter] = useState('All');
+  const [costCategory, setCostCategory] = useState('All');
+  const [costView, setCostView] = useState('Latest Updates');
+  const [deadDept, setDeadDept] = useState('All');
+  const [deadWindow, setDeadWindow] = useState('12 Months');
+  const [deadCriteria, setDeadCriteria] = useState('All flagged items');
+  const [deadSelected, setDeadSelected] = useState(DEAD_INVENTORY_ROWS.slice(0, 2).map((row) => row.id));
   const [purchaseDraft, setPurchaseDraft] = useState({
     date: '2026-05-09',
     shift: 'Day',
@@ -5183,16 +5241,30 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
   const cashExpenseTotal = OPERATING_EXPENSES.filter((row) => row.paymentType === 'Cash').reduce((sum, row) => sum + row.amount, 0);
   const filteredPurchaseLedger = vendorFilter === 'All' ? PURCHASE_LEDGER : PURCHASE_LEDGER.filter((row) => row.vendor === vendorFilter);
   const filteredExpenses = vendorFilter === 'All' ? OPERATING_EXPENSES : OPERATING_EXPENSES.filter((row) => row.vendor === vendorFilter);
+  const filteredCostUpdates = COST_UPDATE_ROWS.filter((row) => costCategory === 'All' || row.category === costCategory);
+  const filteredDeadInventory = DEAD_INVENTORY_ROWS.filter((row) => {
+    const deptMatch = deadDept === 'All' || row.department === deadDept;
+    const windowMatch = deadWindow === 'All' || row.criteria === deadWindow;
+    const criteriaMatch =
+      deadCriteria === 'All flagged items' ||
+      (deadCriteria === 'Inactivate candidates' ? row.action.includes('Inactivate') : row.action.toLowerCase().includes('markdown'));
+    return deptMatch && windowMatch && criteriaMatch;
+  });
   const activeVendors = VENDOR_MASTER.filter((row) => row.active).length;
   const pendingReviews = PURCHASE_REVIEW_QUEUE.filter((row) => row.status !== 'Ready to post').length;
   const unclearedLedger = PURCHASE_LEDGER.filter((row) => row.status !== 'Cleared').length;
   const expenseMonthTotal = OPERATING_EXPENSES.reduce((sum, row) => sum + row.amount, 0);
+  const pendingCostConfirms = COST_UPDATE_ROWS.filter((row) => row.status !== 'Ready').length;
+  const deadInventoryUnits = DEAD_INVENTORY_ROWS.reduce((sum, row) => sum + row.inventory, 0);
+  const deadInventoryCost = DEAD_INVENTORY_ROWS.reduce((sum, row) => sum + row.totalCost, 0);
   const vendorOptions = ['All', ...uniqueValues([...PURCHASE_LEDGER, ...OPERATING_EXPENSES], 'vendor')];
   const tabs = [
     { id: 'overview', label: 'Overview', icon: 'payments' },
     { id: 'purchase', label: 'Add Purchase', icon: 'pricebook' },
     { id: 'expense', label: 'Add Expense', icon: 'cash' },
     { id: 'history', label: 'History', icon: 'report' },
+    { id: 'cost', label: 'Cost Updates', icon: 'sync' },
+    { id: 'dead', label: 'Dead Inventory', icon: 'alert' },
     { id: 'setup', label: 'Vendors & Categories', icon: 'gear' },
   ];
 
@@ -5211,6 +5283,14 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
 
   const handlePurchaseDraft = (field, value) => setPurchaseDraft((current) => ({ ...current, [field]: value }));
   const handleExpenseDraft = (field, value) => setExpenseDraft((current) => ({ ...current, [field]: value }));
+  const toggleDeadSelected = (id) =>
+    setDeadSelected((current) => (current.includes(id) ? current.filter((item) => item !== id) : [...current, id]));
+  const resetDeadFilters = () => {
+    setDeadWindow('12 Months');
+    setDeadDept('All');
+    setDeadCriteria('All flagged items');
+    setDeadSelected(DEAD_INVENTORY_ROWS.slice(0, 2).map((row) => row.id));
+  };
   const exportRows = (rows, format, filename) => downloadTableData(rows, format, filename);
 
   const renderExportButtons = (rows, filename) => (
@@ -5598,6 +5678,192 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
                     ))}
                   </tbody>
                 </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {purchasePage === 'cost' ? (
+        <div className="purchase-grid">
+          <div className="purchase-stack">
+            <div className="purchase-surface">
+              <div className="pricebook-toolbar" style={{ padding: '20px 20px 0' }}>
+                <div>
+                  <div className="pricebook-detail-title">Item cost updates</div>
+                  <div className="pricebook-detail-sub">Review purchase-linked cost changes before they affect margin reporting and downstream POS pricing.</div>
+                </div>
+                {renderExportButtons(filteredCostUpdates, 'storecheck-cost-updates')}
+              </div>
+              <div className="pricebook-filters" style={{ padding: '0 20px 16px' }}>
+                <div className="purchase-inline-filters">
+                  <select className="pricebook-select" value={costCategory} onChange={(e) => setCostCategory(e.target.value)}>
+                    {['All', ...uniqueValues(COST_UPDATE_ROWS, 'category')].map((item) => <option key={item}>{item}</option>)}
+                  </select>
+                  <select className="pricebook-select" value={costView} onChange={(e) => setCostView(e.target.value)}>
+                    {['Latest Updates', 'Needs Confirm', 'Ready'].map((item) => <option key={item}>{item}</option>)}
+                  </select>
+                </div>
+                <div className="pricebook-actions">
+                  <button className="pricebook-btn" onClick={() => showNotice('Cost update print view will use the report layer once connected.')}>
+                    <Icon name="report" size={15} /> Print
+                  </button>
+                  <button className="pricebook-btn primary" onClick={() => showNotice('All visible demo cost updates marked confirmed.')}>
+                    <Icon name="sync" size={15} /> Confirm all
+                  </button>
+                </div>
+              </div>
+              <div className="mobile-table-scroll">
+                <table className="purchase-table">
+                  <thead><tr><th>Update Time</th><th>UPC</th><th>Item</th><th>Category</th><th className="purchase-right">Prev Cost</th><th className="purchase-right">New Cost</th><th className="purchase-right">Retail</th><th className="purchase-right">Rebate</th><th className="purchase-right">Margin</th><th>Group</th><th>Status</th></tr></thead>
+                  <tbody>
+                    {filteredCostUpdates
+                      .filter((row) => costView === 'Latest Updates' || (costView === 'Needs Confirm' ? row.status === 'Needs confirm' : row.status === 'Ready'))
+                      .map((row) => (
+                        <tr key={row.id}>
+                          <td><strong>{row.updatedAt}</strong><small>{row.source} · {row.id}</small></td>
+                          <td>{row.upc}</td>
+                          <td>{row.itemName}</td>
+                          <td>{row.category}</td>
+                          <td className="purchase-right">{fmt(row.prevCost)}</td>
+                          <td className="purchase-right">{fmt(row.newCost)}</td>
+                          <td className="purchase-right">{fmt(row.retail)}</td>
+                          <td className="purchase-right">{row.rebate ? fmt(row.rebate) : '-'}</td>
+                          <td className="purchase-right">{row.margin}%</td>
+                          <td>{row.group}</td>
+                          <td><span className={`purchase-tag${toneClass(row.status)}`}>{row.status}</span></td>
+                        </tr>
+                      ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <div className="purchase-callout">Margin in Mercury excludes some service/store-use charges. This demo workspace keeps cost confirmation separate so owners can spot the inventory-impacting updates first.</div>
+          </div>
+
+          <div className="purchase-stack">
+            <div className="purchase-note-card">
+              <h3>Cost update queue</h3>
+              <p>Prioritize the rows that can distort margin fastest if they stay unconfirmed.</p>
+              <div className="purchase-mini-grid">
+                <div className="purchase-mini-card">
+                  <div className="label">Pending confirms</div>
+                  <div className="value">{fmtN(pendingCostConfirms)}</div>
+                  <div className="meta">Need owner review before final post</div>
+                </div>
+                <div className="purchase-mini-card">
+                  <div className="label">Visible categories</div>
+                  <div className="value">{fmtN(uniqueValues(COST_UPDATE_ROWS, 'category').length)}</div>
+                  <div className="meta">Cross-check with vendor invoice categories</div>
+                </div>
+              </div>
+              <div className="purchase-badge-list">
+                {uniqueValues(COST_UPDATE_ROWS, 'category').map((item) => <span key={item} className="purchase-badge">{item}</span>)}
+              </div>
+            </div>
+
+            <div className="purchase-note-card">
+              <h3>Owner workflow</h3>
+              <p>Quick sequence for turning invoice changes into clean inventory data.</p>
+              <div className="purchase-kv-list">
+                <div className="purchase-kv"><span>1. Review invoice</span><span>Match vendor changes</span></div>
+                <div className="purchase-kv"><span>2. Confirm costs</span><span>Protect margin reporting</span></div>
+                <div className="purchase-kv"><span>3. Export or email</span><span>Accounting-ready handoff</span></div>
+                <div className="purchase-kv"><span>4. Sync later</span><span>POS endpoint still pending</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {purchasePage === 'dead' ? (
+        <div className="purchase-grid">
+          <div className="purchase-stack">
+            <div className="purchase-surface">
+              <div className="pricebook-toolbar" style={{ padding: '20px 20px 0' }}>
+                <div>
+                  <div className="pricebook-detail-title">Dead inventory</div>
+                  <div className="pricebook-detail-sub">Surface stale items early so owners can markdown, relocate, or inactivate them before they quietly tie up cash.</div>
+                </div>
+                {renderExportButtons(filteredDeadInventory, 'storecheck-dead-inventory')}
+              </div>
+              <div className="pricebook-filters" style={{ padding: '0 20px 16px' }}>
+                <div className="purchase-inline-filters">
+                  <select className="pricebook-select" value={deadWindow} onChange={(e) => setDeadWindow(e.target.value)}>
+                    {['6 Months', '12 Months', '15 Months', '18 Months', 'All'].map((item) => <option key={item}>{item}</option>)}
+                  </select>
+                  <select className="pricebook-select" value={deadDept} onChange={(e) => setDeadDept(e.target.value)}>
+                    {['All', ...uniqueValues(DEAD_INVENTORY_ROWS, 'department')].map((item) => <option key={item}>{item}</option>)}
+                  </select>
+                  <select className="pricebook-select" value={deadCriteria} onChange={(e) => setDeadCriteria(e.target.value)}>
+                    {['All flagged items', 'Inactivate candidates', 'Markdown candidates'].map((item) => <option key={item}>{item}</option>)}
+                  </select>
+                </div>
+                <div className="pricebook-actions">
+                  <button className="pricebook-btn" onClick={() => { resetDeadFilters(); showNotice('Dead inventory filters cleared back to the default review set.'); }}>
+                    <Icon name="close" size={15} /> Clear
+                  </button>
+                  <button className="pricebook-btn primary" onClick={() => showNotice(`${deadSelected.length} dead inventory items marked for inactivation review.`)}>
+                    <Icon name="alert" size={15} /> InActive
+                  </button>
+                </div>
+              </div>
+              <div className="mobile-table-scroll">
+                <table className="purchase-table">
+                  <thead><tr><th></th><th>UPC</th><th>Department</th><th>Item</th><th className="purchase-right">Retail</th><th className="purchase-right">Cost</th><th className="purchase-right">Inventory</th><th className="purchase-right">Total Cost</th><th className="purchase-right">Total Retail</th><th>Criteria</th></tr></thead>
+                  <tbody>
+                    {filteredDeadInventory.map((row) => (
+                      <tr key={row.id}>
+                        <td><input className="purchase-checkbox" type="checkbox" checked={deadSelected.includes(row.id)} onChange={() => toggleDeadSelected(row.id)} /></td>
+                        <td>{row.upc}</td>
+                        <td>{row.department}</td>
+                        <td><strong>{row.itemName}</strong><small>Last sold {row.lastSold} · {row.action}</small></td>
+                        <td className="purchase-right">{fmt(row.retail)}</td>
+                        <td className="purchase-right">{fmt(row.cost)}</td>
+                        <td className="purchase-right">{fmtN(row.inventory)}</td>
+                        <td className="purchase-right">{fmt(row.totalCost)}</td>
+                        <td className="purchase-right">{fmt(row.totalRetail)}</td>
+                        <td><span className={`purchase-tag${row.action.includes('Inactivate') ? ' amber' : row.action.includes('markdown') ? ' blue' : ''}`}>{row.criteria}</span></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <div className="purchase-callout">Inactivated items will not ring on the register. This tab keeps that action visible and deliberate instead of burying it in a spreadsheet export.</div>
+          </div>
+
+          <div className="purchase-stack">
+            <div className="purchase-note-card">
+              <h3>Dead stock snapshot</h3>
+              <p>Small, owner-facing summary of the cash sitting in stale units.</p>
+              <div className="purchase-mini-grid">
+                <div className="purchase-mini-card">
+                  <div className="label">Flagged items</div>
+                  <div className="value">{fmtN(filteredDeadInventory.length)}</div>
+                  <div className="meta">{fmtN(deadSelected.length)} currently selected</div>
+                </div>
+                <div className="purchase-mini-card">
+                  <div className="label">Inventory units</div>
+                  <div className="value">{fmtN(deadInventoryUnits)}</div>
+                  <div className="meta">{fmt(deadInventoryCost)} cost at risk</div>
+                </div>
+              </div>
+              <div className="purchase-kv-list">
+                <div className="purchase-kv"><span>Total cost</span><span>{fmt(deadInventoryCost)}</span></div>
+                <div className="purchase-kv"><span>Total retail</span><span>{fmt(DEAD_INVENTORY_ROWS.reduce((sum, row) => sum + row.totalRetail, 0))}</span></div>
+                <div className="purchase-kv"><span>Oldest window</span><span>18 Months</span></div>
+              </div>
+            </div>
+
+            <div className="purchase-note-card">
+              <h3>Recovery actions</h3>
+              <p>What the owner can do next before deciding on a full inactivation pass.</p>
+              <div className="purchase-kv-list">
+                <div className="purchase-kv"><span>Front counter move</span><span>Surface slow units</span></div>
+                <div className="purchase-kv"><span>Markdown list</span><span>Bundle to clear cash</span></div>
+                <div className="purchase-kv"><span>Inactivate list</span><span>Protect register mix</span></div>
+                <div className="purchase-kv"><span>Export CSV</span><span>Share with ops/accounting</span></div>
               </div>
             </div>
           </div>
