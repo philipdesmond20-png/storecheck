@@ -3530,6 +3530,13 @@ const ATTACHMENT_LIBRARY = [
   { id: 'ATT-392', fileName: 'weekly-summary-demo.pdf', module: 'Reports', record: 'Weekly Summary PDF', type: 'Report Package', added: '2026-05-08 08:05', note: 'Owner-facing weekly report bundle' },
 ];
 
+const ATTACHMENT_UPLOAD_EVENTS = [
+  { id: 'ATU-601', attachmentId: 'ATT-401', fileName: 'INV-88412.pdf', module: 'Purchases', record: 'Metro Beverage Wholesale', time: '2026-05-09 08:11', actor: 'Store manager', route: '/localCredits/uploadDocument', action: 'Queued upload packet', status: 'Queued', note: 'Invoice packet staged from the Purchases workspace.' },
+  { id: 'ATU-602', attachmentId: 'ATT-401', fileName: 'INV-88412.pdf', module: 'Purchases', record: 'Metro Beverage Wholesale', time: '2026-05-09 08:12', actor: 'Store manager', route: '/localCredits/uploadDocument', action: 'Reviewed owner context', status: 'Ready', note: 'Invoice details were verified before sharing the upload packet.' },
+  { id: 'ATU-603', attachmentId: 'ATT-398', fileName: 'QCS-5510.pdf', module: 'Operating Expenses', record: 'Quick Clean Supply', time: '2026-05-08 15:09', actor: 'Office admin', route: '/localCredits/uploadDocument', action: 'Queued upload packet', status: 'Queued', note: 'Expense invoice queued for shared attachment review.' },
+  { id: 'ATU-604', attachmentId: 'ATT-392', fileName: 'weekly-summary-demo.pdf', module: 'Reports', record: 'Weekly Summary PDF', time: '2026-05-08 08:04', actor: 'StoreCheck demo', route: '/localCredits/uploadDocument', action: 'Saved upload packet', status: 'Queued', note: 'Report bundle packet exported while live file upload remained pending.' },
+];
+
 const HOUSE_ACCOUNT_SUMMARY = [
   { customer: 'Downtown Plumbing', previous: 418.22, payments: 120.0, purchases: 188.4, current: 486.62, docs: 2, contact: 'Fleet acct 204' },
   { customer: 'Northside Landscaping', previous: 112.15, payments: 60.0, purchases: 144.75, current: 196.9, docs: 1, contact: 'Crew card set' },
@@ -8470,6 +8477,8 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
   const [vendorDraftName, setVendorDraftName] = useState('');
   const [expenseTypeDraftName, setExpenseTypeDraftName] = useState('');
   const [attachments, setAttachments] = useState(ATTACHMENT_LIBRARY);
+  const [attachmentUploadEvents, setAttachmentUploadEvents] = useState(ATTACHMENT_UPLOAD_EVENTS);
+  const [selectedLibraryAttachmentId, setSelectedLibraryAttachmentId] = useState(ATTACHMENT_LIBRARY[0].id);
   const [purchaseDraft, setPurchaseDraft] = useState({
     date: '2026-05-09',
     shift: 'Day',
@@ -8557,6 +8566,8 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
   const selectedExpenseType = expenseTypeRows.find((row) => row.id === selectedExpenseTypeId) || expenseTypeRows[0];
   const selectedDeadRows = deadInventoryRows.filter((row) => deadSelected.includes(row.id));
   const stagedInactiveCount = deadInventoryRows.filter((row) => row.stage === 'Staged InActive').length;
+  const selectedLibraryAttachment = attachments.find((row) => row.id === selectedLibraryAttachmentId) || attachments[0];
+  const selectedAttachmentUploadEvents = selectedLibraryAttachment ? attachmentUploadEvents.filter((row) => row.attachmentId === selectedLibraryAttachment.id) : [];
   const tabs = [
     { id: 'overview', label: 'Overview', icon: 'payments' },
     { id: 'purchase', label: 'Add Purchase', icon: 'pricebook' },
@@ -8581,6 +8592,11 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
     window.__storecheckPurchasesNotice = window.setTimeout(() => setNotice(''), 2800);
   };
   const slugify = (value) => String(value).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  const buildPurchaseStamp = () => {
+    const now = new Date();
+    const pad = (value) => String(value).padStart(2, '0');
+    return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
+  };
 
   const handlePurchaseDraft = (field, value) => setPurchaseDraft((current) => ({ ...current, [field]: value }));
   const handleExpenseDraft = (field, value) => setExpenseDraft((current) => ({ ...current, [field]: value }));
@@ -8592,26 +8608,99 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
     setDeadCriteria('All flagged items');
     setDeadSelected(deadInventoryRows.slice(0, 2).map((row) => row.id));
   };
-  const addAttachment = (file, module, record, type) => {
-    if (!file) return;
-    const stamp = new Date().toLocaleString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
-    setAttachments((current) => [
+  const pushAttachmentUploadEvent = ({ attachmentId, fileName, module, record, action, status, note }) => {
+    setAttachmentUploadEvents((current) => [
       {
-        id: `ATT-${current.length + 410}`,
-        fileName: file.name,
+        id: `ATU-${current.length + 601}`,
+        attachmentId,
+        fileName,
         module,
         record,
-        type,
-        added: stamp,
-        note: 'Uploaded in demo mode. File metadata only until endpoint wiring is added.',
+        time: buildPurchaseStamp(),
+        actor: 'StoreCheck demo',
+        route: '/localCredits/uploadDocument',
+        action,
+        status,
+        note,
       },
       ...current,
     ]);
+  };
+  const addAttachment = (file, module, record, type) => {
+    if (!file) return;
+    const stamp = new Date().toLocaleString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+    const next = {
+      id: `ATT-${attachments.length + 410}`,
+      fileName: file.name,
+      module,
+      record,
+      type,
+      added: stamp,
+      note: 'Uploaded in demo mode. File metadata only until endpoint wiring is added.',
+    };
+    setAttachments((current) => [next, ...current]);
+    setSelectedLibraryAttachmentId(next.id);
+    pushAttachmentUploadEvent({
+      attachmentId: next.id,
+      fileName: next.fileName,
+      module: next.module,
+      record: next.record,
+      action: 'Queued upload packet',
+      status: 'Queued',
+      note: 'Demo-safe module attachment handoff staged from StoreCheck.',
+    });
     showNotice(`${file.name} added to the attachment library in demo mode.`);
   };
   const downloadAttachment = (item) => {
     const body = JSON.stringify(item, null, 2);
     downloadTextData(body, 'application/json', item.fileName.replace(/\.[^.]+$/, '') + '-reference', 'json');
+  };
+  const previewAttachmentUploadPacket = (item = selectedLibraryAttachment) => {
+    if (!item) return;
+    pushAttachmentUploadEvent({
+      attachmentId: item.id,
+      fileName: item.fileName,
+      module: item.module,
+      record: item.record,
+      action: 'Previewed upload packet',
+      status: 'Ready',
+      note: 'Owner opened the module upload packet before live binary upload wiring.',
+    });
+    openPacketPreview({
+      title: `Module Attachment Upload Packet - ${item.fileName}`,
+      subtitle: `${item.module} · ${item.record}`,
+      headers: ['Module', 'Record', 'File', 'Type', 'Route', 'Added', 'Note'],
+      rows: [[item.module, item.record, item.fileName, item.type, '/localCredits/uploadDocument', item.added, item.note]],
+    });
+    showNotice(`Module upload packet preview opened for ${item.fileName}.`);
+  };
+  const saveAttachmentUploadPacket = (item = selectedLibraryAttachment) => {
+    if (!item) return;
+    const itemEvents = attachmentUploadEvents.filter((row) => row.attachmentId === item.id);
+    savePacket({
+      title: `Module Attachment Upload Route Packet - ${item.fileName}`,
+      subtitle: `${item.module} · ${item.record}`,
+      route: '/localCredits/uploadDocument',
+      note: 'Module attachment upload replacement shell',
+      headers: ['Module', 'Record', 'File', 'Type', 'Added', 'Review State', 'Note'],
+      rows: [[item.module, item.record, item.fileName, item.type, item.added, itemEvents[0]?.status || 'Queued', item.note]],
+      filename: `storecheck-module-upload-${slugify(item.module)}-${slugify(item.fileName.replace(/\.[^.]+$/, ''))}`,
+    });
+    pushAttachmentUploadEvent({
+      attachmentId: item.id,
+      fileName: item.fileName,
+      module: item.module,
+      record: item.record,
+      action: 'Saved upload packet',
+      status: 'Queued',
+      note: 'Route packet exported while the live upload endpoint remained demo-only.',
+    });
+    showNotice(`Module upload packet prepared for ${item.fileName}.`);
+  };
+  const exportAttachmentUploadEvents = (format) => {
+    const rows = selectedAttachmentUploadEvents.length ? selectedAttachmentUploadEvents : attachmentUploadEvents;
+    downloadTableData(rows, format, 'storecheck-module-attachment-upload-events');
+    showNotice(`${fmtN(rows.length)} module upload events exported in ${format} format.`);
   };
   const buildPacketHtml = ({ title, subtitle, route, note, headers, rows }) => `<!doctype html>
 <html lang="en">
@@ -9952,7 +10041,7 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
             </div>
             <div className="attachment-list">
               {attachments.map((item) => (
-                <div className="attachment-row" key={item.id}>
+                <div className="attachment-row" key={item.id} onClick={() => setSelectedLibraryAttachmentId(item.id)} style={{ cursor: 'pointer' }}>
                   <div className="attachment-head">
                     <div>
                       <div className="attachment-title">{item.fileName}</div>
@@ -9962,10 +10051,10 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
                   </div>
                   <div className="attachment-meta">{item.added} · {item.note}</div>
                   <div className="attachment-actions">
-                    <button className="pricebook-btn" onClick={() => downloadAttachment(item)}>
+                    <button className="pricebook-btn" onClick={(e) => { e.stopPropagation(); downloadAttachment(item); }}>
                       <Icon name="report" size={15} /> Download reference
                     </button>
-                    <button className="pricebook-btn" onClick={() => showNotice(`${item.fileName} opened in demo attachment review.`)}>
+                    <button className="pricebook-btn" onClick={(e) => { e.stopPropagation(); setSelectedLibraryAttachmentId(item.id); showNotice(`${item.fileName} opened in demo attachment review.`); }}>
                       <Icon name="item" size={15} /> Review
                     </button>
                   </div>
@@ -9994,6 +10083,33 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
             <div className="attachment-card">
               <div className="purchase-panel-head">
                 <div>
+                  <h3>Module attachment upload route</h3>
+                  <p>Keep the `/localCredits/uploadDocument` packet and event trail visible for shared attachments before live binary upload wiring.</p>
+                </div>
+              </div>
+              <div className="purchase-kv-list">
+                <div className="purchase-kv"><span>Route</span><span>/localCredits/uploadDocument</span></div>
+                <div className="purchase-kv"><span>Selected file</span><span>{selectedLibraryAttachment ? selectedLibraryAttachment.fileName : 'No attachment selected'}</span></div>
+                <div className="purchase-kv"><span>Module</span><span>{selectedLibraryAttachment ? selectedLibraryAttachment.module : 'Open'}</span></div>
+                <div className="purchase-kv"><span>Upload events</span><span>{fmtN(selectedAttachmentUploadEvents.length)}</span></div>
+                <div className="purchase-kv"><span>Latest event</span><span>{selectedAttachmentUploadEvents[0]?.action || 'No events yet'}</span></div>
+              </div>
+              <div className="pricebook-actions" style={{ marginTop: 16 }}>
+                <button className="pricebook-btn" onClick={() => previewAttachmentUploadPacket(selectedLibraryAttachment)}>
+                  <Icon name="report" size={15} /> Preview module upload packet
+                </button>
+                <button className="pricebook-btn" onClick={() => saveAttachmentUploadPacket(selectedLibraryAttachment)}>
+                  <Icon name="cash" size={15} /> Save module upload packet
+                </button>
+                <button className="pricebook-btn primary" onClick={() => exportAttachmentUploadEvents('CSV')}>
+                  <Icon name="save" size={15} /> Export module upload log
+                </button>
+              </div>
+            </div>
+
+            <div className="attachment-card">
+              <div className="purchase-panel-head">
+                <div>
                   <h3>Owner view</h3>
                   <p>Keep document handling visible across modules instead of hiding files inside individual records.</p>
                 </div>
@@ -10003,6 +10119,30 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
                 <div className="purchase-kv"><span>Purchase invoices</span><span>{fmtN(attachments.filter((item) => item.module === 'Purchases').length)}</span></div>
                 <div className="purchase-kv"><span>Expense invoices</span><span>{fmtN(attachments.filter((item) => item.module === 'Operating Expenses').length)}</span></div>
                 <div className="purchase-kv"><span>Report packages</span><span>{fmtN(attachments.filter((item) => item.module === 'Reports').length)}</span></div>
+                <div className="purchase-kv"><span>Selected record</span><span>{selectedLibraryAttachment ? selectedLibraryAttachment.record : 'Open'}</span></div>
+              </div>
+            </div>
+
+            <div className="attachment-card">
+              <div className="purchase-panel-head">
+                <div>
+                  <h3>Module attachment upload events</h3>
+                  <p>Owner-facing event visibility for the selected shared attachment upload handoff.</p>
+                </div>
+              </div>
+              <div className="purchase-queue-list">
+                {selectedAttachmentUploadEvents.length ? selectedAttachmentUploadEvents.map((item) => (
+                  <div className="purchase-queue-row" key={item.id}>
+                    <div className="purchase-queue-top">
+                      <div>
+                        <div className="purchase-queue-title">{item.action}</div>
+                        <div className="purchase-queue-meta">{item.time} · {item.actor} · {item.route}</div>
+                      </div>
+                      <span className={`purchase-tag${item.status === 'Needs review' ? ' amber' : ' blue'}`}>{item.status}</span>
+                    </div>
+                    <div className="purchase-queue-meta">{item.module} · {item.record} · {item.note}</div>
+                  </div>
+                )) : <div className="purchase-hint">No upload events are recorded for the selected attachment yet.</div>}
               </div>
             </div>
           </div>
