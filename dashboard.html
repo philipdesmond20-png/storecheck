@@ -216,6 +216,33 @@ button,input{font:inherit}
   padding:14px;
   backdrop-filter:blur(10px);
 }
+.sb-location-select{
+  width:100%;
+  min-height:38px;
+  margin-top:12px;
+  border:1px solid rgba(39,198,107,0.18);
+  border-radius:12px;
+  padding:0 12px;
+  background:#F8FCF9;
+  color:var(--text-1);
+  font:800 12px/1 "DM Sans",sans-serif;
+}
+.sb-footer-actions{
+  display:grid;
+  gap:8px;
+  margin-top:12px;
+}
+.sb-link-btn{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  border:0;
+  padding:0;
+  background:transparent;
+  color:var(--green-dark);
+  font:800 12px/1.4 "DM Sans",sans-serif;
+  cursor:pointer;
+}
 .sb-meta{
   display:flex;
   align-items:center;
@@ -3374,6 +3401,24 @@ const ATTACHMENT_LIBRARY = [
   { id: 'ATT-392', fileName: 'weekly-summary-demo.pdf', module: 'Reports', record: 'Weekly Summary PDF', type: 'Report Package', added: '2026-05-08 08:05', note: 'Owner-facing weekly report bundle' },
 ];
 
+const STORE_LOCATIONS = [
+  { id: 'main-street', name: 'Main Street Gas & Go', location: '123 Main Rd', manager: 'P. Desmond', status: 'Primary Store' },
+  { id: 'sandy-cross', name: 'Sandy Cross Fuel Center', location: '88 Highway 29', manager: 'L. Harper', status: 'Satellite Store' },
+  { id: 'north-avenue', name: 'North Avenue Market', location: '514 North Ave', manager: 'R. Flores', status: 'Training Store' },
+];
+
+const RELEASE_NOTES = [
+  { date: '2026-05-09', title: 'Purchases and vendor workflows added', note: 'Purchase entry, expense entry, vendor setup, cost updates, dead inventory, and attachments are now available in StoreCheck.' },
+  { date: '2026-05-09', title: 'Report delivery shell added', note: 'Print center, email delivery queue, and export center are now staged for endpoint wiring.' },
+  { date: '2026-05-08', title: 'Inventory and pricebook workspace expanded', note: 'Item setup, deals, and pending POS surfaces were added with export coverage.' },
+];
+
+const ACCOUNT_EMAIL_SETTINGS = {
+  login: 'owner@mainstreetgas.com',
+  reports: 'accounting@mainstreetgas.com',
+  alerts: 'ops@mainstreetgas.com',
+};
+
 const uniqueValues = (rows, key) => [...new Set(rows.map((row) => row[key]))].sort();
 const sumRows = (rows) => rows.reduce((sum, row) => sum + row.amount, 0);
 const groupRows = (rows, key) =>
@@ -3488,6 +3533,8 @@ const Sidebar = ({
   active,
   setActive,
   alerts,
+  currentLocation,
+  setLocationId,
   shopCategory,
   setShopCategory,
   shopExpanded,
@@ -3621,14 +3668,23 @@ const Sidebar = ({
           <span className="sb-live-dot"></span>
           <span>Live - {MOCK.source === 'gilbargo' ? 'Gilbargo POS' : 'Ruby POS'}</span>
         </div>
-        <div className="sb-store-name">{MOCK.store.name}</div>
-        <div className="sb-store-sub">{MOCK.store.location}</div>
+        <div className="sb-store-name">{currentLocation.name}</div>
+        <div className="sb-store-sub">{currentLocation.location}</div>
+        <select className="sb-location-select" value={currentLocation.id} onChange={(e) => setLocationId(e.target.value)}>
+          {STORE_LOCATIONS.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+        </select>
+        <div className="sb-footer-actions">
+          <button className="sb-link-btn" onClick={() => { setActive('settings'); setMobileNavOpen(false); }}>
+            <Icon name="connect" size={14} bg="rgba(39,198,107,0.14)" fg="#27C66B" />
+            <span>Switch store or session settings</span>
+          </button>
+        </div>
       </div>
     </div>
   </aside>
 );
 
-const TopBar = ({ view, setMobileNavOpen }) => {
+const TopBar = ({ view, currentLocation, setActive, setMobileNavOpen }) => {
   return (
     <div className="topbar">
       <div className="topbar-inner">
@@ -3637,7 +3693,7 @@ const TopBar = ({ view, setMobileNavOpen }) => {
             <span className="eyebrow-dot"></span>
             <span>Store Operations Overview</span>
           </div>
-          <div className="topbar-sub">{todayStr()}</div>
+          <div className="topbar-sub">{todayStr()} · {currentLocation.name}</div>
         </div>
         <div className="topbar-actions">
           <button className="mobile-nav-btn" onClick={() => setMobileNavOpen(true)} title="Open menu">
@@ -3651,7 +3707,7 @@ const TopBar = ({ view, setMobileNavOpen }) => {
             <Icon name="bell" size={18} bg="rgba(59,130,246,0.14)" fg="#3B82F6" />
             <div className="notif-dot"></div>
           </div>
-          <div className="topbar-avatar" title="Account">PD</div>
+          <div className="topbar-avatar" title="Account" onClick={() => setActive('settings')} style={{ cursor: 'pointer' }}>PD</div>
         </div>
       </div>
     </div>
@@ -6208,7 +6264,7 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
   );
 };
 
-const ReportsView = ({ reportPage, setReportPage }) => {
+const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
   const [deliveryNotice, setDeliveryNotice] = useState('');
   const [deliveryEmail, setDeliveryEmail] = useState('owner@mainstreetgas.com');
   const [deliverySelection, setDeliverySelection] = useState('Weekly Summary PDF');
@@ -6287,12 +6343,12 @@ const ReportsView = ({ reportPage, setReportPage }) => {
   const customPrintRows = customSnapshots.map((r) => [r.label, fmt(r.fuel), fmt(r.shop), fmt(r.lottery), fmt(r.total), fmtN(r.gallons)]);
   const exportDeliveryData = (kind) => {
     if (kind === 'xml') {
-      const xml = `<report><store>${MOCK.store.name}</store><weekTotal>${totals.total.toFixed(2)}</weekTotal><days>${rows.map((r) => `<day name="${r.day}" total="${r.total}" fuel="${r.fuel}" shop="${r.shop}" lottery="${r.lottery}" gallons="${r.gallons}" />`).join('')}</days></report>`;
+      const xml = `<report><store>${currentLocation.name}</store><weekTotal>${totals.total.toFixed(2)}</weekTotal><days>${rows.map((r) => `<day name="${r.day}" total="${r.total}" fuel="${r.fuel}" shop="${r.shop}" lottery="${r.lottery}" gallons="${r.gallons}" />`).join('')}</days></report>`;
       downloadTextData(xml, 'application/xml', 'storecheck-sales-report', 'xml');
       return;
     }
     if (kind === 'quickbooks') {
-      const qbo = ['TRNS\tDATE\tACCNT\tNAME\tAMOUNT\tDOCNUM', ...rows.map((r, i) => `TRNS\t${r.date}\tSales\t${MOCK.store.name}\t${r.total.toFixed(2)}\tQB-${i + 1}`)].join('\n');
+      const qbo = ['TRNS\tDATE\tACCNT\tNAME\tAMOUNT\tDOCNUM', ...rows.map((r, i) => `TRNS\t${r.date}\tSales\t${currentLocation.name}\t${r.total.toFixed(2)}\tQB-${i + 1}`)].join('\n');
       downloadTextData(qbo, 'text/plain', 'storecheck-quickbooks-export', 'iif');
       return;
     }
@@ -6320,7 +6376,7 @@ const ReportsView = ({ reportPage, setReportPage }) => {
 
   const deliveryActions = (title, printRows) => (
     <div className="pricebook-actions" style={{ marginBottom: 18 }}>
-      <button className="pricebook-btn" onClick={() => openReportSurface(title, `${MOCK.store.name} · ${todayStr()}`, printRows)}>
+      <button className="pricebook-btn" onClick={() => openReportSurface(title, `${currentLocation.name} · ${todayStr()}`, printRows)}>
         <Icon name="report" size={15} /> Print preview
       </button>
       <button className="pricebook-btn" onClick={() => showDeliveryNotice(`${title} queued to ${deliveryEmail}. Live email endpoint still pending.`)}>
@@ -6363,7 +6419,7 @@ const ReportsView = ({ reportPage, setReportPage }) => {
                       <span className="purchase-tag blue">{row.format}</span>
                     </div>
                     <div className="report-delivery-actions">
-                      <button className="pricebook-btn" onClick={() => openReportSurface(row.name, `${MOCK.store.name} · delivery layer preview`, row.name === 'Summary PDF' ? monthPrintRows : row.name === 'Days PDF' ? weekPrintRows : customPrintRows)}>
+                      <button className="pricebook-btn" onClick={() => openReportSurface(row.name, `${currentLocation.name} · delivery layer preview`, row.name === 'Summary PDF' ? monthPrintRows : row.name === 'Days PDF' ? weekPrintRows : customPrintRows)}>
                         <Icon name="report" size={15} /> Open print view
                       </button>
                       <button className="pricebook-btn" onClick={() => showDeliveryNotice(`${row.name} prepared as a demo print package.`)}>
@@ -6777,18 +6833,47 @@ const ReportsView = ({ reportPage, setReportPage }) => {
   );
 };
 
-const SettingsView = () => {
+const SettingsView = ({ currentLocation, setLocationId }) => {
   const [src, setSrc] = useState(MOCK.source);
   const [fuelAlertPct, setFuelAlertPct] = useState(25);
+  const [sessionNotice, setSessionNotice] = useState('');
+  const [loginEmail, setLoginEmail] = useState(ACCOUNT_EMAIL_SETTINGS.login);
+  const [reportEmail, setReportEmail] = useState(ACCOUNT_EMAIL_SETTINGS.reports);
+  const [alertsEmail, setAlertsEmail] = useState(ACCOUNT_EMAIL_SETTINGS.alerts);
+
+  const showSessionNotice = (message) => {
+    setSessionNotice(message);
+    window.clearTimeout(window.__storecheckSessionNotice);
+    window.__storecheckSessionNotice = window.setTimeout(() => setSessionNotice(''), 2800);
+  };
 
   return (
     <div className="shell">
       <div className="section-hdr">
         <h1>Settings</h1>
-        <p>Manage your POS connection, store details, pricing, and alert settings.</p>
+        <p>Manage POS connection, store details, account basics, location switching, and operator session controls.</p>
       </div>
 
+      {sessionNotice ? <div className="pricebook-notice"><Icon name="gear" size={16} /> {sessionNotice}</div> : null}
+
       <div className="settings-grid">
+        <div className="settings-card">
+          <div className="settings-title">Location & Session</div>
+          <div className="settings-sub">Replacement shell for Mercury location switching and logout flow.</div>
+          <label className="form-label">Active Store</label>
+          <select className="form-input" value={currentLocation.id} onChange={(e) => { setLocationId(e.target.value); showSessionNotice('Store location switched in demo mode.'); }}>
+            {STORE_LOCATIONS.map((item) => <option key={item.id} value={item.id}>{item.name} · {item.location}</option>)}
+          </select>
+          <div className="connect-status">
+            <span className="source-dot"></span>
+            <span>{currentLocation.manager} · {currentLocation.status}</span>
+          </div>
+          <button className="connect-btn" onClick={() => showSessionNotice('Demo session signed out. Real logout endpoint still pending.')}>
+            <Icon name="close" size={16} bg="rgba(255,255,255,0.12)" fg="#86EFAC" />
+            <span>Log Out</span>
+          </button>
+        </div>
+
         <div className="settings-card">
           <div className="settings-title">POS System Connection</div>
           <div className="settings-sub">Choose which POS system to pull data from.</div>
@@ -6824,12 +6909,12 @@ const SettingsView = () => {
           <div className="settings-title">Store Details</div>
           <div className="settings-sub">Your store information.</div>
           <label className="form-label">Store Name</label>
-          <input className="form-input" defaultValue={MOCK.store.name} />
+          <input className="form-input" key={`store-name-${currentLocation.id}`} defaultValue={currentLocation.name} />
           <label className="form-label">Store Address</label>
-          <input className="form-input" defaultValue={MOCK.store.location} />
+          <input className="form-input" key={`store-location-${currentLocation.id}`} defaultValue={currentLocation.location} />
           <label className="form-label">Owner / Manager Name</label>
-          <input className="form-input" placeholder="Your name" />
-          <button className="connect-btn">
+          <input className="form-input" key={`store-manager-${currentLocation.id}`} defaultValue={currentLocation.manager} />
+          <button className="connect-btn" onClick={() => showSessionNotice('Store details saved in demo mode. Real admin save endpoint still pending.')}>
             <Icon name="save" size={16} bg="rgba(255,255,255,0.12)" fg="#86EFAC" />
             <span>Save Details</span>
           </button>
@@ -6844,9 +6929,24 @@ const SettingsView = () => {
               <input className="form-input" defaultValue={'$' + g.price} />
             </div>
           ))}
-          <button className="connect-btn">
+          <button className="connect-btn" onClick={() => showSessionNotice('Fuel price update saved in demo mode. Real endpoint still pending.')}>
             <Icon name="save" size={16} bg="rgba(255,255,255,0.12)" fg="#86EFAC" />
             <span>Update Prices</span>
+          </button>
+        </div>
+
+        <div className="settings-card">
+          <div className="settings-title">Admin Account</div>
+          <div className="settings-sub">Replacement shell for Mercury account and email settings.</div>
+          <label className="form-label">Login / Account Email</label>
+          <input className="form-input" value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} />
+          <label className="form-label">Report Delivery Email</label>
+          <input className="form-input" value={reportEmail} onChange={(e) => setReportEmail(e.target.value)} />
+          <label className="form-label">Alerts Email</label>
+          <input className="form-input" value={alertsEmail} onChange={(e) => setAlertsEmail(e.target.value)} />
+          <button className="connect-btn" onClick={() => showSessionNotice('Admin account settings saved in demo mode. Real `/administration/email` wiring still pending.')}>
+            <Icon name="save" size={16} bg="rgba(255,255,255,0.12)" fg="#86EFAC" />
+            <span>Save Account Settings</span>
           </button>
         </div>
 
@@ -6879,6 +6979,23 @@ const SettingsView = () => {
             </div>
           ))}
         </div>
+
+        <div className="settings-card">
+          <div className="settings-title">Release Notes & Updates</div>
+          <div className="settings-sub">Replacement shell for Mercury release notes and update visibility.</div>
+          {RELEASE_NOTES.map((item) => (
+            <div key={`${item.date}-${item.title}`} className="toggle-row">
+              <div className="toggle-label">
+                <div style={{ fontWeight: 800 }}>{item.title}</div>
+                <div style={{ color: 'var(--text-3)', fontSize: 12, marginTop: 4 }}>{item.date} · {item.note}</div>
+              </div>
+            </div>
+          ))}
+          <button className="connect-btn" onClick={() => showSessionNotice('Release notes opened in demo mode. Live update feed still pending.')}>
+            <Icon name="report" size={16} bg="rgba(255,255,255,0.12)" fg="#86EFAC" />
+            <span>Open Release Notes</span>
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -6887,6 +7004,7 @@ const SettingsView = () => {
 const App = () => {
   const [view, setView] = useState('today');
   const [viewMode, setViewMode] = useState('default');
+  const [locationId, setLocationId] = useState(STORE_LOCATIONS[0].id);
   const [shopCategory, setShopCategory] = useState('overview');
   const [shopExpanded, setShopExpanded] = useState(true);
   const [reportPage, setReportPage] = useState('week');
@@ -6894,6 +7012,7 @@ const App = () => {
   const [purchasePage, setPurchasePage] = useState('overview');
   const [reportExpanded, setReportExpanded] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const currentLocation = STORE_LOCATIONS.find((item) => item.id === locationId) || STORE_LOCATIONS[0];
 
   return (
     <>
@@ -6902,6 +7021,8 @@ const App = () => {
         active={view}
         setActive={setView}
         alerts={MOCK.alerts.length}
+        currentLocation={currentLocation}
+        setLocationId={setLocationId}
         shopCategory={shopCategory}
         setShopCategory={setShopCategory}
         shopExpanded={shopExpanded}
@@ -6914,7 +7035,7 @@ const App = () => {
         setMobileNavOpen={setMobileNavOpen}
       />
       <div className="main">
-        <TopBar view={view} setMobileNavOpen={setMobileNavOpen} />
+        <TopBar view={view} currentLocation={currentLocation} setActive={setView} setMobileNavOpen={setMobileNavOpen} />
         <div className="content">
           {view === 'today' ? <TodayView viewMode={viewMode} setViewMode={setViewMode} /> : null}
           {view === 'transactions' ? <TransactionsView /> : null}
@@ -6922,8 +7043,8 @@ const App = () => {
           {view === 'shop' ? <ShopView viewMode={viewMode} shopCategory={shopCategory} setShopCategory={setShopCategory} /> : null}
           {view === 'pricebook' ? <PricebookView pricebookPage={pricebookPage} setPricebookPage={setPricebookPage} /> : null}
           {view === 'purchases' ? <PurchasesView purchasePage={purchasePage} setPurchasePage={setPurchasePage} /> : null}
-          {view === 'reports' ? <ReportsView reportPage={reportPage} setReportPage={setReportPage} /> : null}
-          {view === 'settings' ? <SettingsView /> : null}
+          {view === 'reports' ? <ReportsView currentLocation={currentLocation} reportPage={reportPage} setReportPage={setReportPage} /> : null}
+          {view === 'settings' ? <SettingsView currentLocation={currentLocation} setLocationId={setLocationId} /> : null}
         </div>
       </div>
     </>
