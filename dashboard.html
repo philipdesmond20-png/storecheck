@@ -7191,6 +7191,26 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
   const weekPrintRows = rows.map((r) => [r.day, fmt(r.fuel), fmt(r.shop), fmt(r.lottery), fmt(r.total), fmtN(r.gallons)]);
   const monthPrintRows = monthlyRows.map((r) => [r.label, fmt(r.fuel), fmt(r.shop), fmt(r.lottery), fmt(r.total), fmtN(r.gallons)]);
   const customPrintRows = customSnapshots.map((r) => [r.label, fmt(r.fuel), fmt(r.shop), fmt(r.lottery), fmt(r.total), fmtN(r.gallons)]);
+  const weekPreviewRows = [['Day', 'Fuel', 'Shop', 'Lottery', 'Total', 'Gallons'], ...weekPrintRows];
+  const monthPreviewRows = [['Period', 'Fuel', 'Shop', 'Lottery', 'Total', 'Gallons'], ...monthPrintRows];
+  const customPreviewRows = [['Window', 'Fuel', 'Shop', 'Lottery', 'Total', 'Gallons'], ...customPrintRows];
+  const reportActionPresets = [
+    { id: 'summaryPdf', label: 'Summary PDF', shortLabel: 'Summary PDF', group: 'print', route: '/shifts/createSummaryPdf', surface: 'Reports / Print Center', format: 'PDF Preview', note: 'Summary render replacement shell', params: 'window=open', previewRows: monthPreviewRows, subtitle: `${currentLocation.name} · summary preview`, fileName: 'storecheck-summary-pdf' },
+    { id: 'daysPdf', label: 'Days PDF', shortLabel: 'Days PDF', group: 'print', route: '/shifts/createDaysPdf', surface: 'Reports / Print Center', format: 'PDF Preview', note: 'Seven-day report window', params: 'window=open', previewRows: weekPreviewRows, subtitle: `${currentLocation.name} · days preview`, fileName: 'storecheck-days-pdf' },
+    { id: 'dailyPdf', label: 'Daily PDF', shortLabel: 'Daily PDF', group: 'print', route: '/shifts/createDailyPdf', surface: 'Reports / Print Center', format: 'PDF Preview', note: 'Single-day custom render', params: `shiftDate=${customTo}; csv=false`, previewRows: customPreviewRows, subtitle: `${currentLocation.name} · daily preview`, fileName: 'storecheck-daily-pdf' },
+    { id: 'reportWindow', label: 'Printable Report Window', shortLabel: 'Report Window', group: 'print', route: '/administration/openReport?reportName=weekly-summary', surface: 'Reports / Print Center', format: 'HTML Print View', note: 'Shared report renderer replacement', params: 'reportName=weekly-summary', previewRows: weekPreviewRows, subtitle: `${currentLocation.name} · shared report renderer`, fileName: 'storecheck-report-window' },
+    { id: 'shiftEmail', label: 'Shift Email', shortLabel: 'Shift Email', group: 'email', route: '/shifts/sendShiftEmail', surface: 'Reports / Email Delivery', format: 'Configured Email', note: 'Confirmation-only send to store email', params: `dailyShiftId=DLV-301; shiftDate=2026-05-09; toAddress=${deliveryEmail}`, previewRows: weekPreviewRows, subtitle: `${currentLocation.name} · shift email confirmation`, fileName: 'storecheck-shift-email-packet' },
+    { id: 'dayReportEmail', label: 'Day Report Email', shortLabel: 'Day Email', group: 'email', route: '/shifts/sendDayReport', surface: 'Reports / Email Delivery', format: 'Configured Email', note: 'Day report send with no manual address entry', params: `shiftDate=${customTo}; toAddress=${deliveryEmail}`, previewRows: customPreviewRows, subtitle: `${currentLocation.name} · day report email`, fileName: 'storecheck-day-email-packet' },
+    { id: 'downloadDay', label: 'Day PDF Download', shortLabel: 'Day Download', group: 'download', route: '/shifts/downloadShiftDayReport', surface: 'Reports / Export Center', format: 'Download Handoff', note: 'Direct day report download replacement', params: `date=${customTo}; isDay=true; isDownload=true`, previewRows: customPreviewRows, subtitle: `${currentLocation.name} · day download package`, fileName: 'storecheck-day-download' },
+    { id: 'downloadMonth', label: 'Month Range Download', shortLabel: 'Month Download', group: 'download', route: '/shifts/downloadShiftDayReport', surface: 'Reports / Export Center', format: 'Download Handoff', note: 'Month range download replacement', params: `startDate=${customFrom}; endDate=${customTo}; isMonth=true; isDownload=true`, previewRows: monthPreviewRows, subtitle: `${currentLocation.name} · month download package`, fileName: 'storecheck-month-download' },
+    { id: 'quickbooks', label: 'QuickBooks Export', shortLabel: 'QuickBooks', group: 'export', route: '/shifts/eportQuickBookDays', surface: 'Reports / Export Center', format: 'IIF Download', note: 'Accounting handoff export', params: 'searchDayForm', previewRows: weekPreviewRows, subtitle: `${currentLocation.name} · QuickBooks export`, fileName: 'storecheck-quickbooks-export' },
+    { id: 'xml', label: 'XML Export', shortLabel: 'XML Export', group: 'export', route: '/shifts/getDayInfoForXml', surface: 'Reports / Export Center', format: 'XML Download', note: 'POS / accounting XML handoff', params: `date=${customTo}`, previewRows: weekPreviewRows, subtitle: `${currentLocation.name} · XML export`, fileName: 'storecheck-sales-report' },
+  ];
+  const reportActionMap = Object.fromEntries(reportActionPresets.map((action) => [action.id, action]));
+  const printActions = reportActionPresets.filter((action) => action.group === 'print');
+  const emailActions = reportActionPresets.filter((action) => action.group === 'email');
+  const handoffActions = reportActionPresets.filter((action) => action.group === 'download' || action.group === 'export');
+
   const exportDeliveryData = (kind) => {
     if (kind === 'xml') {
       const xml = `<report><store>${currentLocation.name}</store><weekTotal>${totals.total.toFixed(2)}</weekTotal><days>${rows.map((r) => `<day name="${r.day}" total="${r.total}" fuel="${r.fuel}" shop="${r.shop}" lottery="${r.lottery}" gallons="${r.gallons}" />`).join('')}</days></report>`;
@@ -7205,9 +7225,81 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
     downloadTableData(rows, kind.toUpperCase(), `storecheck-report-${reportPage}`);
   };
 
+  const buildReportPackageHtml = (action) => {
+    const [headers, ...bodyRows] = action.previewRows;
+    return `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>${action.label}</title>
+  <style>
+    body{font-family:"DM Sans",Arial,sans-serif;background:#F8FAFC;color:#0F172A;padding:28px}
+    .wrap{max-width:980px;margin:0 auto;background:#fff;border:1px solid #E2E8F0;border-radius:18px;padding:28px;box-shadow:0 12px 40px rgba(15,23,42,.08)}
+    h1{margin:0 0 8px;font-size:28px}
+    p{margin:0;color:#475569}
+    .meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin:20px 0}
+    .meta div{background:#F8FAFC;border:1px solid #E2E8F0;border-radius:12px;padding:12px 14px}
+    .meta strong{display:block;font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:#64748B;margin-bottom:6px}
+    table{width:100%;border-collapse:collapse;margin-top:16px}
+    th,td{padding:12px 14px;border-top:1px solid #E2E8F0;text-align:left}
+    th{background:#F8FAFC;font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:#64748B}
+    td{font-weight:600}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>${action.label}</h1>
+    <p>${action.subtitle}</p>
+    <div class="meta">
+      <div><strong>Mercury Route</strong>${action.route}</div>
+      <div><strong>Surface</strong>${action.surface}</div>
+      <div><strong>Params</strong>${action.params}</div>
+      <div><strong>Output</strong>${action.format}</div>
+    </div>
+    <table>
+      <thead><tr>${headers.map((cell) => `<th>${cell}</th>`).join('')}</tr></thead>
+      <tbody>${bodyRows.map((row) => `<tr>${row.map((cell) => `<td>${cell}</td>`).join('')}</tr>`).join('')}</tbody>
+    </table>
+  </div>
+</body>
+</html>`;
+  };
+
+  const downloadActionPackage = (action) => {
+    if (action.id === 'quickbooks') {
+      exportDeliveryData('quickbooks');
+      showDeliveryNotice(`${action.label} downloaded in demo mode. Live \`${action.route}\` endpoint still pending.`);
+      return;
+    }
+    if (action.id === 'xml') {
+      exportDeliveryData('xml');
+      showDeliveryNotice(`${action.label} downloaded in demo mode. Live \`${action.route}\` endpoint still pending.`);
+      return;
+    }
+    const html = buildReportPackageHtml(action);
+    downloadTextData(html, 'text/html', action.fileName, 'html');
+    showDeliveryNotice(`${action.label} saved as a demo package. Live \`${action.route}\` endpoint still pending.`);
+  };
+
   const openReportSurface = (title, subtitle, printRows) => {
     const opened = openPrintPreview({ title, subtitle, rows: printRows });
     showDeliveryNotice(opened ? `${title} opened in print preview.` : 'Print preview was blocked by the browser.');
+  };
+
+  const runReportAction = (action) => {
+    if (action.group === 'print') {
+      openReportSurface(action.label, action.subtitle, action.previewRows);
+      return;
+    }
+    if (action.group === 'email') {
+      if (action.id === 'shiftEmail') {
+        showDeliveryNotice(`Are you sure? You want to send the report to ${deliveryEmail}? Demo confirmation accepted. Live \`${action.route}\` endpoint still pending.`);
+        return;
+      }
+      showDeliveryNotice(`${action.label} queued to ${deliveryEmail}. Live \`${action.route}\` endpoint still pending.`);
+      return;
+    }
+    downloadActionPackage(action);
   };
 
   const reportSwitcher = (
@@ -7224,17 +7316,18 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
     </div>
   );
 
-  const deliveryActions = (title, printRows) => (
+  const renderRouteActions = (ids) => (
     <div className="pricebook-actions" style={{ marginBottom: 18 }}>
-      <button className="pricebook-btn" onClick={() => openReportSurface(title, `${currentLocation.name} · ${todayStr()}`, printRows)}>
-        <Icon name="report" size={15} /> Print preview
-      </button>
-      <button className="pricebook-btn" onClick={() => showDeliveryNotice(`${title} queued to ${deliveryEmail}. Live email endpoint still pending.`)}>
-        <Icon name="bell" size={15} /> Email
-      </button>
-      <button className="pricebook-btn primary" onClick={() => exportDeliveryData('csv')}>
-        <Icon name="cash" size={15} /> Export CSV
-      </button>
+      {ids.map((id) => {
+        const action = reportActionMap[id];
+        const icon = action.group === 'print' ? 'report' : action.group === 'email' ? 'bell' : 'cash';
+        const emphasized = action.group === 'download' || action.group === 'export';
+        return (
+          <button key={action.id} className={`pricebook-btn${emphasized ? ' primary' : ''}`} onClick={() => runReportAction(action)}>
+            <Icon name={icon} size={15} /> {action.shortLabel}
+          </button>
+        );
+      })}
     </div>
   );
 
@@ -7259,20 +7352,20 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
                 </div>
               </div>
               <div className="report-delivery-list">
-                {REPORT_PRINT_LIBRARY.map((row) => (
-                  <div className="report-delivery-row" key={row.name}>
+                {printActions.map((action) => (
+                  <div className="report-delivery-row" key={action.id}>
                     <div className="report-delivery-head">
                       <div>
-                        <div className="report-delivery-title">{row.name}</div>
-                        <div className="report-delivery-meta">{row.surface} · {row.note}</div>
+                        <div className="report-delivery-title">{action.label}</div>
+                        <div className="report-delivery-meta">{action.route} · {action.note}</div>
                       </div>
-                      <span className="purchase-tag blue">{row.format}</span>
+                      <span className="purchase-tag blue">{action.format}</span>
                     </div>
                     <div className="report-delivery-actions">
-                      <button className="pricebook-btn" onClick={() => openReportSurface(row.name, `${currentLocation.name} · delivery layer preview`, row.name === 'Summary PDF' ? monthPrintRows : row.name === 'Days PDF' ? weekPrintRows : customPrintRows)}>
+                      <button className="pricebook-btn" onClick={() => runReportAction(action)}>
                         <Icon name="report" size={15} /> Open print view
                       </button>
-                      <button className="pricebook-btn" onClick={() => showDeliveryNotice(`${row.name} prepared as a demo print package.`)}>
+                      <button className="pricebook-btn" onClick={() => downloadActionPackage(action)}>
                         <Icon name="cash" size={15} /> Save package
                       </button>
                     </div>
@@ -7288,16 +7381,26 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
                   <p>Client-side replacements for daily downloads, QuickBooks export, and XML handoff.</p>
                 </div>
               </div>
-              <div className="report-delivery-actions">
-                <button className="pricebook-btn" onClick={() => { exportDeliveryData('csv'); showDeliveryNotice('Day report CSV downloaded.'); }}>
-                  <Icon name="cash" size={15} /> Download report
-                </button>
-                <button className="pricebook-btn" onClick={() => { exportDeliveryData('quickbooks'); showDeliveryNotice('QuickBooks demo export downloaded.'); }}>
-                  <Icon name="cash" size={15} /> QuickBooks
-                </button>
-                <button className="pricebook-btn primary" onClick={() => { exportDeliveryData('xml'); showDeliveryNotice('XML demo export downloaded.'); }}>
-                  <Icon name="cash" size={15} /> XML
-                </button>
+              <div className="report-delivery-list">
+                {handoffActions.map((action) => (
+                  <div className="report-delivery-row" key={action.id}>
+                    <div className="report-delivery-head">
+                      <div>
+                        <div className="report-delivery-title">{action.label}</div>
+                        <div className="report-delivery-meta">{action.params} · {action.note}</div>
+                      </div>
+                      <span className="purchase-tag blue">{action.format}</span>
+                    </div>
+                    <div className="report-delivery-actions">
+                      <button className="pricebook-btn" onClick={() => runReportAction(action)}>
+                        <Icon name="cash" size={15} /> Download handoff
+                      </button>
+                      <button className="pricebook-btn" onClick={() => downloadActionPackage(action)}>
+                        <Icon name="report" size={15} /> Save package
+                      </button>
+                    </div>
+                  </div>
+                ))}
               </div>
               <div className="purchase-kv-list">
                 <div className="purchase-kv"><span>Weekly source rows</span><span>{fmtN(rows.length)}</span></div>
@@ -7308,6 +7411,36 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
           </div>
 
           <div className="report-delivery-stack">
+            <div className="report-delivery-card">
+              <div className="purchase-panel-head">
+                <div>
+                  <h3>Mercury email actions</h3>
+                  <p>Route-specific confirmation shells for shift and day report sends with the configured store email.</p>
+                </div>
+              </div>
+              <div className="report-delivery-list">
+                {emailActions.map((action) => (
+                  <div className="report-delivery-row" key={action.id}>
+                    <div className="report-delivery-head">
+                      <div>
+                        <div className="report-delivery-title">{action.label}</div>
+                        <div className="report-delivery-meta">{action.route} · {deliveryEmail}</div>
+                      </div>
+                      <span className="purchase-tag blue">{action.format}</span>
+                    </div>
+                    <div className="report-delivery-actions">
+                      <button className="pricebook-btn" onClick={() => runReportAction(action)}>
+                        <Icon name="bell" size={15} /> Confirm send
+                      </button>
+                      <button className="pricebook-btn" onClick={() => downloadActionPackage(action)}>
+                        <Icon name="report" size={15} /> Save packet
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
             <div className="report-delivery-card">
               <div className="purchase-panel-head">
                 <div>
@@ -7383,7 +7516,7 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
 
       {reportSwitcher}
       {deliveryNotice ? <div className="pricebook-notice"><Icon name="report" size={16} /> {deliveryNotice}</div> : null}
-      {deliveryActions('Monthly Summary Report', monthPrintRows)}
+      {renderRouteActions(['summaryPdf', 'dayReportEmail', 'downloadMonth'])}
 
       <div className="week-hero">
           {[
@@ -7471,7 +7604,7 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
 
         {reportSwitcher}
         {deliveryNotice ? <div className="pricebook-notice"><Icon name="report" size={16} /> {deliveryNotice}</div> : null}
-        {deliveryActions('Custom Window Report', customPrintRows)}
+        {renderRouteActions(['dailyPdf', 'dayReportEmail', 'downloadDay'])}
 
         <div className="settings-card" style={{ marginBottom: 20 }}>
           <div className="settings-title">Date & Time Filter</div>
@@ -7572,7 +7705,7 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
 
       {reportSwitcher}
       {deliveryNotice ? <div className="pricebook-notice"><Icon name="report" size={16} /> {deliveryNotice}</div> : null}
-      {deliveryActions('Weekly Summary Report', weekPrintRows)}
+      {renderRouteActions(['daysPdf', 'shiftEmail', 'downloadDay'])}
 
       <div className="week-hero">
         {[
