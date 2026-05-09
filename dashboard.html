@@ -3293,6 +3293,48 @@ const PRICEBOOK_AUDITS = [
   { id: 'AUD-219', view: 'Reports', department: 'Lottery', title: 'Lottery Inventory Report', scope: 'Instant packs and reserve', counted: 126, system: 126, variance: 0, amount: 0, status: 'Filed', owner: 'J. Lopez', updated: '2026-05-07 21:10', note: 'Filed after pack closeout and manager review.' },
 ];
 
+const PRICEBOOK_UPLOAD_TEMPLATES = [
+  {
+    id: 'TPL-PRICE',
+    label: 'Retail update CSV',
+    type: 'Retail Updates',
+    format: 'csv',
+    fileName: 'storecheck-retail-update-template',
+    content: `sku,upc,item_name,department,cost,price,tax
+PB-1001,049000028911,Coca-Cola 20oz,Beverages,1.12,2.49,Standard
+PB-2201,028400589317,Doritos Nacho 2.75oz,Snacks,0.91,1.99,Food
+`,
+  },
+  {
+    id: 'TPL-ITEM',
+    label: 'Item setup CSV',
+    type: 'Item Setup',
+    format: 'csv',
+    fileName: 'storecheck-item-setup-template',
+    content: `sku,upc,item_name,department,category,vendor,cost,price,min_qty,max_qty,status
+PB-4106,071235004221,Motor Oil 1 qt,Car Care,Automotive,Metro Auto Supply,3.10,5.99,4,16,Active
+PB-5108,000000LOTTO,Instant Lottery Pack,Lottery,Lottery,State Lottery,0.00,20.00,1,12,Controlled
+`,
+  },
+  {
+    id: 'TPL-TAX',
+    label: 'Tax and department CSV',
+    type: 'Tax Mapping',
+    format: 'csv',
+    fileName: 'storecheck-tax-map-template',
+    content: `sku,item_name,department,tax_map,nacs_category,active
+PB-2201,Doritos Nacho 2.75oz,Snacks,Food,Salty Snacks,Yes
+PB-3104,Marlboro Gold Pack,Tobacco,Tobacco,Cigarettes,Yes
+`,
+  },
+];
+
+const PRICEBOOK_UPLOADS = [
+  { id: 'UPL-301', fileName: 'beverage-price-update-2026-05-09.csv', type: 'Retail Updates', template: 'Retail update CSV', records: 24, uploadedBy: 'A. Patel', uploadedAt: '07:54', source: 'Deals / Items Upload', status: 'Needs review', note: 'Beverage cost changes prepared for review before the next POS bundle.' },
+  { id: 'UPL-297', fileName: 'snack-item-setup-refresh.csv', type: 'Item Setup', template: 'Item setup CSV', records: 18, uploadedBy: 'Manager', uploadedAt: '06:43', source: 'Deals / Items Upload', status: 'Validated', note: 'Snack aisle setup corrections are ready for owner signoff.' },
+  { id: 'UPL-288', fileName: 'tax-map-correction-lottery.csv', type: 'Tax Mapping', template: 'Tax and department CSV', records: 8, uploadedBy: 'J. Lopez', uploadedAt: '2026-05-08 18:11', source: 'Deals / Items Upload', status: 'Imported', note: 'Lottery tax-map audit was imported into the demo queue for reference.' },
+];
+
 const PRICEBOOK_DEALS = [
   { id: 'DL-104', name: '2 for $4 Fountain Drinks', items: 'Fountain Drink 32oz', type: 'Multi-buy', start: '2026-05-01', end: '2026-05-31', status: 'Active', lift: '18%' },
   { id: 'DL-118', name: 'Coffee + Donut Combo', items: 'Coffee, Bakery', type: 'Combo', start: '2026-05-06', end: '2026-05-20', status: 'Draft', lift: 'New' },
@@ -6815,6 +6857,16 @@ const PricebookView = ({ pricebookPage, setPricebookPage }) => {
     { id: 'PAE-3', auditId: 'AUD-203', time: '19:10', action: 'Report packet saved', actor: 'A. Patel', status: 'Reported' },
     { id: 'PAE-4', auditId: 'AUD-219', time: '21:12', action: 'Audit filed', actor: 'J. Lopez', status: 'Filed' },
   ]);
+  const [uploadRows, setUploadRows] = useState(PRICEBOOK_UPLOADS);
+  const [uploadTemplateId, setUploadTemplateId] = useState(PRICEBOOK_UPLOAD_TEMPLATES[0].id);
+  const [uploadStatusFilter, setUploadStatusFilter] = useState('All');
+  const [uploadTypeFilter, setUploadTypeFilter] = useState('All');
+  const [selectedUploadId, setSelectedUploadId] = useState(PRICEBOOK_UPLOADS[0].id);
+  const [uploadEvents, setUploadEvents] = useState([
+    { id: 'PUL-1', uploadId: 'UPL-301', time: '07:57', action: 'Upload staged', actor: 'A. Patel', status: 'Needs review' },
+    { id: 'PUL-2', uploadId: 'UPL-297', time: '06:48', action: 'Validation passed', actor: 'Manager', status: 'Validated' },
+    { id: 'PUL-3', uploadId: 'UPL-288', time: '18:16', action: 'Demo import captured', actor: 'J. Lopez', status: 'Imported' },
+  ]);
   const [pendingSearch, setPendingSearch] = useState('');
   const [pendingStatusFilter, setPendingStatusFilter] = useState('All');
   const [pendingTypeFilter, setPendingTypeFilter] = useState('All');
@@ -6840,6 +6892,17 @@ const PricebookView = ({ pricebookPage, setPricebookPage }) => {
     || visibleAuditRows[0]
     || auditRows[0];
   const selectedAuditEvents = selectedAuditRow ? auditEvents.filter((item) => item.auditId === selectedAuditRow.id) : [];
+  const visibleUploadRows = uploadRows.filter((item) => {
+    const matchesStatus = uploadStatusFilter === 'All' ? true : item.status === uploadStatusFilter;
+    const matchesType = uploadTypeFilter === 'All' ? true : item.type === uploadTypeFilter;
+    return matchesStatus && matchesType;
+  });
+  const selectedUploadRow = visibleUploadRows.find((item) => item.id === selectedUploadId)
+    || uploadRows.find((item) => item.id === selectedUploadId)
+    || visibleUploadRows[0]
+    || uploadRows[0];
+  const selectedUploadEvents = selectedUploadRow ? uploadEvents.filter((item) => item.uploadId === selectedUploadRow.id) : [];
+  const selectedUploadTemplate = PRICEBOOK_UPLOAD_TEMPLATES.find((item) => item.id === uploadTemplateId) || PRICEBOOK_UPLOAD_TEMPLATES[0];
   const pendingSearchText = pendingSearch.trim().toLowerCase();
   const visiblePendingRows = pendingRows.filter((item) => {
     const searchable = [item.id, item.change, item.type, item.item, item.from, item.to, item.requestedBy, item.source, item.status, item.store, item.note];
@@ -6859,6 +6922,9 @@ const PricebookView = ({ pricebookPage, setPricebookPage }) => {
   const auditVarianceCount = auditRows.filter((item) => item.variance !== 0).length;
   const auditOpenCount = auditRows.filter((item) => item.view === 'Pre Audit' && item.status !== 'Ready').length;
   const auditReportCount = auditRows.filter((item) => item.view === 'Reports').length;
+  const uploadPendingCount = uploadRows.filter((item) => item.status === 'Needs review' || item.status === 'Staged').length;
+  const uploadImportedCount = uploadRows.filter((item) => item.status === 'Imported').length;
+  const uploadRecordCount = uploadRows.reduce((sum, item) => sum + item.records, 0);
   const pendingCount = pendingRows.filter((item) => item.status !== 'Approved').length;
   const pendingReadyCount = pendingRows.filter((item) => item.status === 'Ready to send' || item.status === 'Reviewed').length;
   const pendingReviewCount = pendingRows.filter((item) => item.status === 'Needs review').length;
@@ -6873,9 +6939,11 @@ const PricebookView = ({ pricebookPage, setPricebookPage }) => {
   };
   const exportItems = (format) => downloadTableData(filteredItems, format, `storecheck-pricebook-items-${department.toLowerCase().replaceAll(' ', '-')}`);
   const exportAudit = (format) => downloadTableData(visibleAuditRows, format, `storecheck-inventory-audit-${auditView.toLowerCase().replaceAll(' ', '-')}`);
+  const exportUploads = (format) => downloadTableData(visibleUploadRows, format, 'storecheck-pricebook-bulk-uploads');
   const exportDeals = (format) => downloadTableData(PRICEBOOK_DEALS, format, 'storecheck-pricebook-deals');
   const exportPending = (format) => downloadTableData(visiblePendingRows, format, 'storecheck-pending-pos-changes');
   const exportAuditEvents = (format) => downloadTableData(selectedAuditEvents, format, `storecheck-inventory-audit-events-${String(selectedAuditRow?.id || 'all').toLowerCase()}`);
+  const exportUploadEvents = (format) => downloadTableData(selectedUploadEvents, format, `storecheck-pricebook-upload-events-${String(selectedUploadRow?.id || 'all').toLowerCase()}`);
   const exportPendingEvents = (format) => downloadTableData(selectedPendingEvents, format, `storecheck-pending-pos-events-${String(selectedPendingRow?.id || 'all').toLowerCase()}`);
   const stampAuditTime = () => new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
   const stampAuditDateTime = () => new Date().toLocaleString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
@@ -6976,6 +7044,122 @@ const PricebookView = ({ pricebookPage, setPricebookPage }) => {
     pushAuditEvent(item.id, 'Recount requested', item.owner, 'Needs recount');
     setSelectedAuditId(item.id);
     showNotice(`${item.id} flagged for recount in demo mode.`);
+  };
+  const stampUploadTime = () => new Date().toLocaleString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+  const pushUploadEvent = (uploadId, action, actor, status) => {
+    const time = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    setUploadEvents((current) => [
+      { id: `PUL-${Date.now()}`, uploadId, time, action, actor, status },
+      ...current,
+    ].slice(0, 12));
+  };
+  const updateUploadRow = (id, patch) => {
+    setUploadRows((current) => current.map((item) => (item.id === id ? { ...item, ...patch } : item)));
+  };
+  const downloadUploadTemplate = (template = selectedUploadTemplate) => {
+    if (!template) return;
+    downloadTextData(template.content, 'text/csv', template.fileName, template.format);
+    showNotice(`${template.label} downloaded in demo mode.`);
+  };
+  const previewUploadPacket = (item = selectedUploadRow) => {
+    if (!item) return;
+    openPrintPreview({
+      title: 'Bulk Upload Packet',
+      subtitle: `${item.id} · ${item.fileName}`,
+      rows: [
+        ['Field', 'Value'],
+        ['File', item.fileName],
+        ['Type', item.type],
+        ['Template', item.template],
+        ['Records', fmtN(item.records)],
+        ['Uploaded By', item.uploadedBy],
+        ['Uploaded At', item.uploadedAt],
+        ['Status', item.status],
+      ],
+    });
+  };
+  const saveUploadPacket = (item = selectedUploadRow) => {
+    if (!item) return;
+    const html = `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Bulk Upload Packet</title>
+  <style>
+    body{font-family:"DM Sans",Arial,sans-serif;background:#F8FAFC;color:#0F172A;padding:28px}
+    .wrap{max-width:980px;margin:0 auto;background:#fff;border:1px solid #E2E8F0;border-radius:18px;padding:28px;box-shadow:0 12px 40px rgba(15,23,42,.08)}
+    h1{margin:0 0 8px;font-size:28px}
+    p{margin:0;color:#475569}
+    .meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin:20px 0}
+    .meta div{background:#F8FAFC;border:1px solid #E2E8F0;border-radius:12px;padding:12px 14px}
+    .meta strong{display:block;font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:#64748B;margin-bottom:6px}
+    table{width:100%;border-collapse:collapse;margin-top:16px}
+    th,td{padding:12px 14px;border-top:1px solid #E2E8F0;text-align:left}
+    th{background:#F8FAFC;font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:#64748B}
+    td{font-weight:600}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Bulk Upload Packet</h1>
+    <p>${item.id} · ${item.fileName}</p>
+    <div class="meta">
+      <div><strong>Mercury Route</strong>/pricebook/dealsMain → Items Upload</div>
+      <div><strong>Status</strong>${item.status}</div>
+      <div><strong>Prepared</strong>${todayStr()}</div>
+    </div>
+    <table>
+      <thead><tr><th>Field</th><th>Value</th></tr></thead>
+      <tbody>
+        <tr><td>File</td><td>${item.fileName}</td></tr>
+        <tr><td>Type</td><td>${item.type}</td></tr>
+        <tr><td>Template</td><td>${item.template}</td></tr>
+        <tr><td>Records</td><td>${item.records}</td></tr>
+        <tr><td>Uploaded By</td><td>${item.uploadedBy}</td></tr>
+        <tr><td>Uploaded At</td><td>${item.uploadedAt}</td></tr>
+        <tr><td>Source</td><td>${item.source}</td></tr>
+        <tr><td>Note</td><td>${item.note}</td></tr>
+      </tbody>
+    </table>
+  </div>
+</body>
+</html>`;
+    downloadTextData(html, 'text/html', `storecheck-bulk-upload-${String(item.id).toLowerCase()}`, 'html');
+    showNotice(`${item.id} upload packet saved in demo mode.`);
+  };
+  const stageUploadFile = (file) => {
+    if (!file) return;
+    const template = selectedUploadTemplate;
+    const row = {
+      id: `UPL-${Date.now()}`,
+      fileName: file.name,
+      type: template.type,
+      template: template.label,
+      records: Math.max(4, Math.min(48, Math.round(file.name.length * 1.2))),
+      uploadedBy: 'StoreCheck owner',
+      uploadedAt: stampUploadTime(),
+      source: 'Deals / Items Upload',
+      status: 'Staged',
+      note: `Demo upload handoff captured from the ${template.label} path.`,
+    };
+    setUploadRows((current) => [row, ...current].slice(0, 8));
+    setSelectedUploadId(row.id);
+    pushUploadEvent(row.id, 'Demo upload staged', row.uploadedBy, row.status);
+    showNotice(`${file.name} staged in demo mode. Real Mercury items-upload endpoint is still pending.`);
+  };
+  const markUploadReviewed = (item = selectedUploadRow) => {
+    if (!item) return;
+    updateUploadRow(item.id, { status: 'Validated', uploadedAt: stampUploadTime(), note: `${item.note} StoreCheck validation packet reviewed.` });
+    pushUploadEvent(item.id, 'Validation reviewed', item.uploadedBy, 'Validated');
+    setSelectedUploadId(item.id);
+    showNotice(`${item.id} marked validated in demo mode.`);
+  };
+  const importUploadRow = (item = selectedUploadRow) => {
+    if (!item) return;
+    updateUploadRow(item.id, { status: 'Imported', uploadedAt: stampUploadTime(), note: `${item.note} Demo import packet completed.` });
+    pushUploadEvent(item.id, 'Demo import completed', item.uploadedBy, 'Imported');
+    setSelectedUploadId(item.id);
+    showNotice(`${item.id} imported in demo mode.`);
   };
   const stampPendingTime = () => new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
   const pushPendingEvent = (packetId, action, actor, status) => {
@@ -7117,6 +7301,7 @@ const PricebookView = ({ pricebookPage, setPricebookPage }) => {
     { id: 'inventory', label: 'Inventory', icon: 'pricebook' },
     { id: 'audit', label: 'Audit', icon: 'report' },
     { id: 'item', label: 'Item Setup', icon: 'item' },
+    { id: 'upload', label: 'Bulk Upload', icon: 'save' },
     { id: 'deals', label: 'Deals', icon: 'deal' },
     { id: 'pending', label: 'Pending POS', icon: 'sync' },
   ];
@@ -7361,6 +7546,134 @@ const PricebookView = ({ pricebookPage, setPricebookPage }) => {
               <span>This saves a StoreCheck draft first, then sends approved changes to the POS queue once data sync is connected.</span>
               <button className="pricebook-btn primary" onClick={() => showNotice('Item draft saved. POS sync will be connected in the data phase.')}><Icon name="cash" size={15} /> Save item draft</button>
             </div>
+          </div>
+        </div>
+      ) : null}
+
+      {pricebookPage === 'upload' ? (
+        <div className="pricebook-workspace">
+          <div className="pricebook-table-card">
+            <div className="pricebook-toolbar">
+              <div>
+                <div className="pricebook-detail-title">Bulk items upload</div>
+                <div className="pricebook-detail-sub">Mercury returned “Couldn't load this tab” here, so StoreCheck keeps the upload handoff, queue review, and template flow visible for owners.</div>
+              </div>
+              {renderExportButtons(exportUploads)}
+            </div>
+            <div className="pricebook-filters" style={{ padding: '0 20px 16px' }}>
+              <select className="pricebook-select" value={uploadStatusFilter} onChange={(e) => setUploadStatusFilter(e.target.value)}>
+                {['All', ...uniqueValues(uploadRows, 'status')].map((item) => <option key={item}>{item}</option>)}
+              </select>
+              <select className="pricebook-select" value={uploadTypeFilter} onChange={(e) => setUploadTypeFilter(e.target.value)}>
+                {['All', ...uniqueValues(uploadRows, 'type')].map((item) => <option key={item}>{item}</option>)}
+              </select>
+              <button className="pricebook-btn primary" onClick={() => downloadUploadTemplate()}>
+                <Icon name="report" size={15} /> Download template
+              </button>
+            </div>
+            <div className="pricebook-pending-list" style={{ padding: '0 20px 20px' }}>
+              {visibleUploadRows.length ? visibleUploadRows.map((item) => (
+                <div className={`pricebook-pending-row ${selectedUploadRow?.id === item.id ? 'active' : ''}`} key={item.id} onClick={() => setSelectedUploadId(item.id)}>
+                  <div>
+                    <div className="pricebook-pending-title">{item.fileName}</div>
+                    <div className="pricebook-pending-meta">{item.id} · {item.type} · {item.template}</div>
+                    <div className="pricebook-pending-meta">{fmtN(item.records)} rows · {item.uploadedBy} · {item.uploadedAt}</div>
+                  </div>
+                  <span className={`pricebook-status ${item.status === 'Needs review' || item.status === 'Staged' ? 'warn' : item.status === 'Imported' ? 'pending' : ''}`}>{item.status}</span>
+                  <button className="pricebook-btn" onClick={(event) => {
+                    event.stopPropagation();
+                    setSelectedUploadId(item.id);
+                    previewUploadPacket(item);
+                  }}>
+                    <Icon name="report" size={15} /> Preview
+                  </button>
+                </div>
+              )) : (
+                <div className="pricebook-draft">
+                  <h3>No upload batches</h3>
+                  <div className="pricebook-note">Adjust the filters or stage a new demo upload from the owner handoff panel.</div>
+                </div>
+              )}
+            </div>
+            <div className="pricebook-action-strip" style={{ padding: '0 20px 20px' }}>
+              <span>{fmtN(uploadPendingCount)} upload batches still need review, {fmtN(uploadImportedCount)} are already imported, covering {fmtN(uploadRecordCount)} demo rows.</span>
+              <div className="pricebook-actions">
+                <button className="pricebook-btn" onClick={() => exportUploadEvents('CSV')}>
+                  <Icon name="cash" size={15} /> Export event log
+                </button>
+                <button className="pricebook-btn primary" onClick={() => saveUploadPacket()}>
+                  <Icon name="save" size={15} /> Save import packet
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="pricebook-detail-card">
+            {selectedUploadRow ? (
+              <>
+                <div className="pricebook-detail-title">Selected import batch</div>
+                <div className="pricebook-detail-sub">{selectedUploadRow.id} · {selectedUploadRow.type} · {selectedUploadRow.source}</div>
+                <div className="pricebook-metric-list">
+                  <div className="pricebook-metric"><span>File</span><span>{selectedUploadRow.fileName}</span></div>
+                  <div className="pricebook-metric"><span>Template</span><span>{selectedUploadRow.template}</span></div>
+                  <div className="pricebook-metric"><span>Rows</span><span>{fmtN(selectedUploadRow.records)}</span></div>
+                  <div className="pricebook-metric"><span>Uploaded by</span><span>{selectedUploadRow.uploadedBy}</span></div>
+                  <div className="pricebook-metric"><span>Uploaded at</span><span>{selectedUploadRow.uploadedAt}</span></div>
+                  <div className="pricebook-metric"><span>Status</span><span>{selectedUploadRow.status}</span></div>
+                </div>
+                <div className="pricebook-actions" style={{ marginTop: 16 }}>
+                  <button className="pricebook-btn" onClick={() => previewUploadPacket()}>
+                    <Icon name="report" size={15} /> Preview packet
+                  </button>
+                  <button className="pricebook-btn" onClick={() => markUploadReviewed()}>
+                    <Icon name="item" size={15} /> Mark validated
+                  </button>
+                  <button className="pricebook-btn primary" onClick={() => importUploadRow()}>
+                    <Icon name="save" size={15} /> Import demo batch
+                  </button>
+                </div>
+
+                <div className="pricebook-draft" style={{ marginTop: 18 }}>
+                  <h3>Owner handoff</h3>
+                  <div className="pricebook-note" style={{ marginTop: 0 }}>Keep the file, template, and review state visible in StoreCheck instead of hiding bulk imports behind a broken Mercury tab.</div>
+                  <div className="pricebook-form-field" style={{ marginTop: 14 }}>
+                    <label>Upload template</label>
+                    <select className="pricebook-select" value={uploadTemplateId} onChange={(e) => setUploadTemplateId(e.target.value)}>
+                      {PRICEBOOK_UPLOAD_TEMPLATES.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
+                    </select>
+                  </div>
+                  <div className="pricebook-form-field" style={{ marginTop: 14 }}>
+                    <label>Demo file upload</label>
+                    <input className="purchase-file" type="file" onChange={(e) => stageUploadFile(e.target.files?.[0])} />
+                  </div>
+                  <div className="pricebook-actions" style={{ marginTop: 16 }}>
+                    <button className="pricebook-btn" onClick={() => downloadUploadTemplate()}>
+                      <Icon name="report" size={15} /> Download selected template
+                    </button>
+                    <button className="pricebook-btn primary" onClick={() => showNotice('Real Mercury items-upload endpoint still needs wiring. Demo uploads stay inside StoreCheck review for now.')}>
+                      <Icon name="alert" size={15} /> Keep in StoreCheck
+                    </button>
+                  </div>
+                </div>
+
+                <div className="pricebook-draft" style={{ marginTop: 18 }}>
+                  <h3>Import events</h3>
+                  <div className="purchase-queue-list">
+                    {selectedUploadEvents.map((event) => (
+                      <div className="purchase-queue-row" key={event.id}>
+                        <div className="purchase-queue-top">
+                          <div>
+                            <div className="purchase-queue-title">{event.action}</div>
+                            <div className="purchase-queue-meta">{event.time} · {event.actor}</div>
+                          </div>
+                          <span className={`purchase-tag${event.status === 'Needs review' || event.status === 'Staged' ? ' amber' : ' blue'}`}>{event.status}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </>
+            ) : null}
           </div>
         </div>
       ) : null}
