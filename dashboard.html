@@ -10561,6 +10561,18 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
   const [loginEmail, setLoginEmail] = useState(ACCOUNT_EMAIL_SETTINGS.login);
   const [reportEmail, setReportEmail] = useState(ACCOUNT_EMAIL_SETTINGS.reports);
   const [alertsEmail, setAlertsEmail] = useState(ACCOUNT_EMAIL_SETTINGS.alerts);
+  const [licenceCheckRows, setLicenceCheckRows] = useState([
+    { id: 'LIC-1', time: '07:52', store: 'Main Street Gas & Go', agreement: 'Accepted', register: 'Connected', result: 'Passed', note: 'Morning session opened with an accepted agreement.' },
+    { id: 'LIC-0', time: '06:11', store: 'Sandy Cross Fuel Center', agreement: 'Accepted', register: 'Refresh Needed', result: 'Review', note: 'Register refresh was required before session start.' },
+  ]);
+  const [agreementSaveRows, setAgreementSaveRows] = useState([
+    { id: 'AGR-1', time: '07:53', store: 'Main Street Gas & Go', value: 'Accepted', actor: 'Owner session', status: 'Saved', note: 'Agreement captured before dashboard open.' },
+    { id: 'AGR-0', time: '06:12', store: 'Sandy Cross Fuel Center', value: 'Accepted', actor: 'Owner session', status: 'Saved', note: 'Agreement saved during early shift startup.' },
+  ]);
+  const [registerRefreshRows, setRegisterRefreshRows] = useState([
+    { id: 'REG-1', time: '07:54', store: 'Main Street Gas & Go', previous: 'Refresh Needed', current: 'Connected', source: 'Session start', status: 'Updated', note: 'Main register came online after refresh.' },
+    { id: 'REG-0', time: '06:14', store: 'Sandy Cross Fuel Center', previous: 'Connected', current: 'Connected', source: 'Session start', status: 'Reviewed', note: 'No register change was needed at open.' },
+  ]);
   const [logoutReason, setLogoutReason] = useState('End of shift');
   const [logoutDestination, setLogoutDestination] = useState('Return to login');
   const [releaseRows, setReleaseRows] = useState(
@@ -10587,6 +10599,9 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
     window.__storecheckSessionNotice = window.setTimeout(() => setSessionNotice(''), 2800);
   };
   const selectedRelease = releaseRows.find((item) => item.id === selectedReleaseId) || releaseRows[0];
+  const latestLicenceCheck = licenceCheckRows[0];
+  const latestAgreementSave = agreementSaveRows[0];
+  const latestRegisterRefresh = registerRefreshRows[0];
   const visibleReleaseRows = releaseRows.filter((item) => {
     const matchesFilter = releaseFilter === 'All' ? true : item.status === releaseFilter;
     const haystack = `${item.title} ${item.note} ${item.date} ${item.audience}`.toLowerCase();
@@ -10600,6 +10615,7 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
       ...current,
     ].slice(0, 6));
   };
+  const stampSessionTime = () => new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
   const settingsPacketHtml = ({ title, subtitle, route, note, headers, rows }) => `<!doctype html>
 <html lang="en">
 <head>
@@ -10666,6 +10682,105 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
       filename: 'storecheck-admin-account-settings',
     });
     showSessionNotice('Admin account settings packet saved in demo mode.');
+  };
+  const previewLicenceCheck = (item = latestLicenceCheck) => {
+    if (!item) return;
+    openSettingsPacket({
+      title: 'Licence Check Review',
+      subtitle: `${item.store} · ${item.time}`,
+      headers: ['Store', 'Agreement', 'Register', 'Result', 'Note'],
+      rows: [[item.store, item.agreement, item.register, item.result, item.note]],
+    });
+  };
+  const saveLicenceCheckPacket = (item = latestLicenceCheck) => {
+    if (!item) return;
+    saveSettingsPacket({
+      title: 'Licence Check Packet',
+      subtitle: `${item.store} · ${item.time}`,
+      route: '/user/licenceDetails',
+      note: 'Session licence review replacement shell',
+      headers: ['Store', 'Agreement', 'Register', 'Result', 'Note'],
+      rows: [[item.store, item.agreement, item.register, item.result, item.note]],
+      filename: `storecheck-licence-check-${String(item.id).toLowerCase()}`,
+    });
+    showSessionNotice(`${item.id} licence packet saved in demo mode.`);
+  };
+  const saveAgreementState = () => {
+    const time = stampSessionTime();
+    const value = agreementAccepted ? 'Accepted' : 'Pending';
+    const agreementRow = {
+      id: `AGR-${Date.now()}`,
+      time,
+      store: currentLocation.name,
+      value,
+      actor: currentLocation.manager,
+      status: agreementAccepted ? 'Saved' : 'Blocked',
+      note: agreementAccepted ? 'Agreement saved during session init review.' : 'Agreement still needs acceptance before session can proceed.',
+    };
+    const licenceRow = {
+      id: `LIC-${Date.now()}`,
+      time,
+      store: currentLocation.name,
+      agreement: value,
+      register: registerStatus,
+      result: agreementAccepted && registerStatus === 'Connected' ? 'Passed' : 'Review',
+      note: agreementAccepted ? 'Licence review updated after agreement save.' : 'Agreement must be accepted before the licence review can pass.',
+    };
+    setAgreementSaveRows((current) => [agreementRow, ...current].slice(0, 6));
+    setLicenceCheckRows((current) => [licenceRow, ...current].slice(0, 6));
+    showSessionNotice(agreementAccepted ? 'Agreement acceptance saved in demo mode. Real `/user/saveAgreementDetails` wiring still pending.' : 'Enable agreement acceptance before saving the demo session state.');
+  };
+  const saveAgreementHistoryPacket = () => {
+    saveSettingsPacket({
+      title: 'Agreement Save History',
+      subtitle: `${currentLocation.name} · session init`,
+      route: '/user/saveAgreementDetails',
+      note: 'Agreement save history replacement shell',
+      headers: ['Time', 'Store', 'Value', 'Actor', 'Status', 'Note'],
+      rows: agreementSaveRows.map((item) => [item.time, item.store, item.value, item.actor, item.status, item.note]),
+      filename: 'storecheck-agreement-history',
+    });
+    showSessionNotice('Agreement-history packet saved in demo mode.');
+  };
+  const refreshRegisterReview = () => {
+    const previous = registerStatus;
+    const nextStatus = registerStatus === 'Connected' ? 'Refresh Needed' : 'Connected';
+    const time = stampSessionTime();
+    const refreshRow = {
+      id: `REG-${Date.now()}`,
+      time,
+      store: currentLocation.name,
+      previous,
+      current: nextStatus,
+      source: 'Session start',
+      status: nextStatus === 'Connected' ? 'Updated' : 'Needs follow-up',
+      note: nextStatus === 'Connected' ? 'Register came online after refresh.' : 'Register still needs follow-up before session start clears.',
+    };
+    const licenceRow = {
+      id: `LIC-${Date.now()}-REG`,
+      time,
+      store: currentLocation.name,
+      agreement: agreementAccepted ? 'Accepted' : 'Pending',
+      register: nextStatus,
+      result: agreementAccepted && nextStatus === 'Connected' ? 'Passed' : 'Review',
+      note: 'Licence review updated after register-status refresh.',
+    };
+    setRegisterStatus(nextStatus);
+    setRegisterRefreshRows((current) => [refreshRow, ...current].slice(0, 6));
+    setLicenceCheckRows((current) => [licenceRow, ...current].slice(0, 6));
+    showSessionNotice('Register status refreshed in demo mode. Real `/user/checkRegisterStatus` wiring still pending.');
+  };
+  const saveRegisterRefreshPacket = () => {
+    saveSettingsPacket({
+      title: 'Register Refresh Log',
+      subtitle: `${currentLocation.name} · session init`,
+      route: '/user/checkRegisterStatus',
+      note: 'Register refresh review replacement shell',
+      headers: ['Time', 'Store', 'Previous', 'Current', 'Source', 'Status', 'Note'],
+      rows: registerRefreshRows.map((item) => [item.time, item.store, item.previous, item.current, item.source, item.status, item.note]),
+      filename: 'storecheck-register-refresh-log',
+    });
+    showSessionNotice('Register-refresh packet saved in demo mode.');
   };
   const previewLogoutHandoff = () =>
     openSettingsPacket({
@@ -10767,16 +10882,85 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
           </div>
           <div className="toggle-row">
             <span className="toggle-label">Session licence check</span>
-            <span className="purchase-tag blue">{agreementAccepted ? 'Passed' : 'Pending'}</span>
+            <span className={`purchase-tag${latestLicenceCheck?.result === 'Passed' ? ' blue' : ' amber'}`}>{latestLicenceCheck?.result || (agreementAccepted ? 'Passed' : 'Pending')}</span>
           </div>
-          <button className="connect-btn" onClick={() => showSessionNotice(agreementAccepted ? 'Agreement acceptance saved in demo mode. Real `/user/saveAgreementDetails` wiring still pending.' : 'Enable agreement acceptance before saving the demo session state.')}>
+          <div className="purchase-kv-list">
+            <div className="purchase-kv"><span>Latest licence review</span><span>{latestLicenceCheck?.result || 'Pending'}</span></div>
+            <div className="purchase-kv"><span>Agreement saves</span><span>{fmtN(agreementSaveRows.length)}</span></div>
+            <div className="purchase-kv"><span>Register refreshes</span><span>{fmtN(registerRefreshRows.length)}</span></div>
+          </div>
+          <button className="connect-btn" onClick={() => previewLicenceCheck()}>
+            <Icon name="report" size={16} bg="rgba(255,255,255,0.12)" fg="#86EFAC" />
+            <span>Preview Licence Check</span>
+          </button>
+          <button className="connect-btn" style={{ marginTop: 10 }} onClick={() => saveAgreementState()}>
             <Icon name="save" size={16} bg="rgba(255,255,255,0.12)" fg="#86EFAC" />
             <span>Save Agreement State</span>
           </button>
-          <button className="connect-btn" style={{ marginTop: 10 }} onClick={() => { setRegisterStatus(registerStatus === 'Connected' ? 'Refresh Needed' : 'Connected'); showSessionNotice('Register status refreshed in demo mode. Real `/user/checkRegisterStatus` wiring still pending.'); }}>
+          <button className="connect-btn" style={{ marginTop: 10 }} onClick={() => refreshRegisterReview()}>
             <Icon name="connect" size={16} bg="rgba(255,255,255,0.12)" fg="#86EFAC" />
             <span>Refresh Register Status</span>
           </button>
+        </div>
+
+        <div className="settings-card">
+          <div className="settings-title">Session Init Review</div>
+          <div className="settings-sub">Owner-facing review shell for licence checks, agreement saves, and register refresh before the session starts.</div>
+          <div className="purchase-kv-list">
+            <div className="purchase-kv"><span>Latest licence check</span><span>{latestLicenceCheck ? `${latestLicenceCheck.time} · ${latestLicenceCheck.result}` : 'Pending'}</span></div>
+            <div className="purchase-kv"><span>Latest agreement save</span><span>{latestAgreementSave ? `${latestAgreementSave.time} · ${latestAgreementSave.value}` : 'Pending'}</span></div>
+            <div className="purchase-kv"><span>Latest register refresh</span><span>{latestRegisterRefresh ? `${latestRegisterRefresh.time} · ${latestRegisterRefresh.current}` : 'Pending'}</span></div>
+          </div>
+          <div className="pricebook-actions" style={{ marginTop: 16 }}>
+            <button className="pricebook-btn" onClick={() => previewLicenceCheck()}>
+              <Icon name="report" size={15} /> Preview licence
+            </button>
+            <button className="pricebook-btn" onClick={() => saveLicenceCheckPacket()}>
+              <Icon name="cash" size={15} /> Save licence
+            </button>
+            <button className="pricebook-btn" onClick={() => saveAgreementHistoryPacket()}>
+              <Icon name="save" size={15} /> Save agreement log
+            </button>
+            <button className="pricebook-btn primary" onClick={() => saveRegisterRefreshPacket()}>
+              <Icon name="connect" size={15} /> Save refresh log
+            </button>
+          </div>
+        </div>
+
+        <div className="settings-card">
+          <div className="settings-title">Agreement Save History</div>
+          <div className="settings-sub">Track agreement-save decisions before the live session-start endpoint is connected.</div>
+          <div className="purchase-queue-list">
+            {agreementSaveRows.map((item) => (
+              <div className="purchase-queue-row" key={item.id}>
+                <div className="purchase-queue-top">
+                  <div>
+                    <div className="purchase-queue-title">{item.value}</div>
+                    <div className="purchase-queue-meta">{item.time} · {item.store} · {item.actor}</div>
+                  </div>
+                  <span className={`purchase-tag${item.status === 'Saved' ? ' blue' : ' amber'}`}>{item.status}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="settings-card">
+          <div className="settings-title">Register Refresh Log</div>
+          <div className="settings-sub">Keep register-status review tied to session start instead of hiding it behind a silent refresh.</div>
+          <div className="purchase-queue-list">
+            {registerRefreshRows.map((item) => (
+              <div className="purchase-queue-row" key={item.id}>
+                <div className="purchase-queue-top">
+                  <div>
+                    <div className="purchase-queue-title">{item.previous} → {item.current}</div>
+                    <div className="purchase-queue-meta">{item.time} · {item.store} · {item.source}</div>
+                  </div>
+                  <span className={`purchase-tag${item.status === 'Updated' || item.status === 'Reviewed' ? ' blue' : ' amber'}`}>{item.status}</span>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
 
         <div className="settings-card">
