@@ -3284,6 +3284,15 @@ const PRICEBOOK_ITEMS = [
   { sku: 'PB-5108', upc: '000000LOTTO', name: 'Instant Lottery Pack', department: 'Lottery', category: 'Lottery', cost: 0, price: 20, margin: 0, qty: 12, tax: 'Exempt', pos: 'Manual', vendor: 'State Lottery', updated: '2026-05-07', status: 'Controlled' },
 ];
 
+const PRICEBOOK_AUDITS = [
+  { id: 'AUD-101', view: 'Pre Audit', department: 'Beverages', title: 'Cold Vault Pre Count', scope: 'Cooler doors 1-4', counted: 184, system: 190, variance: -6, amount: -14.94, status: 'Needs count', owner: 'A. Patel', updated: '2026-05-09 07:15', note: 'Morning pre-audit count before receiving beverage delivery.' },
+  { id: 'AUD-108', view: 'Pre Audit', department: 'Snacks', title: 'Promo Chips Pre Count', scope: 'Front gondola and impulse rack', counted: 72, system: 75, variance: -3, amount: -5.97, status: 'Review', owner: 'M. Chen', updated: '2026-05-09 08:42', note: 'Promo display needs recount after overnight facing.' },
+  { id: 'AUD-114', view: 'Pre Audit', department: 'Tobacco', title: 'Cigarette Carton Check', scope: 'Back bar + reserve cabinet', counted: 49, system: 49, variance: 0, amount: 0, status: 'Ready', owner: 'J. Lopez', updated: '2026-05-09 09:18', note: 'Ready to clear into the next audit packet.' },
+  { id: 'AUD-203', view: 'Reports', department: 'Beverages', title: 'Weekly Beverage Audit', scope: 'Cold drinks + energy set', counted: 612, system: 604, variance: 8, amount: 19.92, status: 'Reported', owner: 'A. Patel', updated: '2026-05-08 19:06', note: 'Variance linked to late POS sync on two energy SKUs.' },
+  { id: 'AUD-211', view: 'Reports', department: 'Grocery', title: 'Packaged Food Audit', scope: 'Shelf-stable grocery aisle', counted: 338, system: 340, variance: -2, amount: -6.58, status: 'Reported', owner: 'Manager', updated: '2026-05-08 18:14', note: 'Minor shortage after vendor credit cleanup.' },
+  { id: 'AUD-219', view: 'Reports', department: 'Lottery', title: 'Lottery Inventory Report', scope: 'Instant packs and reserve', counted: 126, system: 126, variance: 0, amount: 0, status: 'Filed', owner: 'J. Lopez', updated: '2026-05-07 21:10', note: 'Filed after pack closeout and manager review.' },
+];
+
 const PRICEBOOK_DEALS = [
   { id: 'DL-104', name: '2 for $4 Fountain Drinks', items: 'Fountain Drink 32oz', type: 'Multi-buy', start: '2026-05-01', end: '2026-05-31', status: 'Active', lift: '18%' },
   { id: 'DL-118', name: 'Coffee + Donut Combo', items: 'Coffee, Bakery', type: 'Combo', start: '2026-05-06', end: '2026-05-20', status: 'Draft', lift: 'New' },
@@ -6796,6 +6805,16 @@ const PricebookView = ({ pricebookPage, setPricebookPage }) => {
   const [selectedSku, setSelectedSku] = useState(PRICEBOOK_ITEMS[0].sku);
   const [notice, setNotice] = useState('');
   const [draftOpen, setDraftOpen] = useState(false);
+  const [auditRows, setAuditRows] = useState(PRICEBOOK_AUDITS);
+  const [auditView, setAuditView] = useState('Pre Audit');
+  const [auditDepartment, setAuditDepartment] = useState('All');
+  const [selectedAuditId, setSelectedAuditId] = useState(PRICEBOOK_AUDITS[0].id);
+  const [auditEvents, setAuditEvents] = useState([
+    { id: 'PAE-1', auditId: 'AUD-101', time: '07:18', action: 'Pre-audit opened', actor: 'A. Patel', status: 'In review' },
+    { id: 'PAE-2', auditId: 'AUD-108', time: '08:46', action: 'Variance flagged', actor: 'M. Chen', status: 'Needs recount' },
+    { id: 'PAE-3', auditId: 'AUD-203', time: '19:10', action: 'Report packet saved', actor: 'A. Patel', status: 'Reported' },
+    { id: 'PAE-4', auditId: 'AUD-219', time: '21:12', action: 'Audit filed', actor: 'J. Lopez', status: 'Filed' },
+  ]);
   const [pendingSearch, setPendingSearch] = useState('');
   const [pendingStatusFilter, setPendingStatusFilter] = useState('All');
   const [pendingTypeFilter, setPendingTypeFilter] = useState('All');
@@ -6815,6 +6834,12 @@ const PricebookView = ({ pricebookPage, setPricebookPage }) => {
     const textMatch = !searchText || searchable.some((value) => String(value).toLowerCase().includes(searchText));
     return textMatch && (department === 'All' || item.department === department);
   });
+  const visibleAuditRows = auditRows.filter((item) => item.view === auditView && (auditDepartment === 'All' || item.department === auditDepartment));
+  const selectedAuditRow = visibleAuditRows.find((item) => item.id === selectedAuditId)
+    || auditRows.find((item) => item.id === selectedAuditId)
+    || visibleAuditRows[0]
+    || auditRows[0];
+  const selectedAuditEvents = selectedAuditRow ? auditEvents.filter((item) => item.auditId === selectedAuditRow.id) : [];
   const pendingSearchText = pendingSearch.trim().toLowerCase();
   const visiblePendingRows = pendingRows.filter((item) => {
     const searchable = [item.id, item.change, item.type, item.item, item.from, item.to, item.requestedBy, item.source, item.status, item.store, item.note];
@@ -6831,6 +6856,9 @@ const PricebookView = ({ pricebookPage, setPricebookPage }) => {
     ? pendingSyncEvents.filter((event) => event.packetId === selectedPendingRow.id)
     : [];
   const activeDeals = PRICEBOOK_DEALS.filter((deal) => deal.status === 'Active').length;
+  const auditVarianceCount = auditRows.filter((item) => item.variance !== 0).length;
+  const auditOpenCount = auditRows.filter((item) => item.view === 'Pre Audit' && item.status !== 'Ready').length;
+  const auditReportCount = auditRows.filter((item) => item.view === 'Reports').length;
   const pendingCount = pendingRows.filter((item) => item.status !== 'Approved').length;
   const pendingReadyCount = pendingRows.filter((item) => item.status === 'Ready to send' || item.status === 'Reviewed').length;
   const pendingReviewCount = pendingRows.filter((item) => item.status === 'Needs review').length;
@@ -6844,9 +6872,111 @@ const PricebookView = ({ pricebookPage, setPricebookPage }) => {
     window.__storecheckPricebookNotice = window.setTimeout(() => setNotice(''), 2800);
   };
   const exportItems = (format) => downloadTableData(filteredItems, format, `storecheck-pricebook-items-${department.toLowerCase().replaceAll(' ', '-')}`);
+  const exportAudit = (format) => downloadTableData(visibleAuditRows, format, `storecheck-inventory-audit-${auditView.toLowerCase().replaceAll(' ', '-')}`);
   const exportDeals = (format) => downloadTableData(PRICEBOOK_DEALS, format, 'storecheck-pricebook-deals');
   const exportPending = (format) => downloadTableData(visiblePendingRows, format, 'storecheck-pending-pos-changes');
+  const exportAuditEvents = (format) => downloadTableData(selectedAuditEvents, format, `storecheck-inventory-audit-events-${String(selectedAuditRow?.id || 'all').toLowerCase()}`);
   const exportPendingEvents = (format) => downloadTableData(selectedPendingEvents, format, `storecheck-pending-pos-events-${String(selectedPendingRow?.id || 'all').toLowerCase()}`);
+  const stampAuditTime = () => new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+  const stampAuditDateTime = () => new Date().toLocaleString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+  const pushAuditEvent = (auditId, action, actor, status) => {
+    const time = stampAuditTime();
+    setAuditEvents((current) => [
+      { id: `PAE-${Date.now()}`, auditId, time, action, actor, status },
+      ...current,
+    ].slice(0, 12));
+  };
+  const updateAuditRow = (id, patch) => {
+    setAuditRows((current) => current.map((item) => (item.id === id ? { ...item, ...patch } : item)));
+  };
+  const previewAuditPacket = (item = selectedAuditRow) => {
+    if (!item) return;
+    openPrintPreview({
+      title: 'Inventory Audit Packet',
+      subtitle: `${item.id} · ${item.department} · ${item.view}`,
+      rows: [
+        ['Field', 'Value'],
+        ['Title', item.title],
+        ['Scope', item.scope],
+        ['Department', item.department],
+        ['View', item.view],
+        ['Counted', fmtN(item.counted)],
+        ['System', fmtN(item.system)],
+        ['Variance', fmtN(item.variance)],
+        ['Variance Amount', fmt(item.amount)],
+        ['Status', item.status],
+      ],
+    });
+  };
+  const saveAuditPacket = (item = selectedAuditRow) => {
+    if (!item) return;
+    const html = `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Inventory Audit Packet</title>
+  <style>
+    body{font-family:"DM Sans",Arial,sans-serif;background:#F8FAFC;color:#0F172A;padding:28px}
+    .wrap{max-width:980px;margin:0 auto;background:#fff;border:1px solid #E2E8F0;border-radius:18px;padding:28px;box-shadow:0 12px 40px rgba(15,23,42,.08)}
+    h1{margin:0 0 8px;font-size:28px}
+    p{margin:0;color:#475569}
+    .meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin:20px 0}
+    .meta div{background:#F8FAFC;border:1px solid #E2E8F0;border-radius:12px;padding:12px 14px}
+    .meta strong{display:block;font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:#64748B;margin-bottom:6px}
+    table{width:100%;border-collapse:collapse;margin-top:16px}
+    th,td{padding:12px 14px;border-top:1px solid #E2E8F0;text-align:left}
+    th{background:#F8FAFC;font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:#64748B}
+    td{font-weight:600}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Inventory Audit Packet</h1>
+    <p>${item.id} · ${item.department} · ${item.view}</p>
+    <div class="meta">
+      <div><strong>Mercury Route</strong>/pricebook/inventory</div>
+      <div><strong>Status</strong>${item.status}</div>
+      <div><strong>Prepared</strong>${todayStr()}</div>
+    </div>
+    <table>
+      <thead><tr><th>Field</th><th>Value</th></tr></thead>
+      <tbody>
+        <tr><td>Title</td><td>${item.title}</td></tr>
+        <tr><td>Scope</td><td>${item.scope}</td></tr>
+        <tr><td>Department</td><td>${item.department}</td></tr>
+        <tr><td>View</td><td>${item.view}</td></tr>
+        <tr><td>Counted</td><td>${item.counted}</td></tr>
+        <tr><td>System</td><td>${item.system}</td></tr>
+        <tr><td>Variance</td><td>${item.variance}</td></tr>
+        <tr><td>Variance Amount</td><td>${fmt(item.amount)}</td></tr>
+        <tr><td>Owner</td><td>${item.owner}</td></tr>
+        <tr><td>Note</td><td>${item.note}</td></tr>
+      </tbody>
+    </table>
+  </div>
+</body>
+</html>`;
+    downloadTextData(html, 'text/html', `storecheck-inventory-audit-${String(item.id).toLowerCase()}`, 'html');
+    showNotice(`${item.id} audit packet saved in demo mode.`);
+  };
+  const getAuditResults = () => {
+    showNotice(`${auditView} results refreshed in demo mode. Real Mercury audit query still pending.`);
+  };
+  const markAuditReviewed = (item = selectedAuditRow) => {
+    if (!item) return;
+    const status = item.view === 'Pre Audit' ? 'Ready' : 'Filed';
+    updateAuditRow(item.id, { status, updated: stampAuditDateTime(), note: `${item.note} Reviewed in StoreCheck.` });
+    pushAuditEvent(item.id, item.view === 'Pre Audit' ? 'Pre-audit cleared' : 'Report reviewed', item.owner, status);
+    setSelectedAuditId(item.id);
+    showNotice(`${item.id} marked ${status.toLowerCase()} in demo mode.`);
+  };
+  const flagAuditRecount = (item = selectedAuditRow) => {
+    if (!item) return;
+    updateAuditRow(item.id, { status: 'Needs recount', updated: stampAuditDateTime(), note: `${item.note} Recount requested in StoreCheck.` });
+    pushAuditEvent(item.id, 'Recount requested', item.owner, 'Needs recount');
+    setSelectedAuditId(item.id);
+    showNotice(`${item.id} flagged for recount in demo mode.`);
+  };
   const stampPendingTime = () => new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
   const pushPendingEvent = (packetId, action, actor, status) => {
     const time = stampPendingTime();
@@ -6985,6 +7115,7 @@ const PricebookView = ({ pricebookPage, setPricebookPage }) => {
   };
   const tabs = [
     { id: 'inventory', label: 'Inventory', icon: 'pricebook' },
+    { id: 'audit', label: 'Audit', icon: 'report' },
     { id: 'item', label: 'Item Setup', icon: 'item' },
     { id: 'deals', label: 'Deals', icon: 'deal' },
     { id: 'pending', label: 'Pending POS', icon: 'sync' },
@@ -7079,6 +7210,118 @@ const PricebookView = ({ pricebookPage, setPricebookPage }) => {
             <button className="pricebook-btn soft" onClick={() => showNotice(`${selectedItem.name} queued for POS review.`)}>
               <Icon name="sync" size={15} /> Queue POS review
             </button>
+          </div>
+        </div>
+      ) : null}
+
+      {pricebookPage === 'audit' ? (
+        <div className="pricebook-workspace">
+          <div className="pricebook-table-card">
+            <div className="pricebook-toolbar">
+              <div>
+                <div className="pricebook-detail-title">Inventory audit</div>
+                <div className="pricebook-detail-sub">Mercury-style audit review with a `Pre Audit` versus `Reports` switch and owner-facing packet handling.</div>
+              </div>
+              {renderExportButtons(exportAudit)}
+            </div>
+            <div className="pricebook-filters" style={{ padding: '0 20px 16px' }}>
+              <select className="pricebook-select" value={auditView} onChange={(e) => setAuditView(e.target.value)}>
+                {['Pre Audit', 'Reports'].map((item) => <option key={item}>{item}</option>)}
+              </select>
+              <select className="pricebook-select" value={auditDepartment} onChange={(e) => setAuditDepartment(e.target.value)}>
+                {['All', ...uniqueValues(auditRows, 'department')].map((item) => <option key={item}>{item}</option>)}
+              </select>
+              <button className="pricebook-btn primary" onClick={() => getAuditResults()}>
+                <Icon name="report" size={15} /> Get Results
+              </button>
+            </div>
+            <div className="pricebook-pending-list" style={{ padding: '0 20px 20px' }}>
+              {visibleAuditRows.length ? visibleAuditRows.map((item) => (
+                <div className={`pricebook-pending-row ${selectedAuditRow?.id === item.id ? 'active' : ''}`} key={item.id} onClick={() => setSelectedAuditId(item.id)}>
+                  <div>
+                    <div className="pricebook-pending-title">{item.title}</div>
+                    <div className="pricebook-pending-meta">{item.id} · {item.department} · {item.scope}</div>
+                    <div className="pricebook-pending-meta">{fmtN(item.counted)} counted vs {fmtN(item.system)} system · variance {fmtN(item.variance)}</div>
+                  </div>
+                  <span className={`pricebook-status ${item.status === 'Needs count' || item.status === 'Needs recount' || item.status === 'Review' ? 'warn' : item.status === 'Reported' || item.status === 'Filed' ? 'pending' : ''}`}>{item.status}</span>
+                  <button className="pricebook-btn" onClick={(event) => {
+                    event.stopPropagation();
+                    setSelectedAuditId(item.id);
+                    previewAuditPacket(item);
+                  }}>
+                    <Icon name="report" size={15} /> Preview
+                  </button>
+                </div>
+              )) : (
+                <div className="pricebook-draft">
+                  <h3>No audit rows</h3>
+                  <div className="pricebook-note">Switch between `Pre Audit` and `Reports` or widen the department filter.</div>
+                </div>
+              )}
+            </div>
+            <div className="pricebook-action-strip" style={{ padding: '0 20px 20px' }}>
+              <span>{fmtN(auditOpenCount)} open pre-audits, {fmtN(auditVarianceCount)} rows with variance, and {fmtN(auditReportCount)} report packets visible in demo history.</span>
+              <div className="pricebook-actions">
+                <button className="pricebook-btn" onClick={() => exportAuditEvents('CSV')}>
+                  <Icon name="cash" size={15} /> Export event log
+                </button>
+                <button className="pricebook-btn primary" onClick={() => saveAuditPacket()}>
+                  <Icon name="save" size={15} /> Save audit packet
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="pricebook-detail-card">
+            {selectedAuditRow ? (
+              <>
+                <div className="pricebook-detail-title">Selected audit</div>
+                <div className="pricebook-detail-sub">{selectedAuditRow.id} · {selectedAuditRow.department} · {selectedAuditRow.view}</div>
+                <div className="pricebook-metric-list">
+                  <div className="pricebook-metric"><span>Title</span><span>{selectedAuditRow.title}</span></div>
+                  <div className="pricebook-metric"><span>Scope</span><span>{selectedAuditRow.scope}</span></div>
+                  <div className="pricebook-metric"><span>Owner</span><span>{selectedAuditRow.owner}</span></div>
+                  <div className="pricebook-metric"><span>Counted</span><span>{fmtN(selectedAuditRow.counted)}</span></div>
+                  <div className="pricebook-metric"><span>System</span><span>{fmtN(selectedAuditRow.system)}</span></div>
+                  <div className="pricebook-metric"><span>Variance</span><span>{fmtN(selectedAuditRow.variance)}</span></div>
+                  <div className="pricebook-metric"><span>Variance Amount</span><span>{fmt(selectedAuditRow.amount)}</span></div>
+                  <div className="pricebook-metric"><span>Updated</span><span>{selectedAuditRow.updated}</span></div>
+                </div>
+                <div className="pricebook-actions" style={{ marginTop: 16 }}>
+                  <button className="pricebook-btn" onClick={() => previewAuditPacket()}>
+                    <Icon name="report" size={15} /> Preview packet
+                  </button>
+                  <button className="pricebook-btn" onClick={() => flagAuditRecount()}>
+                    <Icon name="alert" size={15} /> Request recount
+                  </button>
+                  <button className="pricebook-btn primary" onClick={() => markAuditReviewed()}>
+                    <Icon name="save" size={15} /> Mark reviewed
+                  </button>
+                </div>
+
+                <div className="pricebook-draft" style={{ marginTop: 18 }}>
+                  <h3>Audit note</h3>
+                  <div className="pricebook-note" style={{ marginTop: 0 }}>{selectedAuditRow.note}</div>
+                </div>
+
+                <div className="pricebook-draft" style={{ marginTop: 18 }}>
+                  <h3>Audit events</h3>
+                  <div className="purchase-queue-list">
+                    {selectedAuditEvents.map((event) => (
+                      <div className="purchase-queue-row" key={event.id}>
+                        <div className="purchase-queue-top">
+                          <div>
+                            <div className="purchase-queue-title">{event.action}</div>
+                            <div className="purchase-queue-meta">{event.time} · {event.actor}</div>
+                          </div>
+                          <span className={`purchase-tag${event.status === 'Needs recount' || event.status === 'In review' ? ' amber' : ' blue'}`}>{event.status}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </>
+            ) : null}
           </div>
         </div>
       ) : null}
