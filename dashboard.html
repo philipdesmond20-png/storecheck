@@ -4060,96 +4060,402 @@ const TodayView = ({ viewMode, setViewMode }) => {
 };
 
 const FuelView = () => {
+  const [fuelPage, setFuelPage] = useState('overview');
+  const [showAddDelivery, setShowAddDelivery] = useState(false);
+  const [selectedDraftId, setSelectedDraftId] = useState('DR-224');
+  const [fuelNotice, setFuelNotice] = useState('');
+  const [deliveryDraft, setDeliveryDraft] = useState({
+    date: '2026-05-09',
+    shift: 'Shift 2',
+    regular: '5200',
+    premium: '2100',
+    diesel: '1220',
+    totalAmount: '25384.44',
+    invoiceRef: 'INV-8841',
+    bolRef: 'BOL-5518',
+  });
   const tanks = MOCK.fuel.tanks;
   const grades = MOCK.fuel.grades;
   const totalGallons = grades.reduce((s, g) => s + g.gallons, 0);
   const totalRevenue = grades.reduce((s, g) => s + g.revenue, 0);
   const totalProfit = grades.reduce((s, g) => s + g.gallons * g.margin, 0);
+  const deliveryRows = [
+    { id: 'DLV-118', deliveryDate: '2026-05-09', shift: 'Shift 2', volume: 8520, draftDate: '2026-05-10', totalAmount: 25384.44, status: 'Awaiting draft', invoice: 'INV-8841', draft: 'Open', bol: 'Attached' },
+    { id: 'DLV-114', deliveryDate: '2026-05-08', shift: 'Shift 1', volume: 7410, draftDate: '2026-05-09', totalAmount: 21908.16, status: 'Drafted', invoice: 'INV-8836', draft: 'DR-224', bol: 'Attached' },
+    { id: 'DLV-109', deliveryDate: '2026-05-06', shift: 'Shift 3', volume: 6880, draftDate: '2026-05-07', totalAmount: 20464.92, status: 'Drafted', invoice: 'INV-8820', draft: 'DR-221', bol: 'Attached' },
+  ];
+  const draftRows = [
+    { id: 'DR-224', draftDate: '2026-05-09', fuelInvoices: 3, batches: 2, fees: 245.18, rebate: 121.4, expenses: 90.25, otherCredits: -18.0, draftAmount: 24791.79, attachments: '2 docs', status: 'Needs review', deliveries: ['DLV-118', 'DLV-114'], invoices: ['INV-8841', 'INV-8836'] },
+    { id: 'DR-221', draftDate: '2026-05-07', fuelInvoices: 2, batches: 2, fees: 211.74, rebate: 98.3, expenses: 74.16, otherCredits: 0, draftAmount: 20383.72, attachments: '1 doc', status: 'Submitted', deliveries: ['DLV-109'], invoices: ['INV-8820'] },
+  ];
+  const networkBatches = [
+    { id: 'NB-4201', date: '2026-05-09', gross: 12644.8, fees: 116.44, net: 12528.36, status: 'Ready' },
+    { id: 'NB-4198', date: '2026-05-08', gross: 11392.75, fees: 104.22, net: 11288.53, status: 'Settled' },
+  ];
+  const selectedDraft = draftRows.find((row) => row.id === selectedDraftId) || draftRows[0];
+  const deliveryTotals = deliveryRows.reduce(
+    (acc, row) => ({
+      volume: acc.volume + row.volume,
+      totalAmount: acc.totalAmount + row.totalAmount,
+    }),
+    { volume: 0, totalAmount: 0 }
+  );
+  const deliveryEntryTotal =
+    Number(deliveryDraft.regular || 0) +
+    Number(deliveryDraft.premium || 0) +
+    Number(deliveryDraft.diesel || 0);
+
+  const showNotice = (message) => {
+    setFuelNotice(message);
+    window.clearTimeout(window.__storecheckFuelNotice);
+    window.__storecheckFuelNotice = window.setTimeout(() => setFuelNotice(''), 2800);
+  };
+
+  const exportDeliveries = (format) => {
+    downloadTableData(
+      deliveryRows.map((row) => ({
+        DeliveryDate: row.deliveryDate,
+        Shift: row.shift,
+        Volume: row.volume,
+        DraftDate: row.draftDate,
+        TotalAmount: row.totalAmount.toFixed(2),
+        Status: row.status,
+        Invoice: row.invoice,
+        Draft: row.draft,
+        BOL: row.bol,
+      })),
+      format,
+      'storecheck-fuel-deliveries'
+    );
+  };
+
+  const exportDrafts = (format) => {
+    downloadTableData(
+      draftRows.map((row) => ({
+        DraftId: row.id,
+        DraftDate: row.draftDate,
+        FuelInvoices: row.fuelInvoices,
+        Batches: row.batches,
+        Fees: row.fees.toFixed(2),
+        Rebate: row.rebate.toFixed(2),
+        Expenses: row.expenses.toFixed(2),
+        OtherCredits: row.otherCredits.toFixed(2),
+        DraftAmount: row.draftAmount.toFixed(2),
+        Attachments: row.attachments,
+        Status: row.status,
+      })),
+      format,
+      'storecheck-fuel-drafts'
+    );
+  };
+
+  const openDraftDetail = (draftId) => {
+    setSelectedDraftId(draftId);
+    showNotice(`Draft detail opened for ${draftId} in demo mode. Real \`/jobberBatches/getDraftDetails/{draftId}\` wiring is still pending.`);
+  };
+
+  const saveDelivery = () => {
+    showNotice('Delivery saved in demo mode. Real Add Delivery modal save wiring is still pending.');
+    setShowAddDelivery(false);
+  };
+
+  const tabs = [
+    { id: 'overview', label: 'Overview', icon: 'fuel' },
+    { id: 'deliveries', label: 'Deliveries', icon: 'report' },
+    { id: 'drafts', label: 'Drafts', icon: 'cash' },
+  ];
 
   return (
     <div className="shell">
       <div className="section-hdr">
         <h1>Fuel</h1>
-        <p>Track fuel sales, current tank levels, and pump performance for today.</p>
+        <p>Track fuel sales, delivery flow, and draft follow-through in one owner-facing workspace.</p>
       </div>
 
-      <div className="eyebrow-label">Tank Levels Right Now</div>
-      <div className="fuel-tanks-row">
-        {tanks.map((t) => {
-          const pct = Math.round((t.current / t.capacity) * 100);
-          const isLow = pct < 35;
-          const isMid = pct < 60 && !isLow;
-          const barColor = isLow ? '#EF4444' : isMid ? '#F59E0B' : t.color;
-          return (
-            <div key={t.name} className="tank-card">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
-                <div className="tank-name">{t.name} Tank</div>
-                <Icon
-                  name="fuel"
-                  size={18}
-                  bg={isLow ? iconDefaults.red.bg : isMid ? iconDefaults.fuel.bg : iconDefaults.green.bg}
-                  fg={barColor}
-                />
-              </div>
-              <div className="tank-level-wrap">
-                <div className="tank-level-bar" style={{ width: pct + '%', background: barColor }}></div>
-              </div>
-              <div className="tank-pct" style={{ color: barColor }}>{pct}%</div>
-              <div className="tank-detail">{fmtN(t.current)} of {fmtN(t.capacity)} gallons left</div>
-              <StatBadge tone={isLow ? 'red' : isMid ? 'amber' : 'green'} icon={isLow ? 'alert' : isMid ? 'report' : 'success'}>
-                {isLow ? 'Low - order fuel today' : isMid ? 'Getting low' : 'Good level'}
-              </StatBadge>
-            </div>
-          );
-        })}
-      </div>
-
-      <div className="eyebrow-label">Sales by Fuel Type - Today</div>
-      <div className="fuel-grades-row">
-        {grades.map((g) => (
-          <div key={g.name} className="grade-card">
-            <div className="grade-header">
-              <div className="grade-dot" style={{ background: g.color }}></div>
-              <div className="grade-name">{g.name}</div>
-              <div className="grade-price">${g.price}/gal</div>
-            </div>
-            <div className="grade-stat">
-              <span className="grade-stat-label"><Icon name="cash" size={14} bg="rgba(39,198,107,0.12)" fg="#27C66B" /> Money Earned</span>
-              <span className="grade-stat-val">{fmt(g.revenue)}</span>
-            </div>
-            <div className="grade-stat">
-              <span className="grade-stat-label"><Icon name="gallons" size={14} bg="rgba(245,158,11,0.12)" fg="#F59E0B" /> Gallons Sold</span>
-              <span className="grade-stat-val">{fmtN(g.gallons, 2)}</span>
-            </div>
-            <div className="grade-stat">
-              <span className="grade-stat-label"><Icon name="trendUp" size={14} bg="rgba(39,198,107,0.12)" fg="#27C66B" /> Profit / Gallon</span>
-              <span className="grade-stat-val" style={{ color: '#15803D' }}>${g.margin.toFixed(2)}</span>
-            </div>
-            <div className="grade-stat">
-              <span className="grade-stat-label"><Icon name="cash" size={14} bg="rgba(59,130,246,0.12)" fg="#3B82F6" /> Your Profit</span>
-              <span className="grade-stat-val" style={{ color: '#15803D' }}>{fmt(g.gallons * g.margin)}</span>
-            </div>
-          </div>
+      <div className="pricebook-tabs" role="tablist" aria-label="Fuel sections">
+        {tabs.map((tab) => (
+          <button key={tab.id} className={`pricebook-tab ${fuelPage === tab.id ? 'active' : ''}`} onClick={() => setFuelPage(tab.id)}>
+            <Icon name={tab.icon} size={17} /> {tab.label}
+          </button>
         ))}
       </div>
 
-      <div className="card card-pad">
-        <div className="chart-title" style={{ marginBottom: 16 }}>Fuel Totals - Today</div>
-        <div className="summary-grid">
-          {[
-            { label: 'Total Gallons Sold', val: fmtN(totalGallons, 0) + ' gal', icon: 'fuel', tone: iconDefaults.fuel },
-            { label: 'Total Fuel Revenue', val: fmt(totalRevenue), icon: 'cash', tone: iconDefaults.green },
-            { label: 'Total Fuel Profit', val: fmt(totalProfit), icon: 'trendUp', tone: iconDefaults.blue },
-            { label: 'Avg Profit / Gallon', val: '$' + (totalProfit / totalGallons).toFixed(3), icon: 'report', tone: iconDefaults.purple },
-          ].map((s) => (
-            <div key={s.label} className="summary-stat">
-              <Icon name={s.icon} size={22} bg={s.tone.bg} fg={s.tone.fg} style={{ margin: '0 auto' }} />
-              <div className="summary-label">{s.label}</div>
-              <div className="summary-value">{s.val}</div>
+      {fuelNotice ? <div className="pricebook-notice"><Icon name="fuel" size={16} /> {fuelNotice}</div> : null}
+
+      {fuelPage === 'overview' ? (
+        <>
+          <div className="eyebrow-label">Tank Levels Right Now</div>
+          <div className="fuel-tanks-row">
+            {tanks.map((t) => {
+              const pct = Math.round((t.current / t.capacity) * 100);
+              const isLow = pct < 35;
+              const isMid = pct < 60 && !isLow;
+              const barColor = isLow ? '#EF4444' : isMid ? '#F59E0B' : t.color;
+              return (
+                <div key={t.name} className="tank-card">
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+                    <div className="tank-name">{t.name} Tank</div>
+                    <Icon
+                      name="fuel"
+                      size={18}
+                      bg={isLow ? iconDefaults.red.bg : isMid ? iconDefaults.fuel.bg : iconDefaults.green.bg}
+                      fg={barColor}
+                    />
+                  </div>
+                  <div className="tank-level-wrap">
+                    <div className="tank-level-bar" style={{ width: pct + '%', background: barColor }}></div>
+                  </div>
+                  <div className="tank-pct" style={{ color: barColor }}>{pct}%</div>
+                  <div className="tank-detail">{fmtN(t.current)} of {fmtN(t.capacity)} gallons left</div>
+                  <StatBadge tone={isLow ? 'red' : isMid ? 'amber' : 'green'} icon={isLow ? 'alert' : isMid ? 'report' : 'success'}>
+                    {isLow ? 'Low - order fuel today' : isMid ? 'Getting low' : 'Good level'}
+                  </StatBadge>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="eyebrow-label">Sales by Fuel Type - Today</div>
+          <div className="fuel-grades-row">
+            {grades.map((g) => (
+              <div key={g.name} className="grade-card">
+                <div className="grade-header">
+                  <div className="grade-dot" style={{ background: g.color }}></div>
+                  <div className="grade-name">{g.name}</div>
+                  <div className="grade-price">${g.price}/gal</div>
+                </div>
+                <div className="grade-stat">
+                  <span className="grade-stat-label"><Icon name="cash" size={14} bg="rgba(39,198,107,0.12)" fg="#27C66B" /> Money Earned</span>
+                  <span className="grade-stat-val">{fmt(g.revenue)}</span>
+                </div>
+                <div className="grade-stat">
+                  <span className="grade-stat-label"><Icon name="gallons" size={14} bg="rgba(245,158,11,0.12)" fg="#F59E0B" /> Gallons Sold</span>
+                  <span className="grade-stat-val">{fmtN(g.gallons, 2)}</span>
+                </div>
+                <div className="grade-stat">
+                  <span className="grade-stat-label"><Icon name="trendUp" size={14} bg="rgba(39,198,107,0.12)" fg="#27C66B" /> Profit / Gallon</span>
+                  <span className="grade-stat-val" style={{ color: '#15803D' }}>${g.margin.toFixed(2)}</span>
+                </div>
+                <div className="grade-stat">
+                  <span className="grade-stat-label"><Icon name="cash" size={14} bg="rgba(59,130,246,0.12)" fg="#3B82F6" /> Your Profit</span>
+                  <span className="grade-stat-val" style={{ color: '#15803D' }}>{fmt(g.gallons * g.margin)}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="card card-pad">
+            <div className="chart-title" style={{ marginBottom: 16 }}>Fuel Totals - Today</div>
+            <div className="summary-grid">
+              {[
+                { label: 'Total Gallons Sold', val: fmtN(totalGallons, 0) + ' gal', icon: 'fuel', tone: iconDefaults.fuel },
+                { label: 'Total Fuel Revenue', val: fmt(totalRevenue), icon: 'cash', tone: iconDefaults.green },
+                { label: 'Total Fuel Profit', val: fmt(totalProfit), icon: 'trendUp', tone: iconDefaults.blue },
+                { label: 'Avg Profit / Gallon', val: '$' + (totalProfit / totalGallons).toFixed(3), icon: 'report', tone: iconDefaults.purple },
+              ].map((s) => (
+                <div key={s.label} className="summary-stat">
+                  <Icon name={s.icon} size={22} bg={s.tone.bg} fg={s.tone.fg} style={{ margin: '0 auto' }} />
+                  <div className="summary-label">{s.label}</div>
+                  <div className="summary-value">{s.val}</div>
+                </div>
+              ))}
             </div>
-          ))}
+          </div>
+        </>
+      ) : null}
+
+      {fuelPage === 'deliveries' ? (
+        <>
+          <div className="pricebook-kpis">
+            <div className="pricebook-card"><div className="pricebook-card-top"><div className="pricebook-label">Deliveries in Window</div><Icon name="report" size={18} /></div><div className="pricebook-value">{fmtN(deliveryRows.length)}</div><div className="pricebook-note">Jobber summary replacement shell</div></div>
+            <div className="pricebook-card"><div className="pricebook-card-top"><div className="pricebook-label">Fuel Volume</div><Icon name="fuel" size={18} /></div><div className="pricebook-value">{fmtN(deliveryTotals.volume, 0)}</div><div className="pricebook-note">Gallons across visible deliveries</div></div>
+            <div className="pricebook-card"><div className="pricebook-card-top"><div className="pricebook-label">Purchases</div><Icon name="cash" size={18} /></div><div className="pricebook-value">{fmt(deliveryTotals.totalAmount)}</div><div className="pricebook-note">Fuel purchases in demo range</div></div>
+            <div className="pricebook-card"><div className="pricebook-card-top"><div className="pricebook-label">Awaiting Draft</div><Icon name="alert" size={18} /></div><div className="pricebook-value">{fmtN(deliveryRows.filter((row) => row.status !== 'Drafted').length)}</div><div className="pricebook-note">Needs draft follow-through</div></div>
+          </div>
+
+          <div className="purchase-grid">
+            <div className="purchase-stack">
+              <div className="purchase-surface">
+                <div className="pricebook-toolbar" style={{ padding: '20px 20px 0' }}>
+                  <div>
+                    <div className="pricebook-detail-title">Jobber deliveries</div>
+                    <div className="pricebook-detail-sub">Delivery summary with the same surface area Mercury exposes around Add Delivery.</div>
+                  </div>
+                  <div className="pricebook-actions">
+                    <button className="pricebook-btn" onClick={() => showNotice('Rack prices opened in demo mode. Live rack-price endpoint is still pending.')}>
+                      <Icon name="fuel" size={15} /> Rack Prices
+                    </button>
+                    <button className="pricebook-btn" onClick={() => showNotice('Freight charges opened in demo mode. Live freight endpoint is still pending.')}>
+                      <Icon name="cash" size={15} /> Freight Charges
+                    </button>
+                    <button className="pricebook-btn primary" onClick={() => setShowAddDelivery(!showAddDelivery)}>
+                      <Icon name="report" size={15} /> {showAddDelivery ? 'Hide Add Delivery' : 'Add Delivery'}
+                    </button>
+                  </div>
+                </div>
+                <div className="pricebook-toolbar" style={{ padding: '0 20px 16px' }}>
+                  <div className="pricebook-actions">
+                    {['CSV', 'XLS', 'JSON'].map((format) => (
+                      <button key={format} className="pricebook-btn" onClick={() => exportDeliveries(format)}>
+                        <Icon name="cash" size={15} /> {format}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="mobile-table-scroll">
+                  <table className="purchase-table">
+                    <thead><tr><th>Delivery Date</th><th>Shift</th><th className="purchase-right">Volume</th><th>Draft Date</th><th className="purchase-right">Total Amount</th><th>Status</th><th>Invoice</th><th>Draft</th><th>BOL Att</th></tr></thead>
+                    <tbody>
+                      {deliveryRows.map((row) => (
+                        <tr key={row.id}>
+                          <td><strong>{row.deliveryDate}</strong><small>{row.id}</small></td>
+                          <td>{row.shift}</td>
+                          <td className="purchase-right">{fmtN(row.volume, 0)}</td>
+                          <td>{row.draftDate}</td>
+                          <td className="purchase-right">{fmt(row.totalAmount)}</td>
+                          <td><span className={`purchase-tag${row.status === 'Drafted' ? ' blue' : ' amber'}`}>{row.status}</span></td>
+                          <td>{row.invoice}</td>
+                          <td>{row.draft}</td>
+                          <td>{row.bol}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <div className="purchase-stack">
+              {showAddDelivery ? (
+                <div className="purchase-note-card">
+                  <div className="purchase-panel-head">
+                    <div>
+                      <h3>Add Delivery</h3>
+                      <p>Mercury-style add-delivery shell with the visible modal fields and supporting blocks.</p>
+                    </div>
+                    <span className="purchase-tag">Modal shell</span>
+                  </div>
+                  <div className="purchase-form-grid">
+                    <div className="purchase-form-field"><label>Delivery Date</label><input className="pricebook-input" type="date" value={deliveryDraft.date} onChange={(e) => setDeliveryDraft({ ...deliveryDraft, date: e.target.value })} /></div>
+                    <div className="purchase-form-field"><label>Shift</label><select className="pricebook-select" value={deliveryDraft.shift} onChange={(e) => setDeliveryDraft({ ...deliveryDraft, shift: e.target.value })}><option>Shift 1</option><option>Shift 2</option><option>Shift 3</option></select></div>
+                    <div className="purchase-form-field"><label>Regular</label><input className="pricebook-input" value={deliveryDraft.regular} onChange={(e) => setDeliveryDraft({ ...deliveryDraft, regular: e.target.value })} /></div>
+                    <div className="purchase-form-field"><label>Premium</label><input className="pricebook-input" value={deliveryDraft.premium} onChange={(e) => setDeliveryDraft({ ...deliveryDraft, premium: e.target.value })} /></div>
+                    <div className="purchase-form-field"><label>Diesel</label><input className="pricebook-input" value={deliveryDraft.diesel} onChange={(e) => setDeliveryDraft({ ...deliveryDraft, diesel: e.target.value })} /></div>
+                    <div className="purchase-form-field"><label>Total Amount</label><input className="pricebook-input" value={deliveryDraft.totalAmount} onChange={(e) => setDeliveryDraft({ ...deliveryDraft, totalAmount: e.target.value })} /></div>
+                    <div className="purchase-form-field"><label>Invoice Ref</label><input className="pricebook-input" value={deliveryDraft.invoiceRef} onChange={(e) => setDeliveryDraft({ ...deliveryDraft, invoiceRef: e.target.value })} /></div>
+                    <div className="purchase-form-field"><label>BOL Ref</label><input className="pricebook-input" value={deliveryDraft.bolRef} onChange={(e) => setDeliveryDraft({ ...deliveryDraft, bolRef: e.target.value })} /></div>
+                    <div className="purchase-form-field full"><label>Invoice Attachment</label><input className="purchase-file" type="file" onChange={() => showNotice('Invoice attachment staged in demo mode. Live upload wiring is still pending.')} /></div>
+                    <div className="purchase-form-field full"><label>BOL Attachment</label><input className="purchase-file" type="file" onChange={() => showNotice('BOL attachment staged in demo mode. Live upload wiring is still pending.')} /></div>
+                  </div>
+                  <div className="pricebook-actions" style={{ marginTop: 16 }}>
+                    <button className="pricebook-btn primary" onClick={() => saveDelivery()}>
+                      <Icon name="cash" size={15} /> Save
+                    </button>
+                    <button className="pricebook-btn" onClick={() => setShowAddDelivery(false)}>
+                      <Icon name="report" size={15} /> Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : null}
+
+              <div className="purchase-note-card">
+                <h3>Supporting blocks</h3>
+                <p>Visible context Mercury keeps beside the modal so operators can verify the mix before saving the delivery.</p>
+                <div className="purchase-kv-list">
+                  <div className="purchase-kv"><span>Categories</span><span>Regular, Premium, Diesel</span></div>
+                  <div className="purchase-kv"><span>Total gallons</span><span>{fmtN(deliveryEntryTotal, 0)}</span></div>
+                  <div className="purchase-kv"><span>Recent purchases</span><span>{deliveryRows.length} visible</span></div>
+                </div>
+                <div className="purchase-kv-list" style={{ marginTop: 12 }}>
+                  {deliveryRows.slice(0, 3).map((row) => (
+                    <div className="purchase-kv" key={row.id}><span>{row.id} · {row.deliveryDate}</span><span>{fmt(row.totalAmount)}</span></div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </>
+      ) : null}
+
+      {fuelPage === 'drafts' ? (
+        <div className="purchase-grid">
+          <div className="purchase-stack">
+            <div className="purchase-surface">
+              <div className="pricebook-toolbar" style={{ padding: '20px 20px 0' }}>
+                <div>
+                  <div className="pricebook-detail-title">Search / Add Draft</div>
+                  <div className="pricebook-detail-sub">Draft management with a drilldown shell for the Mercury draft detail request.</div>
+                </div>
+                <div className="pricebook-actions">
+                  {['CSV', 'XLS', 'JSON'].map((format) => (
+                    <button key={format} className="pricebook-btn" onClick={() => exportDrafts(format)}>
+                      <Icon name="cash" size={15} /> {format}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="mobile-table-scroll">
+                <table className="purchase-table">
+                  <thead><tr><th>Draft Date</th><th className="purchase-right">Fuel Invoices</th><th className="purchase-right">Batches</th><th className="purchase-right">Fees</th><th className="purchase-right">Rebate</th><th className="purchase-right">Expenses</th><th className="purchase-right">Other Fees/Credits</th><th className="purchase-right">Draft Amount</th><th>Attachments</th><th></th></tr></thead>
+                  <tbody>
+                    {draftRows.map((row) => (
+                      <tr key={row.id}>
+                        <td><strong>{row.draftDate}</strong><small>{row.id}</small></td>
+                        <td className="purchase-right">{fmtN(row.fuelInvoices)}</td>
+                        <td className="purchase-right">{fmtN(row.batches)}</td>
+                        <td className="purchase-right">{fmt(row.fees)}</td>
+                        <td className="purchase-right">{fmt(row.rebate)}</td>
+                        <td className="purchase-right">{fmt(row.expenses)}</td>
+                        <td className="purchase-right">{fmt(row.otherCredits)}</td>
+                        <td className="purchase-right"><strong>{fmt(row.draftAmount)}</strong></td>
+                        <td>{row.attachments}</td>
+                        <td><button className="pricebook-btn" onClick={() => openDraftDetail(row.id)}><Icon name="report" size={15} /> Detail</button></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <div className="purchase-stack">
+            <div className="purchase-note-card">
+              <div className="purchase-panel-head">
+                <div>
+                  <h3>Draft detail</h3>
+                  <p>StoreCheck drilldown replacement for the Mercury `getDraftDetails` request.</p>
+                </div>
+                <span className={`purchase-tag${selectedDraft.status === 'Submitted' ? ' blue' : ' amber'}`}>{selectedDraft.status}</span>
+              </div>
+              <div className="purchase-kv-list">
+                <div className="purchase-kv"><span>Draft ID</span><span>{selectedDraft.id}</span></div>
+                <div className="purchase-kv"><span>Invoices</span><span>{selectedDraft.invoices.join(', ')}</span></div>
+                <div className="purchase-kv"><span>Deliveries</span><span>{selectedDraft.deliveries.join(', ')}</span></div>
+                <div className="purchase-kv"><span>Draft amount</span><span>{fmt(selectedDraft.draftAmount)}</span></div>
+                <div className="purchase-kv"><span>Attachments</span><span>{selectedDraft.attachments}</span></div>
+              </div>
+              <div className="pricebook-actions" style={{ marginTop: 16 }}>
+                <button className="pricebook-btn" onClick={() => showNotice(`${selectedDraft.id} opened in print preview shell. Live detail print is still pending.`)}>
+                  <Icon name="report" size={15} /> Print
+                </button>
+                <button className="pricebook-btn primary" onClick={() => showNotice(`${selectedDraft.id} reopened for edit in demo mode.`)}>
+                  <Icon name="cash" size={15} /> Open draft
+                </button>
+              </div>
+            </div>
+
+            <div className="purchase-note-card">
+              <h3>Network batches</h3>
+              <p>Supporting settlement context kept visible beside the draft drilldown.</p>
+              <div className="purchase-kv-list">
+                {networkBatches.map((row) => (
+                  <div className="purchase-kv" key={row.id}><span>{row.id} · {row.date}</span><span>{fmt(row.net)}</span></div>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
+      ) : null}
     </div>
   );
 };
