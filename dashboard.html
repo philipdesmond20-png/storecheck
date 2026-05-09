@@ -4085,9 +4085,12 @@ const FuelView = () => {
   const [fuelPage, setFuelPage] = useState('overview');
   const [showAddDelivery, setShowAddDelivery] = useState(false);
   const [showAddDraft, setShowAddDraft] = useState(false);
+  const [deliveryCostMode, setDeliveryCostMode] = useState('rack');
   const [selectedDeliveryId, setSelectedDeliveryId] = useState('DLV-118');
   const [selectedDraftId, setSelectedDraftId] = useState('DR-224');
   const [selectedNetworkBatchId, setSelectedNetworkBatchId] = useState('NB-4201');
+  const [selectedRackId, setSelectedRackId] = useState('RACK-509-AM');
+  const [selectedFreightId, setSelectedFreightId] = useState('FRT-118');
   const [selectedFuelAttachmentId, setSelectedFuelAttachmentId] = useState('FAT-301');
   const [fuelNotice, setFuelNotice] = useState('');
   const [deliveryDraft, setDeliveryDraft] = useState({
@@ -4099,6 +4102,9 @@ const FuelView = () => {
     totalAmount: '25384.44',
     invoiceRef: 'INV-8841',
     bolRef: 'BOL-5518',
+    rackSetId: 'RACK-509-AM',
+    freightRate: '0.041',
+    surchargeRate: '0.012',
   });
   const [deliveryDraftUploads, setDeliveryDraftUploads] = useState({ invoiceName: '', bolName: '' });
   const tanks = MOCK.fuel.tanks;
@@ -4107,10 +4113,15 @@ const FuelView = () => {
   const totalRevenue = grades.reduce((s, g) => s + g.revenue, 0);
   const totalProfit = grades.reduce((s, g) => s + g.gallons * g.margin, 0);
   const [deliveryRows, setDeliveryRows] = useState([
-    { id: 'DLV-118', deliveryDate: '2026-05-09', shift: 'Shift 2', volume: 8520, draftDate: '2026-05-10', totalAmount: 25384.44, status: 'Awaiting draft', invoice: 'INV-8841', draft: 'Open', bol: 'Attached' },
-    { id: 'DLV-114', deliveryDate: '2026-05-08', shift: 'Shift 1', volume: 7410, draftDate: '2026-05-09', totalAmount: 21908.16, status: 'Drafted', invoice: 'INV-8836', draft: 'DR-224', bol: 'Attached' },
-    { id: 'DLV-109', deliveryDate: '2026-05-06', shift: 'Shift 3', volume: 6880, draftDate: '2026-05-07', totalAmount: 20464.92, status: 'Drafted', invoice: 'INV-8820', draft: 'DR-221', bol: 'Attached' },
+    { id: 'DLV-118', deliveryDate: '2026-05-09', shift: 'Shift 2', volume: 8520, draftDate: '2026-05-10', totalAmount: 25384.44, status: 'Awaiting draft', invoice: 'INV-8841', draft: 'Open', bol: 'Attached', rackSetId: 'RACK-509-AM', freightId: 'FRT-118' },
+    { id: 'DLV-114', deliveryDate: '2026-05-08', shift: 'Shift 1', volume: 7410, draftDate: '2026-05-09', totalAmount: 21908.16, status: 'Drafted', invoice: 'INV-8836', draft: 'DR-224', bol: 'Attached', rackSetId: 'RACK-508-PM', freightId: 'FRT-114' },
+    { id: 'DLV-109', deliveryDate: '2026-05-06', shift: 'Shift 3', volume: 6880, draftDate: '2026-05-07', totalAmount: 20464.92, status: 'Drafted', invoice: 'INV-8820', draft: 'DR-221', bol: 'Attached', rackSetId: 'RACK-506-AM', freightId: 'FRT-109' },
   ]);
+  const rackPriceRows = [
+    { id: 'RACK-509-AM', effective: '2026-05-09 05:45', terminal: 'Atlanta South', supplier: 'PetroLink', regular: 2.708, premium: 3.041, diesel: 2.882, freightBase: 0.041, surchargeBase: 0.012, status: 'Current' },
+    { id: 'RACK-508-PM', effective: '2026-05-08 17:20', terminal: 'Atlanta South', supplier: 'PetroLink', regular: 2.694, premium: 3.026, diesel: 2.871, freightBase: 0.039, surchargeBase: 0.01, status: 'Used on delivery' },
+    { id: 'RACK-506-AM', effective: '2026-05-06 06:10', terminal: 'Macon Exchange', supplier: 'Coastal Fuel', regular: 2.671, premium: 3.004, diesel: 2.854, freightBase: 0.038, surchargeBase: 0.009, status: 'History' },
+  ];
   const [draftRows, setDraftRows] = useState([
     { id: 'DR-224', draftDate: '2026-05-09', fuelInvoices: 3, batches: 1, fees: 245.18, rebate: 121.4, expenses: 90.25, otherCredits: -18.0, draftAmount: 24791.79, attachments: '2 docs', status: 'Needs review', deliveries: ['DLV-118', 'DLV-114'], invoices: ['INV-8841', 'INV-8836'], linkedBatches: ['NB-4201'] },
     { id: 'DR-221', draftDate: '2026-05-07', fuelInvoices: 2, batches: 1, fees: 211.74, rebate: 98.3, expenses: 74.16, otherCredits: 0, draftAmount: 20383.72, attachments: '1 doc', status: 'Submitted', deliveries: ['DLV-109'], invoices: ['INV-8820'], linkedBatches: ['NB-4198'] },
@@ -4119,6 +4130,11 @@ const FuelView = () => {
     { id: 'FAT-301', deliveryId: 'DLV-118', draftId: 'DR-224', fileName: 'INV-8841.pdf', type: 'Invoice Attachment', added: '2026-05-09 08:14', status: 'Ready', note: 'Invoice queued for open draft follow-through.' },
     { id: 'FAT-302', deliveryId: 'DLV-114', draftId: 'DR-224', fileName: 'BOL-5509.pdf', type: 'BOL Attachment', added: '2026-05-08 11:42', status: 'Ready', note: 'Signed BOL linked to drafted delivery.' },
     { id: 'FAT-303', deliveryId: 'DLV-109', draftId: 'DR-221', fileName: 'INV-8820.pdf', type: 'Invoice Attachment', added: '2026-05-06 17:18', status: 'Ready', note: 'Fuel invoice matched to submitted draft.' },
+  ]);
+  const [freightChargeRows, setFreightChargeRows] = useState([
+    { id: 'FRT-118', deliveryId: 'DLV-118', invoice: 'INV-8841', terminal: 'Atlanta South', gallons: 8520, freightRate: 0.041, surchargeRate: 0.012, freightTotal: 349.32, surchargeTotal: 102.24, status: 'Needs review', note: 'Morning lane charge held for delivery confirmation.' },
+    { id: 'FRT-114', deliveryId: 'DLV-114', invoice: 'INV-8836', terminal: 'Atlanta South', gallons: 7410, freightRate: 0.039, surchargeRate: 0.01, freightTotal: 288.99, surchargeTotal: 74.1, status: 'Ready', note: 'Freight cleared with regular and premium split.' },
+    { id: 'FRT-109', deliveryId: 'DLV-109', invoice: 'INV-8820', terminal: 'Macon Exchange', gallons: 6880, freightRate: 0.038, surchargeRate: 0.009, freightTotal: 261.44, surchargeTotal: 61.92, status: 'Ready', note: 'Historical load cost captured for submitted draft.' },
   ]);
   const [networkBatchRows, setNetworkBatchRows] = useState([
     { id: 'NB-4201', date: '2026-05-09', gross: 12644.8, fees: 116.44, net: 12528.36, status: 'Ready', linkedDraft: 'DR-224' },
@@ -4136,11 +4152,15 @@ const FuelView = () => {
   const selectedDelivery = deliveryRows.find((row) => row.id === selectedDeliveryId) || deliveryRows[0];
   const selectedDraft = draftRows.find((row) => row.id === selectedDraftId) || draftRows[0];
   const selectedNetworkBatch = networkBatchRows.find((row) => row.id === selectedNetworkBatchId) || networkBatchRows[0];
+  const selectedRack = rackPriceRows.find((row) => row.id === selectedRackId) || rackPriceRows[0];
+  const selectedFreight = freightChargeRows.find((row) => row.id === selectedFreightId) || freightChargeRows[0];
   const selectedFuelAttachment =
     fuelAttachments.find((row) => row.id === selectedFuelAttachmentId) ||
     fuelAttachments.find((row) => row.deliveryId === selectedDelivery?.id) ||
     fuelAttachments.find((row) => row.draftId === selectedDraft?.id) ||
     fuelAttachments[0];
+  const selectedDeliveryRack = rackPriceRows.find((row) => row.id === selectedDelivery?.rackSetId) || null;
+  const selectedDeliveryFreight = freightChargeRows.find((row) => row.deliveryId === selectedDelivery?.id) || null;
   const countDeliveryAttachments = (deliveryId) => fuelAttachments.filter((row) => row.deliveryId === deliveryId).length;
   const countDraftAttachments = (draftId) => fuelAttachments.filter((row) => row.draftId === draftId).length;
   const deliveryAttachmentRows = selectedDelivery ? fuelAttachments.filter((row) => row.deliveryId === selectedDelivery.id) : [];
@@ -4151,6 +4171,11 @@ const FuelView = () => {
   const draftComposerInvoices = draftComposerDeliveryRows.map((row) => row.invoice);
   const draftComposerVolume = draftComposerDeliveryRows.reduce((sum, row) => sum + row.volume, 0);
   const draftComposerBase = draftComposerDeliveryRows.reduce((sum, row) => sum + row.totalAmount, 0);
+  const selectedDeliveryFreightTotal = selectedDeliveryFreight ? selectedDeliveryFreight.freightTotal + selectedDeliveryFreight.surchargeTotal : 0;
+  const selectedDeliveryLandedCost = (selectedDelivery?.totalAmount || 0) + selectedDeliveryFreightTotal;
+  const selectedDeliveryCostPerGallon = selectedDelivery?.volume ? selectedDeliveryLandedCost / selectedDelivery.volume : 0;
+  const deliveryDraftFreightTotal = deliveryEntryTotal * (Number(deliveryDraft.freightRate || 0) + Number(deliveryDraft.surchargeRate || 0));
+  const deliveryDraftLandedCost = Number(deliveryDraft.totalAmount || 0) + deliveryDraftFreightTotal;
   const draftComposerAmount =
     draftComposerBase +
     Number(draftComposer.fees || 0) -
@@ -4228,6 +4253,8 @@ const FuelView = () => {
         Draft: row.draft,
         Att: countDeliveryAttachments(row.id),
         BOL: row.bol,
+        RackSnapshot: row.rackSetId || 'Open',
+        FreightTotal: ((freightChargeRows.find((item) => item.deliveryId === row.id)?.freightTotal || 0) + (freightChargeRows.find((item) => item.deliveryId === row.id)?.surchargeTotal || 0)).toFixed(2),
       })),
       format,
       'storecheck-fuel-deliveries'
@@ -4295,6 +4322,81 @@ const FuelView = () => {
       rows: [[row.id, row.draft, row.invoice, fmtN(countDeliveryAttachments(row.id)), row.bol, fmt(row.totalAmount)]],
     });
     showNotice(`${row.id} attachment review opened in demo mode.`);
+  };
+
+  const openRackPricePacket = (row = selectedRack) => {
+    if (!row) return;
+    openFuelPacket({
+      title: `Fuel Rack Prices - ${row.id}`,
+      subtitle: `${row.terminal} · ${row.effective}`,
+      headers: ['Rack', 'Supplier', 'Regular', 'Premium', 'Diesel', 'Freight / gal', 'Surcharge / gal', 'Status'],
+      rows: [[row.id, row.supplier, `$${row.regular.toFixed(3)}`, `$${row.premium.toFixed(3)}`, `$${row.diesel.toFixed(3)}`, `$${row.freightBase.toFixed(3)}`, `$${row.surchargeBase.toFixed(3)}`, row.status]],
+    });
+    showNotice(`${row.id} rack-price review opened in demo mode.`);
+  };
+
+  const saveRackPricePacket = (row = selectedRack) => {
+    if (!row) return;
+    saveFuelPacket({
+      title: `Fuel Rack Prices - ${row.id}`,
+      subtitle: `${row.terminal} · ${row.effective}`,
+      route: '/jobberBatches/index',
+      note: 'Fuel rack-price replacement shell',
+      headers: ['Rack', 'Supplier', 'Regular', 'Premium', 'Diesel', 'Freight / gal', 'Surcharge / gal', 'Status'],
+      rows: [[row.id, row.supplier, `$${row.regular.toFixed(3)}`, `$${row.premium.toFixed(3)}`, `$${row.diesel.toFixed(3)}`, `$${row.freightBase.toFixed(3)}`, `$${row.surchargeBase.toFixed(3)}`, row.status]],
+      filename: `storecheck-rack-price-${String(row.id).toLowerCase()}`,
+    });
+    showNotice(`${row.id} rack-price packet prepared in demo mode.`);
+  };
+
+  const useRackPriceForDelivery = (row = selectedRack) => {
+    if (!row) return;
+    setSelectedRackId(row.id);
+    setDeliveryDraft((current) => ({
+      ...current,
+      rackSetId: row.id,
+      freightRate: row.freightBase.toFixed(3),
+      surchargeRate: row.surchargeBase.toFixed(3),
+    }));
+    setDeliveryCostMode('rack');
+    showNotice(`${row.id} loaded into Add Delivery in demo mode. Real rack-price endpoint is still pending.`);
+  };
+
+  const openFreightChargePacket = (row = selectedFreight) => {
+    if (!row) return;
+    openFuelPacket({
+      title: `Fuel Freight Charges - ${row.id}`,
+      subtitle: `${row.deliveryId} · ${row.invoice}`,
+      headers: ['Freight', 'Delivery', 'Gallons', 'Freight / gal', 'Surcharge / gal', 'Freight Total', 'Surcharge Total', 'Status'],
+      rows: [[row.id, row.deliveryId, fmtN(row.gallons, 0), `$${row.freightRate.toFixed(3)}`, `$${row.surchargeRate.toFixed(3)}`, fmt(row.freightTotal), fmt(row.surchargeTotal), row.status]],
+    });
+    showNotice(`${row.id} freight-charge review opened in demo mode.`);
+  };
+
+  const saveFreightChargePacket = (row = selectedFreight) => {
+    if (!row) return;
+    saveFuelPacket({
+      title: `Fuel Freight Charges - ${row.id}`,
+      subtitle: `${row.deliveryId} · ${row.invoice}`,
+      route: '/jobberBatches/index',
+      note: 'Fuel freight-charge replacement shell',
+      headers: ['Freight', 'Delivery', 'Gallons', 'Freight / gal', 'Surcharge / gal', 'Freight Total', 'Surcharge Total', 'Status'],
+      rows: [[row.id, row.deliveryId, fmtN(row.gallons, 0), `$${row.freightRate.toFixed(3)}`, `$${row.surchargeRate.toFixed(3)}`, fmt(row.freightTotal), fmt(row.surchargeTotal), row.status]],
+      filename: `storecheck-freight-charge-${String(row.id).toLowerCase()}`,
+    });
+    showNotice(`${row.id} freight-charge packet prepared in demo mode.`);
+  };
+
+  const useFreightChargeForDelivery = (row = selectedFreight) => {
+    if (!row) return;
+    setSelectedFreightId(row.id);
+    setDeliveryDraft((current) => ({
+      ...current,
+      freightRate: row.freightRate.toFixed(3),
+      surchargeRate: row.surchargeRate.toFixed(3),
+    }));
+    setDeliveryCostMode('freight');
+    showNotice(`${row.id} loaded into Add Delivery in demo mode. Real freight endpoint is still pending.`);
   };
 
   const reviewDraftAttachments = (row = selectedDraft) => {
@@ -4428,6 +4530,11 @@ const FuelView = () => {
   const saveDelivery = () => {
     const nextId = `DLV-${120 + deliveryRows.length}`;
     const nextDraftDate = 'Open';
+    const freightId = `FRT-${120 + deliveryRows.length}`;
+    const freightRate = Number(deliveryDraft.freightRate || 0);
+    const surchargeRate = Number(deliveryDraft.surchargeRate || 0);
+    const freightTotal = Number((deliveryEntryTotal * freightRate).toFixed(2));
+    const surchargeTotal = Number((deliveryEntryTotal * surchargeRate).toFixed(2));
     setDeliveryRows((current) => [
       {
         id: nextId,
@@ -4440,6 +4547,24 @@ const FuelView = () => {
         invoice: deliveryDraft.invoiceRef,
         draft: 'Open',
         bol: deliveryDraftUploads.bolName ? 'Attached' : 'Missing',
+        rackSetId: deliveryDraft.rackSetId,
+        freightId,
+      },
+      ...current,
+    ]);
+    setFreightChargeRows((current) => [
+      {
+        id: freightId,
+        deliveryId: nextId,
+        invoice: deliveryDraft.invoiceRef,
+        terminal: (rackPriceRows.find((row) => row.id === deliveryDraft.rackSetId) || selectedRack || {}).terminal || 'Open',
+        gallons: deliveryEntryTotal,
+        freightRate,
+        surchargeRate,
+        freightTotal,
+        surchargeTotal,
+        status: 'Needs review',
+        note: 'Created from the StoreCheck Add Delivery cost shell in demo mode.',
       },
       ...current,
     ]);
@@ -4474,6 +4599,8 @@ const FuelView = () => {
       setSelectedFuelAttachmentId(nextAttachments[0].id);
     }
     setSelectedDeliveryId(nextId);
+    setSelectedFreightId(freightId);
+    setSelectedRackId(deliveryDraft.rackSetId);
     setDeliveryDraftUploads({ invoiceName: '', bolName: '' });
     setDeliveryDraft({
       date: '2026-05-09',
@@ -4484,6 +4611,9 @@ const FuelView = () => {
       totalAmount: '25384.44',
       invoiceRef: 'INV-8841',
       bolRef: 'BOL-5518',
+      rackSetId: 'RACK-509-AM',
+      freightRate: '0.041',
+      surchargeRate: '0.012',
     });
     showNotice('Delivery and attachment handoff saved in demo mode. Real Add Delivery save wiring is still pending.');
     setShowAddDelivery(false);
@@ -4675,10 +4805,10 @@ const FuelView = () => {
                     <div className="pricebook-detail-sub">Delivery summary with the same surface area Mercury exposes around Add Delivery.</div>
                   </div>
                   <div className="pricebook-actions">
-                    <button className="pricebook-btn" onClick={() => showNotice('Rack prices opened in demo mode. Live rack-price endpoint is still pending.')}>
+                    <button className={`pricebook-btn${deliveryCostMode === 'rack' ? ' primary' : ''}`} onClick={() => { setDeliveryCostMode('rack'); setSelectedRackId(selectedDelivery?.rackSetId || selectedRackId); showNotice('Rack price review opened in demo mode. Live rack-price endpoint is still pending.'); }}>
                       <Icon name="fuel" size={15} /> Rack Prices
                     </button>
-                    <button className="pricebook-btn" onClick={() => showNotice('Freight charges opened in demo mode. Live freight endpoint is still pending.')}>
+                    <button className={`pricebook-btn${deliveryCostMode === 'freight' ? ' primary' : ''}`} onClick={() => { setDeliveryCostMode('freight'); if (selectedDelivery?.freightId) setSelectedFreightId(selectedDelivery.freightId); showNotice('Freight charge review opened in demo mode. Live freight endpoint is still pending.'); }}>
                       <Icon name="cash" size={15} /> Freight Charges
                     </button>
                     <button className="pricebook-btn primary" onClick={() => setShowAddDelivery(!showAddDelivery)}>
@@ -4738,12 +4868,18 @@ const FuelView = () => {
                     <div className="purchase-form-field"><label>Total Amount</label><input className="pricebook-input" value={deliveryDraft.totalAmount} onChange={(e) => setDeliveryDraft({ ...deliveryDraft, totalAmount: e.target.value })} /></div>
                     <div className="purchase-form-field"><label>Invoice Ref</label><input className="pricebook-input" value={deliveryDraft.invoiceRef} onChange={(e) => setDeliveryDraft({ ...deliveryDraft, invoiceRef: e.target.value })} /></div>
                     <div className="purchase-form-field"><label>BOL Ref</label><input className="pricebook-input" value={deliveryDraft.bolRef} onChange={(e) => setDeliveryDraft({ ...deliveryDraft, bolRef: e.target.value })} /></div>
+                    <div className="purchase-form-field"><label>Rack Snapshot</label><select className="pricebook-select" value={deliveryDraft.rackSetId} onChange={(e) => setDeliveryDraft({ ...deliveryDraft, rackSetId: e.target.value })}>{rackPriceRows.map((row) => <option key={row.id} value={row.id}>{row.id} · {row.terminal}</option>)}</select></div>
+                    <div className="purchase-form-field"><label>Freight / gal</label><input className="pricebook-input" value={deliveryDraft.freightRate} onChange={(e) => setDeliveryDraft({ ...deliveryDraft, freightRate: e.target.value })} /></div>
+                    <div className="purchase-form-field"><label>Fuel surcharge / gal</label><input className="pricebook-input" value={deliveryDraft.surchargeRate} onChange={(e) => setDeliveryDraft({ ...deliveryDraft, surchargeRate: e.target.value })} /></div>
                     <div className="purchase-form-field full"><label>Invoice Attachment</label><input className="purchase-file" type="file" onChange={(e) => stageDeliveryAttachment(e.target.files?.[0], 'Invoice Attachment')} /></div>
                     <div className="purchase-form-field full"><label>BOL Attachment</label><input className="purchase-file" type="file" onChange={(e) => stageDeliveryAttachment(e.target.files?.[0], 'BOL Attachment')} /></div>
                   </div>
                   <div className="purchase-kv-list" style={{ marginTop: 16 }}>
                     <div className="purchase-kv"><span>Invoice handoff</span><span>{deliveryDraftUploads.invoiceName || 'Not staged'}</span></div>
                     <div className="purchase-kv"><span>BOL handoff</span><span>{deliveryDraftUploads.bolName || 'Not staged'}</span></div>
+                    <div className="purchase-kv"><span>Rack rate set</span><span>{deliveryDraft.rackSetId}</span></div>
+                    <div className="purchase-kv"><span>Freight estimate</span><span>{fmt(deliveryDraftFreightTotal)}</span></div>
+                    <div className="purchase-kv"><span>Landed cost</span><span>{fmt(deliveryDraftLandedCost)}</span></div>
                   </div>
                   <div className="pricebook-actions" style={{ marginTop: 16 }}>
                     <button className="pricebook-btn primary" onClick={() => saveDelivery()}>
@@ -4763,6 +4899,8 @@ const FuelView = () => {
                   <div className="purchase-kv"><span>Categories</span><span>Regular, Premium, Diesel</span></div>
                   <div className="purchase-kv"><span>Total gallons</span><span>{fmtN(deliveryEntryTotal, 0)}</span></div>
                   <div className="purchase-kv"><span>Recent purchases</span><span>{deliveryRows.length} visible</span></div>
+                  <div className="purchase-kv"><span>Rack snapshot</span><span>{(rackPriceRows.find((row) => row.id === deliveryDraft.rackSetId) || selectedRack).terminal}</span></div>
+                  <div className="purchase-kv"><span>Freight + surcharge</span><span>{fmt(deliveryDraftFreightTotal)}</span></div>
                 </div>
                 <div className="purchase-kv-list" style={{ marginTop: 12 }}>
                   {deliveryRows.slice(0, 3).map((row) => (
@@ -4781,6 +4919,9 @@ const FuelView = () => {
                       <div className="purchase-kv"><span>Invoice</span><span>{selectedDelivery.invoice}</span></div>
                       <div className="purchase-kv"><span>Attachment rows</span><span>{fmtN(countDeliveryAttachments(selectedDelivery.id))}</span></div>
                       <div className="purchase-kv"><span>BOL status</span><span>{selectedDelivery.bol}</span></div>
+                      <div className="purchase-kv"><span>Rack snapshot</span><span>{selectedDeliveryRack ? selectedDeliveryRack.id : 'Open'}</span></div>
+                      <div className="purchase-kv"><span>Freight total</span><span>{selectedDeliveryFreight ? fmt(selectedDeliveryFreightTotal) : 'Open'}</span></div>
+                      <div className="purchase-kv"><span>Landed cost / gal</span><span>{selectedDeliveryFreight ? `$${selectedDeliveryCostPerGallon.toFixed(3)}` : 'Open'}</span></div>
                     </div>
                     <div className="pricebook-actions" style={{ marginTop: 16 }}>
                       <button className="pricebook-btn" onClick={() => reviewDeliveryAttachments(selectedDelivery)}>
@@ -4789,13 +4930,127 @@ const FuelView = () => {
                       <button className="pricebook-btn" onClick={() => saveFuelAttachmentPacket(deliveryAttachmentRows[0] || selectedFuelAttachment)}>
                         <Icon name="cash" size={15} /> Save packet
                       </button>
-                      <button className="pricebook-btn primary" onClick={() => setShowAddDelivery(true)}>
-                        <Icon name="item" size={15} /> Add attachment
+                      <button className="pricebook-btn primary" onClick={() => { setDeliveryCostMode('freight'); if (selectedDelivery?.freightId) setSelectedFreightId(selectedDelivery.freightId); }}>
+                        <Icon name="item" size={15} /> Review landed cost
                       </button>
                     </div>
                   </>
                 ) : (
                   <div className="purchase-hint">No delivery is selected right now.</div>
+                )}
+              </div>
+
+              <div className="purchase-note-card">
+                <h3>Rack price review</h3>
+                <p>Keep terminal pricing beside Jobber deliveries instead of hiding it behind a separate screen.</p>
+                <div className="purchase-queue-list">
+                  {rackPriceRows.map((row) => (
+                    <div className="purchase-queue-row" key={row.id}>
+                      <div className="purchase-queue-top">
+                        <div>
+                          <div className="purchase-queue-title">{row.id} · {row.terminal}</div>
+                          <div className="purchase-queue-meta">Reg ${row.regular.toFixed(3)} · Prem ${row.premium.toFixed(3)} · Diesel ${row.diesel.toFixed(3)}</div>
+                        </div>
+                        <span className={`purchase-tag${row.id === (selectedDeliveryRack?.id || selectedRackId) ? ' blue' : row.status === 'Current' ? ' green' : ' amber'}`}>{row.status}</span>
+                      </div>
+                      <div className="pricebook-actions" style={{ marginTop: 12 }}>
+                        <button className="pricebook-btn soft" onClick={() => { setSelectedRackId(row.id); setDeliveryCostMode('rack'); }}>
+                          <Icon name="report" size={15} /> Select rack
+                        </button>
+                        <button className="pricebook-btn" onClick={() => openRackPricePacket(row)}>
+                          <Icon name="cash" size={15} /> Open packet
+                        </button>
+                        <button className="pricebook-btn" onClick={() => useRackPriceForDelivery(row)}>
+                          <Icon name="connect" size={15} /> Use in delivery
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="purchase-note-card">
+                <h3>Selected rack price</h3>
+                <p>Show the active rack snapshot and landed-cost inputs without leaving the delivery workflow.</p>
+                {selectedRack ? (
+                  <>
+                    <div className="purchase-kv-list">
+                      <div className="purchase-kv"><span>Rack</span><span>{selectedRack.id}</span></div>
+                      <div className="purchase-kv"><span>Terminal</span><span>{selectedRack.terminal}</span></div>
+                      <div className="purchase-kv"><span>Supplier</span><span>{selectedRack.supplier}</span></div>
+                      <div className="purchase-kv"><span>Freight baseline</span><span>{`$${selectedRack.freightBase.toFixed(3)}`}</span></div>
+                    </div>
+                    <div className="pricebook-actions" style={{ marginTop: 16 }}>
+                      <button className="pricebook-btn" onClick={() => saveRackPricePacket(selectedRack)}>
+                        <Icon name="cash" size={15} /> Save packet
+                      </button>
+                      <button className="pricebook-btn" onClick={() => useRackPriceForDelivery(selectedRack)}>
+                        <Icon name="connect" size={15} /> Use in delivery
+                      </button>
+                      <button className="pricebook-btn primary" onClick={() => setShowAddDelivery(true)}>
+                        <Icon name="item" size={15} /> Open Add Delivery
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <div className="purchase-hint">No rack snapshot is selected right now.</div>
+                )}
+              </div>
+
+              <div className="purchase-note-card">
+                <h3>Freight charges</h3>
+                <p>Freight and surcharge review stay tied to the delivery they belong to.</p>
+                <div className="purchase-queue-list">
+                  {freightChargeRows.map((row) => (
+                    <div className="purchase-queue-row" key={row.id}>
+                      <div className="purchase-queue-top">
+                        <div>
+                          <div className="purchase-queue-title">{row.id} · {row.deliveryId}</div>
+                          <div className="purchase-queue-meta">{row.terminal} · Freight {fmt(row.freightTotal)} · Surcharge {fmt(row.surchargeTotal)}</div>
+                        </div>
+                        <span className={`purchase-tag${row.id === (selectedDeliveryFreight?.id || selectedFreightId) ? ' blue' : row.status === 'Ready' ? ' green' : ' amber'}`}>{row.status}</span>
+                      </div>
+                      <div className="pricebook-actions" style={{ marginTop: 12 }}>
+                        <button className="pricebook-btn soft" onClick={() => { setSelectedFreightId(row.id); setDeliveryCostMode('freight'); }}>
+                          <Icon name="report" size={15} /> Select freight
+                        </button>
+                        <button className="pricebook-btn" onClick={() => openFreightChargePacket(row)}>
+                          <Icon name="cash" size={15} /> Open packet
+                        </button>
+                        <button className="pricebook-btn" onClick={() => useFreightChargeForDelivery(row)}>
+                          <Icon name="connect" size={15} /> Use in delivery
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="purchase-note-card">
+                <h3>Selected freight charge</h3>
+                <p>Freight review stays beside Add Delivery so owners can confirm landed cost before saving.</p>
+                {selectedFreight ? (
+                  <>
+                    <div className="purchase-kv-list">
+                      <div className="purchase-kv"><span>Freight</span><span>{selectedFreight.id}</span></div>
+                      <div className="purchase-kv"><span>Delivery</span><span>{selectedFreight.deliveryId}</span></div>
+                      <div className="purchase-kv"><span>Freight + surcharge</span><span>{fmt(selectedFreight.freightTotal + selectedFreight.surchargeTotal)}</span></div>
+                      <div className="purchase-kv"><span>Per gallon</span><span>{`$${(selectedFreight.freightRate + selectedFreight.surchargeRate).toFixed(3)}`}</span></div>
+                    </div>
+                    <div className="pricebook-actions" style={{ marginTop: 16 }}>
+                      <button className="pricebook-btn" onClick={() => saveFreightChargePacket(selectedFreight)}>
+                        <Icon name="cash" size={15} /> Save packet
+                      </button>
+                      <button className="pricebook-btn" onClick={() => useFreightChargeForDelivery(selectedFreight)}>
+                        <Icon name="connect" size={15} /> Use in delivery
+                      </button>
+                      <button className="pricebook-btn primary" onClick={() => setShowAddDelivery(true)}>
+                        <Icon name="item" size={15} /> Open Add Delivery
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <div className="purchase-hint">No freight charge is selected right now.</div>
                 )}
               </div>
 
