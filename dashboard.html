@@ -7690,6 +7690,8 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
   const [loginEmail, setLoginEmail] = useState(ACCOUNT_EMAIL_SETTINGS.login);
   const [reportEmail, setReportEmail] = useState(ACCOUNT_EMAIL_SETTINGS.reports);
   const [alertsEmail, setAlertsEmail] = useState(ACCOUNT_EMAIL_SETTINGS.alerts);
+  const [tempSessionOpen, setTempSessionOpen] = useState(false);
+  const [newScreensEnabled, setNewScreensEnabled] = useState(true);
 
   const showSessionNotice = (message) => {
     setSessionNotice(message);
@@ -7746,6 +7748,31 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
           <button className="connect-btn" onClick={() => showSessionNotice('Demo session signed out. Real logout endpoint still pending.')}>
             <Icon name="close" size={16} bg="rgba(255,255,255,0.12)" fg="#86EFAC" />
             <span>Log Out</span>
+          </button>
+        </div>
+
+        <div className="settings-card">
+          <div className="settings-title">Internal Session Controls</div>
+          <div className="settings-sub">Replacement shell for Mercury temp-session open and new-screens feature toggle controls.</div>
+          <div className="connect-status">
+            <span className="source-dot"></span>
+            <span>Temp session: {tempSessionOpen ? 'Open in demo mode' : 'Closed'}</span>
+          </div>
+          <div className="toggle-row">
+            <span className="toggle-label">Enable new screens experience</span>
+            <input type="checkbox" checked={newScreensEnabled} onChange={(e) => setNewScreensEnabled(e.target.checked)} />
+          </div>
+          <div className="toggle-row">
+            <span className="toggle-label">Legacy Mercury fallback</span>
+            <span className={`purchase-tag${newScreensEnabled ? ' blue' : ''}`}>{newScreensEnabled ? 'Disabled' : 'Visible'}</span>
+          </div>
+          <button className="connect-btn" onClick={() => { setTempSessionOpen(!tempSessionOpen); showSessionNotice('Temp session toggled in demo mode. Real `/administration/openTempSession` wiring still pending.'); }}>
+            <Icon name="connect" size={16} bg="rgba(255,255,255,0.12)" fg="#86EFAC" />
+            <span>{tempSessionOpen ? 'Refresh Temp Session' : 'Open Temp Session'}</span>
+          </button>
+          <button className="connect-btn" style={{ marginTop: 10 }} onClick={() => showSessionNotice(`New screens ${newScreensEnabled ? 'enabled' : 'disabled'} in demo mode. Real \`/util/showNewScreens\` wiring still pending.`)}>
+            <Icon name="save" size={16} bg="rgba(255,255,255,0.12)" fg="#86EFAC" />
+            <span>Save Feature Toggle</span>
           </button>
         </div>
 
