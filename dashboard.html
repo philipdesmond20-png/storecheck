@@ -5777,6 +5777,7 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
   const [deadDept, setDeadDept] = useState('All');
   const [deadWindow, setDeadWindow] = useState('12 Months');
   const [deadCriteria, setDeadCriteria] = useState('All flagged items');
+  const [vendorSetupFilter, setVendorSetupFilter] = useState('All');
   const [vendorOrderRows, setVendorOrderRows] = useState(PURCHASE_VENDOR_ORDERS);
   const [invoiceReviewRows, setInvoiceReviewRows] = useState(PURCHASE_REVIEW_QUEUE.map((row) => ({ ...row, stage: 'Queued' })));
   const [purchaseLedgerRows, setPurchaseLedgerRows] = useState(PURCHASE_LEDGER);
@@ -5786,6 +5787,15 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
       reconStatus: row.paymentType === 'Cash' ? 'Needs reconcile' : 'Filed',
     }))
   );
+  const [vendorMasterRows, setVendorMasterRows] = useState(VENDOR_MASTER);
+  const [expenseTypeRows, setExpenseTypeRows] = useState(
+    OPERATING_EXPENSE_TYPES.map((item, index) => ({
+      id: `ET-${index + 1}`,
+      label: item,
+      status: 'Live',
+      usedBy: index < 4 ? 'Expense entry + history' : 'Expense entry',
+    }))
+  );
   const [costUpdateRows, setCostUpdateRows] = useState(COST_UPDATE_ROWS);
   const [deadInventoryRows, setDeadInventoryRows] = useState(DEAD_INVENTORY_ROWS.map((row) => ({ ...row, stage: 'Review' })));
   const [deadSelected, setDeadSelected] = useState(DEAD_INVENTORY_ROWS.slice(0, 2).map((row) => row.id));
@@ -5793,6 +5803,12 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
   const [selectedReviewId, setSelectedReviewId] = useState(PURCHASE_REVIEW_QUEUE[0].id);
   const [selectedLedgerId, setSelectedLedgerId] = useState(PURCHASE_LEDGER.find((row) => row.status !== 'Cleared')?.id || PURCHASE_LEDGER[0].id);
   const [selectedExpenseId, setSelectedExpenseId] = useState(OPERATING_EXPENSES.find((row) => row.paymentType === 'Cash')?.id || OPERATING_EXPENSES[0].id);
+  const [selectedSetupVendorId, setSelectedSetupVendorId] = useState(VENDOR_MASTER[0].vendor);
+  const [selectedExpenseTypeId, setSelectedExpenseTypeId] = useState('ET-1');
+  const [showVendorCreate, setShowVendorCreate] = useState(false);
+  const [showExpenseTypeCreate, setShowExpenseTypeCreate] = useState(false);
+  const [vendorDraftName, setVendorDraftName] = useState('');
+  const [expenseTypeDraftName, setExpenseTypeDraftName] = useState('');
   const [attachments, setAttachments] = useState(ATTACHMENT_LIBRARY);
   const [purchaseDraft, setPurchaseDraft] = useState({
     date: '2026-05-09',
@@ -5844,7 +5860,7 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
       (deadCriteria === 'Inactivate candidates' ? row.action.includes('Inactivate') : row.action.toLowerCase().includes('markdown'));
     return deptMatch && windowMatch && criteriaMatch;
   });
-  const activeVendors = VENDOR_MASTER.filter((row) => row.active).length;
+  const activeVendors = vendorMasterRows.filter((row) => row.active).length;
   const pendingReviews = invoiceReviewRows.filter((row) => row.status !== 'Ready to post').length;
   const unclearedLedger = purchaseLedgerRows.filter((row) => row.status !== 'Cleared').length;
   const expenseMonthTotal = expenseRows.reduce((sum, row) => sum + row.amount, 0);
@@ -5853,12 +5869,32 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
   const pendingCostConfirms = costUpdateRows.filter((row) => row.status !== 'Ready').length;
   const deadInventoryUnits = deadInventoryRows.reduce((sum, row) => sum + row.inventory, 0);
   const deadInventoryCost = deadInventoryRows.reduce((sum, row) => sum + row.totalCost, 0);
-  const vendorOptions = ['All', ...uniqueValues([...purchaseLedgerRows, ...expenseRows], 'vendor')];
+  const filteredVendorMasterRows =
+    vendorSetupFilter === 'All'
+      ? vendorMasterRows
+      : vendorMasterRows.filter((row) => (vendorSetupFilter === 'Active' ? row.active : !row.active));
+  const vendorOptions = [
+    'All',
+    ...uniqueValues(
+      [
+        ...purchaseLedgerRows,
+        ...expenseRows,
+        ...vendorMasterRows.map((row) => ({ vendor: row.vendor })),
+      ],
+      'vendor'
+    ),
+  ];
   const orderVendorOptions = ['All', ...uniqueValues(vendorOrderRows, 'vendor')];
   const selectedVendorOrder = filteredVendorOrders.find((row) => row.id === selectedOrderId) || filteredVendorOrders[0] || vendorOrderRows[0];
   const selectedInvoiceReview = invoiceReviewRows.find((row) => row.id === selectedReviewId) || invoiceReviewRows[0];
   const selectedLedger = filteredPurchaseLedger.find((row) => row.id === selectedLedgerId) || filteredPurchaseLedger[0] || purchaseLedgerRows[0];
   const selectedExpense = filteredExpenses.find((row) => row.id === selectedExpenseId) || filteredExpenses[0] || expenseRows[0];
+  const selectedSetupVendor =
+    filteredVendorMasterRows.find((row) => row.vendor === selectedSetupVendorId) ||
+    vendorMasterRows.find((row) => row.vendor === selectedSetupVendorId) ||
+    filteredVendorMasterRows[0] ||
+    vendorMasterRows[0];
+  const selectedExpenseType = expenseTypeRows.find((row) => row.id === selectedExpenseTypeId) || expenseTypeRows[0];
   const selectedDeadRows = deadInventoryRows.filter((row) => deadSelected.includes(row.id));
   const stagedInactiveCount = deadInventoryRows.filter((row) => row.stage === 'Staged InActive').length;
   const tabs = [
@@ -5884,6 +5920,7 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
     window.clearTimeout(window.__storecheckPurchasesNotice);
     window.__storecheckPurchasesNotice = window.setTimeout(() => setNotice(''), 2800);
   };
+  const slugify = (value) => String(value).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 
   const handlePurchaseDraft = (field, value) => setPurchaseDraft((current) => ({ ...current, [field]: value }));
   const handleExpenseDraft = (field, value) => setExpenseDraft((current) => ({ ...current, [field]: value }));
@@ -6215,6 +6252,105 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
     setSelectedExpenseId(id);
     showNotice(`${id} moved to needs review in demo mode.`);
   };
+  const createVendorRow = () => {
+    const label = vendorDraftName.trim();
+    if (!label) {
+      showNotice('Enter a vendor name first.');
+      return;
+    }
+    if (vendorMasterRows.some((row) => row.vendor.toLowerCase() === label.toLowerCase())) {
+      showNotice(`${label} already exists in the vendor master.`);
+      return;
+    }
+    const nextRow = {
+      vendor: label,
+      agent: 'Ops',
+      terminal: 'Back Office',
+      active: true,
+      lastOrder: 'New vendor',
+      focus: 'Awaiting live vendor sync',
+    };
+    setVendorMasterRows((current) => [nextRow, ...current]);
+    setSelectedSetupVendorId(label);
+    setVendorDraftName('');
+    setShowVendorCreate(false);
+    showNotice(`${label} added to the demo vendor master. Live create endpoint is still pending.`);
+  };
+  const toggleSetupVendor = (vendor) => {
+    setVendorMasterRows((current) =>
+      current.map((row) =>
+        row.vendor === vendor
+          ? {
+              ...row,
+              active: !row.active,
+              focus: row.active ? 'Inactive in demo setup' : 'Awaiting live vendor sync',
+            }
+          : row
+      )
+    );
+    setSelectedSetupVendorId(vendor);
+    showNotice(`${vendor} status updated in demo mode.`);
+  };
+  const saveVendorSetupPacket = (row = selectedSetupVendor) => {
+    if (!row) return;
+    savePacket({
+      title: `Vendor Setup Packet - ${row.vendor}`,
+      subtitle: `${row.agent} agent · ${row.terminal} terminal`,
+      route: '/administration/manageOperatingExpenses',
+      note: 'Vendor master setup replacement shell',
+      headers: ['Vendor', 'Agent', 'Terminal', 'Status', 'Last Order', 'Focus'],
+      rows: [[row.vendor, row.agent, row.terminal, row.active ? 'Active' : 'Inactive', row.lastOrder, row.focus]],
+      filename: `storecheck-vendor-setup-${slugify(row.vendor)}`,
+    });
+    showNotice(`Vendor setup packet prepared for ${row.vendor}.`);
+  };
+  const useVendorInDrafts = (vendor) => {
+    setPurchaseDraft((current) => ({ ...current, vendor }));
+    setExpenseDraft((current) => ({ ...current, vendor }));
+    setSelectedSetupVendorId(vendor);
+    showNotice(`${vendor} staged into purchase and expense entry drafts.`);
+  };
+  const createExpenseTypeRow = () => {
+    const label = expenseTypeDraftName.trim();
+    if (!label) {
+      showNotice('Enter an expense type first.');
+      return;
+    }
+    if (expenseTypeRows.some((row) => row.label.toLowerCase() === label.toLowerCase())) {
+      showNotice(`${label} already exists in expense type setup.`);
+      return;
+    }
+    const nextRow = {
+      id: `ET-${expenseTypeRows.length + 1}`,
+      label,
+      status: 'Live',
+      usedBy: 'Expense entry',
+    };
+    setExpenseTypeRows((current) => [nextRow, ...current]);
+    setSelectedExpenseTypeId(nextRow.id);
+    setExpenseTypeDraftName('');
+    setShowExpenseTypeCreate(false);
+    showNotice(`${label} added to the demo expense-type setup. Live create endpoint is still pending.`);
+  };
+  const saveExpenseTypePacket = (row = selectedExpenseType) => {
+    if (!row) return;
+    savePacket({
+      title: `Expense Type Packet - ${row.label}`,
+      subtitle: `${row.usedBy} · ${row.status}`,
+      route: '/administration/manageOperatingExpenses',
+      note: 'Operating expense type setup replacement shell',
+      headers: ['Expense Type', 'Status', 'Used By'],
+      rows: [[row.label, row.status, row.usedBy]],
+      filename: `storecheck-expense-type-${slugify(row.label)}`,
+    });
+    showNotice(`Expense-type packet prepared for ${row.label}.`);
+  };
+  const useExpenseTypeInDraft = (row = selectedExpenseType) => {
+    if (!row) return;
+    setExpenseDraft((current) => ({ ...current, category: row.label }));
+    setSelectedExpenseTypeId(row.id);
+    showNotice(`${row.label} staged into the operating-expense draft.`);
+  };
   const exportRows = (rows, format, filename) => downloadTableData(rows, format, filename);
 
   const renderExportButtons = (rows, filename) => (
@@ -6524,7 +6660,7 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
               <div className="purchase-form-field"><label>Amount</label><input className="pricebook-input" value={purchaseDraft.amount} onChange={(e) => handlePurchaseDraft('amount', e.target.value)} /></div>
               <div className="purchase-form-field"><label>Payment type</label><select className="pricebook-select" value={purchaseDraft.paymentType} onChange={(e) => handlePurchaseDraft('paymentType', e.target.value)}>{['Cash', 'Check', 'EFT'].map((item) => <option key={item}>{item}</option>)}</select></div>
               <div className="purchase-form-field"><label>Check #</label><input className="pricebook-input" value={purchaseDraft.checkNo} onChange={(e) => handlePurchaseDraft('checkNo', e.target.value)} placeholder="Optional" /></div>
-              <div className="purchase-form-field"><label>Vendor</label><select className="pricebook-select" value={purchaseDraft.vendor} onChange={(e) => handlePurchaseDraft('vendor', e.target.value)}>{uniqueValues(purchaseLedgerRows, 'vendor').map((item) => <option key={item}>{item}</option>)}</select></div>
+              <div className="purchase-form-field"><label>Vendor</label><select className="pricebook-select" value={purchaseDraft.vendor} onChange={(e) => handlePurchaseDraft('vendor', e.target.value)}>{uniqueValues([...purchaseLedgerRows, ...vendorMasterRows.map((row) => ({ vendor: row.vendor }))], 'vendor').map((item) => <option key={item}>{item}</option>)}</select></div>
               <div className="purchase-form-field full"><label>Comments</label><textarea className="pricebook-input" value={purchaseDraft.comments} onChange={(e) => handlePurchaseDraft('comments', e.target.value)} /></div>
               <div className="purchase-form-field full"><label>Invoice upload</label><input className="purchase-file" type="file" onChange={(e) => addAttachment(e.target.files?.[0], 'Purchases', purchaseDraft.vendor, 'Invoice')} /></div>
             </div>
@@ -6603,8 +6739,8 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
               <div className="purchase-form-field"><label>Shift</label><select className="pricebook-select" value={expenseDraft.shift} onChange={(e) => handleExpenseDraft('shift', e.target.value)}><option>Morning</option><option>Day</option><option>Afternoon</option><option>Evening</option></select></div>
               <div className="purchase-form-field"><label>Amount</label><input className="pricebook-input" value={expenseDraft.amount} onChange={(e) => handleExpenseDraft('amount', e.target.value)} /></div>
               <div className="purchase-form-field"><label>Payment type</label><select className="pricebook-select" value={expenseDraft.paymentType} onChange={(e) => handleExpenseDraft('paymentType', e.target.value)}>{['Cash', 'Check', 'EFT'].map((item) => <option key={item}>{item}</option>)}</select></div>
-              <div className="purchase-form-field"><label>Vendor</label><select className="pricebook-select" value={expenseDraft.vendor} onChange={(e) => handleExpenseDraft('vendor', e.target.value)}>{uniqueValues(expenseRows, 'vendor').map((item) => <option key={item}>{item}</option>)}</select></div>
-              <div className="purchase-form-field"><label>Expense type</label><select className="pricebook-select" value={expenseDraft.category} onChange={(e) => handleExpenseDraft('category', e.target.value)}>{OPERATING_EXPENSE_TYPES.map((item) => <option key={item}>{item}</option>)}</select></div>
+              <div className="purchase-form-field"><label>Vendor</label><select className="pricebook-select" value={expenseDraft.vendor} onChange={(e) => handleExpenseDraft('vendor', e.target.value)}>{uniqueValues([...expenseRows, ...vendorMasterRows.map((row) => ({ vendor: row.vendor }))], 'vendor').map((item) => <option key={item}>{item}</option>)}</select></div>
+              <div className="purchase-form-field"><label>Expense type</label><select className="pricebook-select" value={expenseDraft.category} onChange={(e) => handleExpenseDraft('category', e.target.value)}>{expenseTypeRows.map((item) => <option key={item.id}>{item.label}</option>)}</select></div>
               <div className="purchase-form-field full"><label>Note</label><textarea className="pricebook-input" value={expenseDraft.note} onChange={(e) => handleExpenseDraft('note', e.target.value)} /></div>
               <div className="purchase-form-field full"><label>Invoice upload</label><input className="purchase-file" type="file" onChange={(e) => addAttachment(e.target.files?.[0], 'Operating Expenses', expenseDraft.vendor, 'Invoice')} /></div>
             </div>
@@ -6641,7 +6777,7 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
                 <div className="purchase-kv"><span>Month-to-date total</span><span>{fmt(expenseMonthTotal)}</span></div>
                 <div className="purchase-kv"><span>Cash expenses</span><span>{fmt(cashExpenseTotal)}</span></div>
                 <div className="purchase-kv"><span>EFT / Check</span><span>{fmt(expenseMonthTotal - cashExpenseTotal)}</span></div>
-                <div className="purchase-kv"><span>Visible expense types</span><span>{fmtN(OPERATING_EXPENSE_TYPES.length)}</span></div>
+                <div className="purchase-kv"><span>Visible expense types</span><span>{fmtN(expenseTypeRows.length)}</span></div>
                 <div className="purchase-kv"><span>Cash pending reconcile</span><span>{fmtN(pendingExpenseRecon)}</span></div>
                 <div className="purchase-kv"><span>Reconciled rows</span><span>{fmtN(reconciledExpenseCount)}</span></div>
               </div>
@@ -7222,19 +7358,47 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
                   <h3>Vendor master</h3>
                   <p>Owner-facing vendor setup with active visibility, terminal assignments, and last-order context.</p>
                 </div>
-                <button className="pricebook-btn primary" onClick={() => showNotice('Vendor draft opened. Live create endpoint still pending.')}>
+                <button className="pricebook-btn primary" onClick={() => { setShowVendorCreate(true); setVendorDraftName(''); }}>
                   <Icon name="connect" size={15} /> Add vendor
                 </button>
               </div>
+              {showVendorCreate ? (
+                <div className="purchase-form-grid" style={{ marginBottom: 16 }}>
+                  <div className="purchase-form-field full">
+                    <label>Vendor Name</label>
+                    <input className="pricebook-input" value={vendorDraftName} onChange={(e) => setVendorDraftName(e.target.value)} placeholder="Enter vendor name" />
+                  </div>
+                  <div className="purchase-action-row">
+                    <span className="purchase-hint">Mercury uses a single-field Add Vendor modal. StoreCheck keeps the same create path inside the workspace.</span>
+                    <div className="pricebook-actions">
+                      <button className="pricebook-btn" onClick={() => { setShowVendorCreate(false); setVendorDraftName(''); }}>
+                        <Icon name="close" size={15} /> Cancel
+                      </button>
+                      <button className="pricebook-btn primary" onClick={() => createVendorRow()}>
+                        <Icon name="save" size={15} /> Create
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+              <div className="pricebook-filters" style={{ padding: '0 0 16px' }}>
+                <select className="pricebook-select" value={vendorSetupFilter} onChange={(e) => setVendorSetupFilter(e.target.value)}>
+                  {['All', 'Active', 'Inactive'].map((item) => <option key={item}>{item}</option>)}
+                </select>
+                {renderExportButtons(filteredVendorMasterRows, 'storecheck-vendor-master')}
+              </div>
               <div className="purchase-setup-list">
-                {VENDOR_MASTER.map((row) => (
-                  <div className="purchase-setup-item" key={row.vendor}>
+                {filteredVendorMasterRows.map((row) => (
+                  <div className="purchase-setup-item" key={row.vendor} onClick={() => setSelectedSetupVendorId(row.vendor)} style={{ cursor: 'pointer' }}>
                     <div className="purchase-setup-main">
                       <strong>{row.vendor}</strong>
                       <span>{row.agent} agent · {row.terminal} terminal · last order {row.lastOrder}</span>
                       <span>{row.focus}</span>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <button className="pricebook-btn" onClick={(e) => { e.stopPropagation(); toggleSetupVendor(row.vendor); }}>
+                        <Icon name="sync" size={15} /> {row.active ? 'Disable' : 'Enable'}
+                      </button>
                       <span className={`purchase-status-dot${row.active ? '' : ' off'}`}></span>
                       <span className={`purchase-tag${row.active ? '' : ' red'}`}>{row.active ? 'Active' : 'Inactive'}</span>
                     </div>
@@ -7249,33 +7413,121 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
                   <h3>Expense type setup</h3>
                   <p>Category setup for operating expenses so the ledger stays clean and export-ready.</p>
                 </div>
-                <button className="pricebook-btn primary" onClick={() => showNotice('Expense-type draft opened. Save endpoint still pending.')}>
+                <button className="pricebook-btn primary" onClick={() => { setShowExpenseTypeCreate(true); setExpenseTypeDraftName(''); }}>
                   <Icon name="cash" size={15} /> Add expense type
                 </button>
               </div>
-              <div className="purchase-setup-list">
-                {OPERATING_EXPENSE_TYPES.map((item) => (
-                  <div className="purchase-setup-item" key={item}>
-                    <div className="purchase-setup-main">
-                      <strong>{item}</strong>
-                      <span>Available to expense-entry forms and future report filters.</span>
+              {showExpenseTypeCreate ? (
+                <div className="purchase-form-grid" style={{ marginBottom: 16 }}>
+                  <div className="purchase-form-field full">
+                    <label>Description</label>
+                    <input className="pricebook-input" value={expenseTypeDraftName} onChange={(e) => setExpenseTypeDraftName(e.target.value)} placeholder="Enter expense type" />
+                  </div>
+                  <div className="purchase-action-row">
+                    <span className="purchase-hint">Mercury uses a single-field Add Expense Type flow. StoreCheck mirrors that and keeps it owner-friendly.</span>
+                    <div className="pricebook-actions">
+                      <button className="pricebook-btn" onClick={() => { setShowExpenseTypeCreate(false); setExpenseTypeDraftName(''); }}>
+                        <Icon name="close" size={15} /> Cancel
+                      </button>
+                      <button className="pricebook-btn primary" onClick={() => createExpenseTypeRow()}>
+                        <Icon name="save" size={15} /> Create
+                      </button>
                     </div>
-                    <span className="purchase-tag">Live</span>
+                  </div>
+                </div>
+              ) : null}
+              <div className="pricebook-filters" style={{ padding: '0 0 16px' }}>
+                {renderExportButtons(expenseTypeRows, 'storecheck-expense-types')}
+              </div>
+              <div className="purchase-setup-list">
+                {expenseTypeRows.map((item) => (
+                  <div className="purchase-setup-item" key={item.id} onClick={() => setSelectedExpenseTypeId(item.id)} style={{ cursor: 'pointer' }}>
+                    <div className="purchase-setup-main">
+                      <strong>{item.label}</strong>
+                      <span>{item.usedBy}</span>
+                    </div>
+                    <span className="purchase-tag">{item.status}</span>
                   </div>
                 ))}
               </div>
             </div>
           </div>
 
+          <div className="purchase-summary-grid">
+            <div className="purchase-note-card">
+              <h3>Selected vendor setup</h3>
+              <p>Keep the active vendor visible while owners stage purchase and expense workflows.</p>
+              {selectedSetupVendor ? (
+                <>
+                  <div className="purchase-kv-list">
+                    <div className="purchase-kv"><span>Vendor</span><span>{selectedSetupVendor.vendor}</span></div>
+                    <div className="purchase-kv"><span>Status</span><span>{selectedSetupVendor.active ? 'Active' : 'Inactive'}</span></div>
+                    <div className="purchase-kv"><span>Agent / Terminal</span><span>{selectedSetupVendor.agent} · {selectedSetupVendor.terminal}</span></div>
+                    <div className="purchase-kv"><span>Last order</span><span>{selectedSetupVendor.lastOrder}</span></div>
+                  </div>
+                  <div className="pricebook-actions" style={{ marginTop: 16 }}>
+                    <button className="pricebook-btn" onClick={() => saveVendorSetupPacket(selectedSetupVendor)}>
+                      <Icon name="cash" size={15} /> Save packet
+                    </button>
+                    <button className="pricebook-btn" onClick={() => useVendorInDrafts(selectedSetupVendor.vendor)}>
+                      <Icon name="connect" size={15} /> Use in drafts
+                    </button>
+                    <button className="pricebook-btn primary" onClick={() => toggleSetupVendor(selectedSetupVendor.vendor)}>
+                      <Icon name="sync" size={15} /> {selectedSetupVendor.active ? 'Set inactive' : 'Set active'}
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <div className="purchase-hint">No vendor is visible for the current setup filter.</div>
+              )}
+            </div>
+
+            <div className="purchase-note-card">
+              <h3>Selected expense type</h3>
+              <p>Keep new and existing categories close to the expense-entry flow instead of hiding them in a separate admin screen.</p>
+              {selectedExpenseType ? (
+                <>
+                  <div className="purchase-kv-list">
+                    <div className="purchase-kv"><span>Expense type</span><span>{selectedExpenseType.label}</span></div>
+                    <div className="purchase-kv"><span>Status</span><span>{selectedExpenseType.status}</span></div>
+                    <div className="purchase-kv"><span>Used by</span><span>{selectedExpenseType.usedBy}</span></div>
+                    <div className="purchase-kv"><span>Total types</span><span>{fmtN(expenseTypeRows.length)}</span></div>
+                  </div>
+                  <div className="pricebook-actions" style={{ marginTop: 16 }}>
+                    <button className="pricebook-btn" onClick={() => saveExpenseTypePacket(selectedExpenseType)}>
+                      <Icon name="cash" size={15} /> Save packet
+                    </button>
+                    <button className="pricebook-btn" onClick={() => useExpenseTypeInDraft(selectedExpenseType)}>
+                      <Icon name="report" size={15} /> Use in expense
+                    </button>
+                    <button className="pricebook-btn primary" onClick={() => { setShowExpenseTypeCreate(true); setExpenseTypeDraftName(selectedExpenseType.label); }}>
+                      <Icon name="save" size={15} /> Open draft
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <div className="purchase-hint">No expense type is selected right now.</div>
+              )}
+            </div>
+          </div>
+
           <div className="purchase-note-card">
             <h3>Vendor code reference</h3>
-            <p>Read-only vendor codes from Mercury kept visible until master-data sync is connected.</p>
+            <p>Read-only Mercury vendor codes stay visible here until live master-data sync is connected.</p>
             <div className="purchase-code-list">
               {VENDOR_CODES.map((item) => <span className="purchase-code-pill" key={item}>{item}</span>)}
             </div>
+            <div className="purchase-kv-list" style={{ marginTop: 18 }}>
+              <div className="purchase-kv"><span>Phone cards</span><span>Mapped elsewhere in Admin</span></div>
+              <div className="purchase-kv"><span>Current store rows</span><span>None in Mercury</span></div>
+              <div className="purchase-kv"><span>Live create/save</span><span>Still demo-only</span></div>
+            </div>
             <div className="purchase-action-row" style={{ marginTop: 18 }}>
-              <span className="purchase-hint">Phone cards, real uploads, POS cost confirmations, and live save endpoints still need the data phase.</span>
-              {renderExportButtons(VENDOR_MASTER, 'storecheck-vendor-master')}
+              <span className="purchase-hint">Phone cards stay out of this purchase workspace on purpose; the current store had no Mercury phone-card rows, and the mapped admin destination already exists.</span>
+              <div className="pricebook-actions">
+                {renderExportButtons(vendorMasterRows, 'storecheck-vendor-master')}
+                {renderExportButtons(expenseTypeRows, 'storecheck-expense-types')}
+              </div>
             </div>
           </div>
         </div>
