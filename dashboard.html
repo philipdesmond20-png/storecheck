@@ -4084,7 +4084,9 @@ const TodayView = ({ viewMode, setViewMode }) => {
 const FuelView = () => {
   const [fuelPage, setFuelPage] = useState('overview');
   const [showAddDelivery, setShowAddDelivery] = useState(false);
+  const [selectedDeliveryId, setSelectedDeliveryId] = useState('DLV-118');
   const [selectedDraftId, setSelectedDraftId] = useState('DR-224');
+  const [selectedFuelAttachmentId, setSelectedFuelAttachmentId] = useState('FAT-301');
   const [fuelNotice, setFuelNotice] = useState('');
   const [deliveryDraft, setDeliveryDraft] = useState({
     date: '2026-05-09',
@@ -4096,25 +4098,41 @@ const FuelView = () => {
     invoiceRef: 'INV-8841',
     bolRef: 'BOL-5518',
   });
+  const [deliveryDraftUploads, setDeliveryDraftUploads] = useState({ invoiceName: '', bolName: '' });
   const tanks = MOCK.fuel.tanks;
   const grades = MOCK.fuel.grades;
   const totalGallons = grades.reduce((s, g) => s + g.gallons, 0);
   const totalRevenue = grades.reduce((s, g) => s + g.revenue, 0);
   const totalProfit = grades.reduce((s, g) => s + g.gallons * g.margin, 0);
-  const deliveryRows = [
+  const [deliveryRows, setDeliveryRows] = useState([
     { id: 'DLV-118', deliveryDate: '2026-05-09', shift: 'Shift 2', volume: 8520, draftDate: '2026-05-10', totalAmount: 25384.44, status: 'Awaiting draft', invoice: 'INV-8841', draft: 'Open', bol: 'Attached' },
     { id: 'DLV-114', deliveryDate: '2026-05-08', shift: 'Shift 1', volume: 7410, draftDate: '2026-05-09', totalAmount: 21908.16, status: 'Drafted', invoice: 'INV-8836', draft: 'DR-224', bol: 'Attached' },
     { id: 'DLV-109', deliveryDate: '2026-05-06', shift: 'Shift 3', volume: 6880, draftDate: '2026-05-07', totalAmount: 20464.92, status: 'Drafted', invoice: 'INV-8820', draft: 'DR-221', bol: 'Attached' },
-  ];
-  const draftRows = [
+  ]);
+  const [draftRows] = useState([
     { id: 'DR-224', draftDate: '2026-05-09', fuelInvoices: 3, batches: 2, fees: 245.18, rebate: 121.4, expenses: 90.25, otherCredits: -18.0, draftAmount: 24791.79, attachments: '2 docs', status: 'Needs review', deliveries: ['DLV-118', 'DLV-114'], invoices: ['INV-8841', 'INV-8836'] },
     { id: 'DR-221', draftDate: '2026-05-07', fuelInvoices: 2, batches: 2, fees: 211.74, rebate: 98.3, expenses: 74.16, otherCredits: 0, draftAmount: 20383.72, attachments: '1 doc', status: 'Submitted', deliveries: ['DLV-109'], invoices: ['INV-8820'] },
-  ];
+  ]);
+  const [fuelAttachments, setFuelAttachments] = useState([
+    { id: 'FAT-301', deliveryId: 'DLV-118', draftId: 'DR-224', fileName: 'INV-8841.pdf', type: 'Invoice Attachment', added: '2026-05-09 08:14', status: 'Ready', note: 'Invoice queued for open draft follow-through.' },
+    { id: 'FAT-302', deliveryId: 'DLV-114', draftId: 'DR-224', fileName: 'BOL-5509.pdf', type: 'BOL Attachment', added: '2026-05-08 11:42', status: 'Ready', note: 'Signed BOL linked to drafted delivery.' },
+    { id: 'FAT-303', deliveryId: 'DLV-109', draftId: 'DR-221', fileName: 'INV-8820.pdf', type: 'Invoice Attachment', added: '2026-05-06 17:18', status: 'Ready', note: 'Fuel invoice matched to submitted draft.' },
+  ]);
   const networkBatches = [
     { id: 'NB-4201', date: '2026-05-09', gross: 12644.8, fees: 116.44, net: 12528.36, status: 'Ready' },
     { id: 'NB-4198', date: '2026-05-08', gross: 11392.75, fees: 104.22, net: 11288.53, status: 'Settled' },
   ];
+  const selectedDelivery = deliveryRows.find((row) => row.id === selectedDeliveryId) || deliveryRows[0];
   const selectedDraft = draftRows.find((row) => row.id === selectedDraftId) || draftRows[0];
+  const selectedFuelAttachment =
+    fuelAttachments.find((row) => row.id === selectedFuelAttachmentId) ||
+    fuelAttachments.find((row) => row.deliveryId === selectedDelivery?.id) ||
+    fuelAttachments.find((row) => row.draftId === selectedDraft?.id) ||
+    fuelAttachments[0];
+  const countDeliveryAttachments = (deliveryId) => fuelAttachments.filter((row) => row.deliveryId === deliveryId).length;
+  const countDraftAttachments = (draftId) => fuelAttachments.filter((row) => row.draftId === draftId).length;
+  const deliveryAttachmentRows = selectedDelivery ? fuelAttachments.filter((row) => row.deliveryId === selectedDelivery.id) : [];
+  const draftAttachmentRows = selectedDraft ? fuelAttachments.filter((row) => row.draftId === selectedDraft.id) : [];
   const deliveryTotals = deliveryRows.reduce(
     (acc, row) => ({
       volume: acc.volume + row.volume,
@@ -4132,6 +4150,46 @@ const FuelView = () => {
     window.clearTimeout(window.__storecheckFuelNotice);
     window.__storecheckFuelNotice = window.setTimeout(() => setFuelNotice(''), 2800);
   };
+  const fuelPacketHtml = ({ title, subtitle, route, note, headers, rows }) => `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>${title}</title>
+  <style>
+    body{font-family:"DM Sans",Arial,sans-serif;background:#F8FAFC;color:#0F172A;padding:28px}
+    .wrap{max-width:980px;margin:0 auto;background:#fff;border:1px solid #E2E8F0;border-radius:18px;padding:28px;box-shadow:0 12px 40px rgba(15,23,42,.08)}
+    h1{margin:0 0 8px;font-size:28px}
+    p{margin:0;color:#475569}
+    .meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin:20px 0}
+    .meta div{background:#F8FAFC;border:1px solid #E2E8F0;border-radius:12px;padding:12px 14px}
+    .meta strong{display:block;font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:#64748B;margin-bottom:6px}
+    table{width:100%;border-collapse:collapse;margin-top:16px}
+    th,td{padding:12px 14px;border-top:1px solid #E2E8F0;text-align:left}
+    th{background:#F8FAFC;font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:#64748B}
+    td{font-weight:600}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>${title}</h1>
+    <p>${subtitle}</p>
+    <div class="meta">
+      <div><strong>Mercury Route</strong>${route}</div>
+      <div><strong>Context</strong>${note}</div>
+      <div><strong>Prepared</strong>${todayStr()}</div>
+    </div>
+    <table>
+      <thead><tr>${headers.map((cell) => `<th>${cell}</th>`).join('')}</tr></thead>
+      <tbody>${rows.map((row) => `<tr>${row.map((cell) => `<td>${cell}</td>`).join('')}</tr>`).join('')}</tbody>
+    </table>
+  </div>
+</body>
+</html>`;
+  const openFuelPacket = ({ title, subtitle, headers, rows }) => openPrintPreview({ title, subtitle, rows: [headers, ...rows] });
+  const saveFuelPacket = ({ title, subtitle, route, note, headers, rows, filename }) => {
+    const html = fuelPacketHtml({ title, subtitle, route, note, headers, rows });
+    downloadTextData(html, 'text/html', filename, 'html');
+  };
 
   const exportDeliveries = (format) => {
     downloadTableData(
@@ -4144,6 +4202,7 @@ const FuelView = () => {
         Status: row.status,
         Invoice: row.invoice,
         Draft: row.draft,
+        Att: countDeliveryAttachments(row.id),
         BOL: row.bol,
       })),
       format,
@@ -4163,7 +4222,7 @@ const FuelView = () => {
         Expenses: row.expenses.toFixed(2),
         OtherCredits: row.otherCredits.toFixed(2),
         DraftAmount: row.draftAmount.toFixed(2),
-        Attachments: row.attachments,
+        Attachments: countDraftAttachments(row.id),
         Status: row.status,
       })),
       format,
@@ -4176,8 +4235,116 @@ const FuelView = () => {
     showNotice(`Draft detail opened for ${draftId} in demo mode. Real \`/jobberBatches/getDraftDetails/{draftId}\` wiring is still pending.`);
   };
 
+  const stageDeliveryAttachment = (file, type) => {
+    if (!file) return;
+    if (type === 'Invoice Attachment') setDeliveryDraftUploads((current) => ({ ...current, invoiceName: file.name }));
+    if (type === 'BOL Attachment') setDeliveryDraftUploads((current) => ({ ...current, bolName: file.name }));
+    showNotice(`${file.name} staged for the add-delivery flow in demo mode.`);
+  };
+
+  const downloadFuelAttachmentReference = (row = selectedFuelAttachment) => {
+    if (!row) return;
+    downloadTextData(JSON.stringify(row, null, 2), 'application/json', row.fileName.replace(/\.[^.]+$/, '') + '-reference', 'json');
+    showNotice(`${row.fileName} downloaded as a demo reference. Real attachment download is still pending.`);
+  };
+
+  const saveFuelAttachmentPacket = (row = selectedFuelAttachment) => {
+    if (!row) return;
+    saveFuelPacket({
+      title: `Fuel Attachment Packet - ${row.deliveryId}`,
+      subtitle: `${row.fileName} · ${row.type}`,
+      route: '/jobberBatches/index',
+      note: 'Fuel delivery attachment replacement shell',
+      headers: ['Delivery', 'Draft', 'File', 'Type', 'Status', 'Added', 'Note'],
+      rows: [[row.deliveryId, row.draftId || 'Open', row.fileName, row.type, row.status, row.added, row.note]],
+      filename: `storecheck-fuel-attachment-${String(row.deliveryId).toLowerCase()}`,
+    });
+    showNotice(`Fuel attachment packet prepared for ${row.deliveryId}.`);
+  };
+
+  const reviewDeliveryAttachments = (row = selectedDelivery) => {
+    if (!row) return;
+    openFuelPacket({
+      title: `Fuel Delivery Attachments - ${row.id}`,
+      subtitle: `${row.deliveryDate} · ${row.shift}`,
+      headers: ['Delivery', 'Draft', 'Invoice', 'Attachments', 'BOL Status', 'Total'],
+      rows: [[row.id, row.draft, row.invoice, fmtN(countDeliveryAttachments(row.id)), row.bol, fmt(row.totalAmount)]],
+    });
+    showNotice(`${row.id} attachment review opened in demo mode.`);
+  };
+
+  const reviewDraftAttachments = (row = selectedDraft) => {
+    if (!row) return;
+    openFuelPacket({
+      title: `Fuel Draft Attachments - ${row.id}`,
+      subtitle: `${row.draftDate} · ${row.status}`,
+      headers: ['Draft', 'Deliveries', 'Invoices', 'Attachment Rows', 'Draft Amount'],
+      rows: [[row.id, row.deliveries.join(', '), row.invoices.join(', '), fmtN(countDraftAttachments(row.id)), fmt(row.draftAmount)]],
+    });
+    showNotice(`${row.id} draft attachment review opened in demo mode.`);
+  };
+
   const saveDelivery = () => {
-    showNotice('Delivery saved in demo mode. Real Add Delivery modal save wiring is still pending.');
+    const nextId = `DLV-${120 + deliveryRows.length}`;
+    const nextDraftDate = 'Open';
+    setDeliveryRows((current) => [
+      {
+        id: nextId,
+        deliveryDate: deliveryDraft.date,
+        shift: deliveryDraft.shift,
+        volume: deliveryEntryTotal,
+        draftDate: nextDraftDate,
+        totalAmount: Number(deliveryDraft.totalAmount || 0),
+        status: 'Awaiting draft',
+        invoice: deliveryDraft.invoiceRef,
+        draft: 'Open',
+        bol: deliveryDraftUploads.bolName ? 'Attached' : 'Missing',
+      },
+      ...current,
+    ]);
+    const stamp = new Date().toLocaleString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+    const nextAttachments = [];
+    if (deliveryDraftUploads.invoiceName) {
+      nextAttachments.push({
+        id: `FAT-${fuelAttachments.length + 301}`,
+        deliveryId: nextId,
+        draftId: null,
+        fileName: deliveryDraftUploads.invoiceName,
+        type: 'Invoice Attachment',
+        added: stamp,
+        status: 'Ready',
+        note: 'Staged from Add Delivery modal in demo mode.',
+      });
+    }
+    if (deliveryDraftUploads.bolName) {
+      nextAttachments.push({
+        id: `FAT-${fuelAttachments.length + 302}`,
+        deliveryId: nextId,
+        draftId: null,
+        fileName: deliveryDraftUploads.bolName,
+        type: 'BOL Attachment',
+        added: stamp,
+        status: 'Ready',
+        note: 'Staged from Add Delivery modal in demo mode.',
+      });
+    }
+    if (nextAttachments.length) {
+      setFuelAttachments((current) => [...nextAttachments, ...current]);
+      setSelectedFuelAttachmentId(nextAttachments[0].id);
+    }
+    setSelectedDeliveryId(nextId);
+    setDeliveryDraftUploads({ invoiceName: '', bolName: '' });
+    setDeliveryDraft({
+      date: '2026-05-09',
+      shift: 'Shift 2',
+      regular: '5200',
+      premium: '2100',
+      diesel: '1220',
+      totalAmount: '25384.44',
+      invoiceRef: 'INV-8841',
+      bolRef: 'BOL-5518',
+    });
+    showNotice('Delivery and attachment handoff saved in demo mode. Real Add Delivery save wiring is still pending.');
     setShowAddDelivery(false);
   };
 
@@ -4326,10 +4493,10 @@ const FuelView = () => {
                 </div>
                 <div className="mobile-table-scroll">
                   <table className="purchase-table">
-                    <thead><tr><th>Delivery Date</th><th>Shift</th><th className="purchase-right">Volume</th><th>Draft Date</th><th className="purchase-right">Total Amount</th><th>Status</th><th>Invoice</th><th>Draft</th><th>BOL Att</th></tr></thead>
+                    <thead><tr><th>Delivery Date</th><th>Shift</th><th className="purchase-right">Volume</th><th>Draft Date</th><th className="purchase-right">Total Amount</th><th>Status</th><th>Invoice</th><th>Draft</th><th>Att</th><th>BOL Att</th></tr></thead>
                     <tbody>
                       {deliveryRows.map((row) => (
-                        <tr key={row.id}>
+                        <tr key={row.id} onClick={() => setSelectedDeliveryId(row.id)} style={{ cursor: 'pointer' }}>
                           <td><strong>{row.deliveryDate}</strong><small>{row.id}</small></td>
                           <td>{row.shift}</td>
                           <td className="purchase-right">{fmtN(row.volume, 0)}</td>
@@ -4338,6 +4505,7 @@ const FuelView = () => {
                           <td><span className={`purchase-tag${row.status === 'Drafted' ? ' blue' : ' amber'}`}>{row.status}</span></td>
                           <td>{row.invoice}</td>
                           <td>{row.draft}</td>
+                          <td>{fmtN(countDeliveryAttachments(row.id))}</td>
                           <td>{row.bol}</td>
                         </tr>
                       ))}
@@ -4366,8 +4534,12 @@ const FuelView = () => {
                     <div className="purchase-form-field"><label>Total Amount</label><input className="pricebook-input" value={deliveryDraft.totalAmount} onChange={(e) => setDeliveryDraft({ ...deliveryDraft, totalAmount: e.target.value })} /></div>
                     <div className="purchase-form-field"><label>Invoice Ref</label><input className="pricebook-input" value={deliveryDraft.invoiceRef} onChange={(e) => setDeliveryDraft({ ...deliveryDraft, invoiceRef: e.target.value })} /></div>
                     <div className="purchase-form-field"><label>BOL Ref</label><input className="pricebook-input" value={deliveryDraft.bolRef} onChange={(e) => setDeliveryDraft({ ...deliveryDraft, bolRef: e.target.value })} /></div>
-                    <div className="purchase-form-field full"><label>Invoice Attachment</label><input className="purchase-file" type="file" onChange={() => showNotice('Invoice attachment staged in demo mode. Live upload wiring is still pending.')} /></div>
-                    <div className="purchase-form-field full"><label>BOL Attachment</label><input className="purchase-file" type="file" onChange={() => showNotice('BOL attachment staged in demo mode. Live upload wiring is still pending.')} /></div>
+                    <div className="purchase-form-field full"><label>Invoice Attachment</label><input className="purchase-file" type="file" onChange={(e) => stageDeliveryAttachment(e.target.files?.[0], 'Invoice Attachment')} /></div>
+                    <div className="purchase-form-field full"><label>BOL Attachment</label><input className="purchase-file" type="file" onChange={(e) => stageDeliveryAttachment(e.target.files?.[0], 'BOL Attachment')} /></div>
+                  </div>
+                  <div className="purchase-kv-list" style={{ marginTop: 16 }}>
+                    <div className="purchase-kv"><span>Invoice handoff</span><span>{deliveryDraftUploads.invoiceName || 'Not staged'}</span></div>
+                    <div className="purchase-kv"><span>BOL handoff</span><span>{deliveryDraftUploads.bolName || 'Not staged'}</span></div>
                   </div>
                   <div className="pricebook-actions" style={{ marginTop: 16 }}>
                     <button className="pricebook-btn primary" onClick={() => saveDelivery()}>
@@ -4392,6 +4564,60 @@ const FuelView = () => {
                   {deliveryRows.slice(0, 3).map((row) => (
                     <div className="purchase-kv" key={row.id}><span>{row.id} · {row.deliveryDate}</span><span>{fmt(row.totalAmount)}</span></div>
                   ))}
+                </div>
+              </div>
+
+              <div className="purchase-note-card">
+                <h3>Selected delivery</h3>
+                <p>Keep invoice and BOL follow-through visible beside the delivery grid.</p>
+                {selectedDelivery ? (
+                  <>
+                    <div className="purchase-kv-list">
+                      <div className="purchase-kv"><span>Delivery</span><span>{selectedDelivery.id}</span></div>
+                      <div className="purchase-kv"><span>Invoice</span><span>{selectedDelivery.invoice}</span></div>
+                      <div className="purchase-kv"><span>Attachment rows</span><span>{fmtN(countDeliveryAttachments(selectedDelivery.id))}</span></div>
+                      <div className="purchase-kv"><span>BOL status</span><span>{selectedDelivery.bol}</span></div>
+                    </div>
+                    <div className="pricebook-actions" style={{ marginTop: 16 }}>
+                      <button className="pricebook-btn" onClick={() => reviewDeliveryAttachments(selectedDelivery)}>
+                        <Icon name="report" size={15} /> Review docs
+                      </button>
+                      <button className="pricebook-btn" onClick={() => saveFuelAttachmentPacket(deliveryAttachmentRows[0] || selectedFuelAttachment)}>
+                        <Icon name="cash" size={15} /> Save packet
+                      </button>
+                      <button className="pricebook-btn primary" onClick={() => setShowAddDelivery(true)}>
+                        <Icon name="item" size={15} /> Add attachment
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <div className="purchase-hint">No delivery is selected right now.</div>
+                )}
+              </div>
+
+              <div className="purchase-note-card">
+                <h3>Delivery attachments</h3>
+                <p>Invoice and BOL references stay close to the delivery they belong to.</p>
+                <div className="purchase-queue-list">
+                  {deliveryAttachmentRows.length ? deliveryAttachmentRows.map((item) => (
+                    <div className="purchase-queue-row" key={item.id}>
+                      <div className="purchase-queue-top">
+                        <div>
+                          <div className="purchase-queue-title">{item.fileName}</div>
+                          <div className="purchase-queue-meta">{item.type} · {item.added}</div>
+                        </div>
+                        <span className={`purchase-tag${item.status === 'Needs review' ? ' amber' : ' blue'}`}>{item.status}</span>
+                      </div>
+                      <div className="pricebook-actions" style={{ marginTop: 12 }}>
+                        <button className="pricebook-btn soft" onClick={() => { setSelectedFuelAttachmentId(item.id); downloadFuelAttachmentReference(item); }}>
+                          <Icon name="report" size={15} /> Download reference
+                        </button>
+                        <button className="pricebook-btn" onClick={() => { setSelectedFuelAttachmentId(item.id); saveFuelAttachmentPacket(item); }}>
+                          <Icon name="cash" size={15} /> Save packet
+                        </button>
+                      </div>
+                    </div>
+                  )) : <div className="purchase-hint">No attachment rows are tied to the selected delivery yet.</div>}
                 </div>
               </div>
             </div>
@@ -4421,7 +4647,7 @@ const FuelView = () => {
                   <thead><tr><th>Draft Date</th><th className="purchase-right">Fuel Invoices</th><th className="purchase-right">Batches</th><th className="purchase-right">Fees</th><th className="purchase-right">Rebate</th><th className="purchase-right">Expenses</th><th className="purchase-right">Other Fees/Credits</th><th className="purchase-right">Draft Amount</th><th>Attachments</th><th></th></tr></thead>
                   <tbody>
                     {draftRows.map((row) => (
-                      <tr key={row.id}>
+                      <tr key={row.id} onClick={() => setSelectedDraftId(row.id)} style={{ cursor: 'pointer' }}>
                         <td><strong>{row.draftDate}</strong><small>{row.id}</small></td>
                         <td className="purchase-right">{fmtN(row.fuelInvoices)}</td>
                         <td className="purchase-right">{fmtN(row.batches)}</td>
@@ -4430,8 +4656,8 @@ const FuelView = () => {
                         <td className="purchase-right">{fmt(row.expenses)}</td>
                         <td className="purchase-right">{fmt(row.otherCredits)}</td>
                         <td className="purchase-right"><strong>{fmt(row.draftAmount)}</strong></td>
-                        <td>{row.attachments}</td>
-                        <td><button className="pricebook-btn" onClick={() => openDraftDetail(row.id)}><Icon name="report" size={15} /> Detail</button></td>
+                        <td>{fmtN(countDraftAttachments(row.id))} docs</td>
+                        <td><button className="pricebook-btn" onClick={(e) => { e.stopPropagation(); openDraftDetail(row.id); }}><Icon name="report" size={15} /> Detail</button></td>
                       </tr>
                     ))}
                   </tbody>
@@ -4454,16 +4680,73 @@ const FuelView = () => {
                 <div className="purchase-kv"><span>Invoices</span><span>{selectedDraft.invoices.join(', ')}</span></div>
                 <div className="purchase-kv"><span>Deliveries</span><span>{selectedDraft.deliveries.join(', ')}</span></div>
                 <div className="purchase-kv"><span>Draft amount</span><span>{fmt(selectedDraft.draftAmount)}</span></div>
-                <div className="purchase-kv"><span>Attachments</span><span>{selectedDraft.attachments}</span></div>
+                <div className="purchase-kv"><span>Attachments</span><span>{fmtN(countDraftAttachments(selectedDraft.id))} docs</span></div>
               </div>
               <div className="pricebook-actions" style={{ marginTop: 16 }}>
-                <button className="pricebook-btn" onClick={() => showNotice(`${selectedDraft.id} opened in print preview shell. Live detail print is still pending.`)}>
-                  <Icon name="report" size={15} /> Print
+                <button className="pricebook-btn" onClick={() => reviewDraftAttachments(selectedDraft)}>
+                  <Icon name="report" size={15} /> Review docs
+                </button>
+                <button className="pricebook-btn" onClick={() => saveFuelAttachmentPacket(draftAttachmentRows[0] || selectedFuelAttachment)}>
+                  <Icon name="cash" size={15} /> Save packet
                 </button>
                 <button className="pricebook-btn primary" onClick={() => showNotice(`${selectedDraft.id} reopened for edit in demo mode.`)}>
-                  <Icon name="cash" size={15} /> Open draft
+                  <Icon name="item" size={15} /> Open draft
                 </button>
               </div>
+            </div>
+
+            <div className="purchase-note-card">
+              <h3>Draft attachment queue</h3>
+              <p>Keep delivery invoices and BOL documents visible while finishing the draft follow-through.</p>
+              <div className="purchase-queue-list">
+                {draftAttachmentRows.length ? draftAttachmentRows.map((item) => (
+                  <div className="purchase-queue-row" key={item.id}>
+                    <div className="purchase-queue-top">
+                      <div>
+                        <div className="purchase-queue-title">{item.fileName}</div>
+                        <div className="purchase-queue-meta">{item.deliveryId} · {item.type}</div>
+                      </div>
+                      <span className={`purchase-tag${item.status === 'Needs review' ? ' amber' : ' blue'}`}>{item.status}</span>
+                    </div>
+                    <div className="pricebook-actions" style={{ marginTop: 12 }}>
+                      <button className="pricebook-btn soft" onClick={() => { setSelectedFuelAttachmentId(item.id); downloadFuelAttachmentReference(item); }}>
+                        <Icon name="report" size={15} /> Download reference
+                      </button>
+                      <button className="pricebook-btn" onClick={() => { setSelectedFuelAttachmentId(item.id); saveFuelAttachmentPacket(item); }}>
+                        <Icon name="cash" size={15} /> Save packet
+                      </button>
+                    </div>
+                  </div>
+                )) : <div className="purchase-hint">No attachment rows are tied to the selected draft yet.</div>}
+              </div>
+            </div>
+
+            <div className="purchase-note-card">
+              <h3>Selected attachment</h3>
+              <p>Stay inside the fuel workspace while reviewing a specific invoice or BOL reference.</p>
+              {selectedFuelAttachment ? (
+                <>
+                  <div className="purchase-kv-list">
+                    <div className="purchase-kv"><span>File</span><span>{selectedFuelAttachment.fileName}</span></div>
+                    <div className="purchase-kv"><span>Delivery</span><span>{selectedFuelAttachment.deliveryId}</span></div>
+                    <div className="purchase-kv"><span>Draft</span><span>{selectedFuelAttachment.draftId || 'Open'}</span></div>
+                    <div className="purchase-kv"><span>Type</span><span>{selectedFuelAttachment.type}</span></div>
+                  </div>
+                  <div className="pricebook-actions" style={{ marginTop: 16 }}>
+                    <button className="pricebook-btn" onClick={() => downloadFuelAttachmentReference(selectedFuelAttachment)}>
+                      <Icon name="report" size={15} /> Download reference
+                    </button>
+                    <button className="pricebook-btn" onClick={() => saveFuelAttachmentPacket(selectedFuelAttachment)}>
+                      <Icon name="cash" size={15} /> Save packet
+                    </button>
+                    <button className="pricebook-btn primary" onClick={() => reviewDeliveryAttachments(deliveryRows.find((row) => row.id === selectedFuelAttachment.deliveryId) || selectedDelivery)}>
+                      <Icon name="connect" size={15} /> Open delivery
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <div className="purchase-hint">No fuel attachment is selected right now.</div>
+              )}
             </div>
 
             <div className="purchase-note-card">
