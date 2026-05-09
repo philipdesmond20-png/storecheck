@@ -4091,6 +4091,8 @@ const FuelView = () => {
   const [selectedNetworkBatchId, setSelectedNetworkBatchId] = useState('NB-4201');
   const [selectedRackId, setSelectedRackId] = useState('RACK-509-AM');
   const [selectedFreightId, setSelectedFreightId] = useState('FRT-118');
+  const [selectedUstId, setSelectedUstId] = useState('UST-509-1');
+  const [ustFuelTypeFilter, setUstFuelTypeFilter] = useState('All');
   const [selectedFuelAttachmentId, setSelectedFuelAttachmentId] = useState('FAT-301');
   const [fuelNotice, setFuelNotice] = useState('');
   const [deliveryDraft, setDeliveryDraft] = useState({
@@ -4136,6 +4138,20 @@ const FuelView = () => {
     { id: 'FRT-114', deliveryId: 'DLV-114', invoice: 'INV-8836', terminal: 'Atlanta South', gallons: 7410, freightRate: 0.039, surchargeRate: 0.01, freightTotal: 288.99, surchargeTotal: 74.1, status: 'Ready', note: 'Freight cleared with regular and premium split.' },
     { id: 'FRT-109', deliveryId: 'DLV-109', invoice: 'INV-8820', terminal: 'Macon Exchange', gallons: 6880, freightRate: 0.038, surchargeRate: 0.009, freightTotal: 261.44, surchargeTotal: 61.92, status: 'Ready', note: 'Historical load cost captured for submitted draft.' },
   ]);
+  const [ustRows, setUstRows] = useState([
+    { id: 'UST-509-1', date: '2026-05-09', shift: 'Shift 1', fuelType: 'Regular', opening: 12458, delivery: 5200, pumped: 4986, posSales: 5012, difference: -26, bookInventory: 12672, status: 'Needs review' },
+    { id: 'UST-509-2', date: '2026-05-09', shift: 'Shift 1', fuelType: 'Premium', opening: 4860, delivery: 2100, pumped: 1982, posSales: 1976, difference: 6, bookInventory: 4978, status: 'Ready' },
+    { id: 'UST-509-3', date: '2026-05-09', shift: 'Shift 2', fuelType: 'Diesel', opening: 5214, delivery: 1220, pumped: 1108, posSales: 1114, difference: -6, bookInventory: 5326, status: 'Ready' },
+  ]);
+  const [ustEntryDraft, setUstEntryDraft] = useState({
+    date: '2026-05-09',
+    shift: 'Shift 3',
+    fuelType: 'Regular',
+    opening: '12672',
+    delivery: '0',
+    pumped: '2140',
+    posSales: '2134',
+  });
   const [networkBatchRows, setNetworkBatchRows] = useState([
     { id: 'NB-4201', date: '2026-05-09', gross: 12644.8, fees: 116.44, net: 12528.36, status: 'Ready', linkedDraft: 'DR-224' },
     { id: 'NB-4198', date: '2026-05-08', gross: 11392.75, fees: 104.22, net: 11288.53, status: 'Settled', linkedDraft: 'DR-221' },
@@ -4154,6 +4170,12 @@ const FuelView = () => {
   const selectedNetworkBatch = networkBatchRows.find((row) => row.id === selectedNetworkBatchId) || networkBatchRows[0];
   const selectedRack = rackPriceRows.find((row) => row.id === selectedRackId) || rackPriceRows[0];
   const selectedFreight = freightChargeRows.find((row) => row.id === selectedFreightId) || freightChargeRows[0];
+  const visibleUstRows = ustFuelTypeFilter === 'All' ? ustRows : ustRows.filter((row) => row.fuelType === ustFuelTypeFilter);
+  const selectedUstRow =
+    visibleUstRows.find((row) => row.id === selectedUstId) ||
+    ustRows.find((row) => row.id === selectedUstId) ||
+    visibleUstRows[0] ||
+    ustRows[0];
   const selectedFuelAttachment =
     fuelAttachments.find((row) => row.id === selectedFuelAttachmentId) ||
     fuelAttachments.find((row) => row.deliveryId === selectedDelivery?.id) ||
@@ -4176,6 +4198,17 @@ const FuelView = () => {
   const selectedDeliveryCostPerGallon = selectedDelivery?.volume ? selectedDeliveryLandedCost / selectedDelivery.volume : 0;
   const deliveryDraftFreightTotal = deliveryEntryTotal * (Number(deliveryDraft.freightRate || 0) + Number(deliveryDraft.surchargeRate || 0));
   const deliveryDraftLandedCost = Number(deliveryDraft.totalAmount || 0) + deliveryDraftFreightTotal;
+  const ustDraftDifference = Number(ustEntryDraft.pumped || 0) - Number(ustEntryDraft.posSales || 0);
+  const ustDraftBookInventory = Number(ustEntryDraft.opening || 0) + Number(ustEntryDraft.delivery || 0) - Number(ustEntryDraft.pumped || 0);
+  const ustTotals = visibleUstRows.reduce(
+    (acc, row) => ({
+      delivery: acc.delivery + row.delivery,
+      pumped: acc.pumped + row.pumped,
+      posSales: acc.posSales + row.posSales,
+      variance: acc.variance + Math.abs(row.difference),
+    }),
+    { delivery: 0, pumped: 0, posSales: 0, variance: 0 }
+  );
   const draftComposerAmount =
     draftComposerBase +
     Number(draftComposer.fees || 0) -
@@ -4278,6 +4311,25 @@ const FuelView = () => {
       })),
       format,
       'storecheck-fuel-drafts'
+    );
+  };
+
+  const exportUstReadings = (format) => {
+    downloadTableData(
+      visibleUstRows.map((row) => ({
+        Date: row.date,
+        Shift: row.shift,
+        FuelType: row.fuelType,
+        Opening: row.opening,
+        Delivery: row.delivery,
+        GallonsPumpedUST: row.pumped,
+        POSSales: row.posSales,
+        Difference: row.difference,
+        BookInventory: row.bookInventory,
+        Status: row.status,
+      })),
+      format,
+      'storecheck-ust-readings'
     );
   };
 
@@ -4397,6 +4449,38 @@ const FuelView = () => {
     }));
     setDeliveryCostMode('freight');
     showNotice(`${row.id} loaded into Add Delivery in demo mode. Real freight endpoint is still pending.`);
+  };
+
+  const openUstPacket = (row = selectedUstRow) => {
+    if (!row) return;
+    openFuelPacket({
+      title: `UST Reading - ${row.id}`,
+      subtitle: `${row.date} · ${row.shift} · ${row.fuelType}`,
+      headers: ['UST', 'Opening', 'Delivery', 'Gallons Pumped', 'POS Sales', 'Difference', 'Book Inventory', 'Status'],
+      rows: [[row.id, fmtN(row.opening, 0), fmtN(row.delivery, 0), fmtN(row.pumped, 0), fmtN(row.posSales, 0), fmtN(row.difference, 0), fmtN(row.bookInventory, 0), row.status]],
+    });
+    showNotice(`${row.id} UST review opened in demo mode.`);
+  };
+
+  const saveUstPacket = (row = selectedUstRow) => {
+    if (!row) return;
+    saveFuelPacket({
+      title: `UST Reading - ${row.id}`,
+      subtitle: `${row.date} · ${row.shift} · ${row.fuelType}`,
+      route: '/fuelAudit/ustReadings',
+      note: 'Fuel UST entry replacement shell',
+      headers: ['UST', 'Opening', 'Delivery', 'Gallons Pumped', 'POS Sales', 'Difference', 'Book Inventory', 'Status'],
+      rows: [[row.id, fmtN(row.opening, 0), fmtN(row.delivery, 0), fmtN(row.pumped, 0), fmtN(row.posSales, 0), fmtN(row.difference, 0), fmtN(row.bookInventory, 0), row.status]],
+      filename: `storecheck-ust-reading-${String(row.id).toLowerCase()}`,
+    });
+    showNotice(`${row.id} UST packet prepared in demo mode.`);
+  };
+
+  const markUstReviewed = (id) => {
+    setUstRows((current) => current.map((row) => (
+      row.id === id ? { ...row, status: Math.abs(row.difference) > 20 ? 'Needs follow-up' : 'Ready' } : row
+    )));
+    showNotice(`${id} reviewed in demo mode. Real UST save endpoint is still pending.`);
   };
 
   const reviewDraftAttachments = (row = selectedDraft) => {
@@ -4682,9 +4766,39 @@ const FuelView = () => {
     showNotice(`Draft ${nextId} saved in demo mode. Real fuel draft save and detail endpoints are still pending.`);
   };
 
+  const saveUstReading = () => {
+    const nextId = `UST-${509 + ustRows.length}-N`;
+    const nextRow = {
+      id: nextId,
+      date: ustEntryDraft.date,
+      shift: ustEntryDraft.shift,
+      fuelType: ustEntryDraft.fuelType,
+      opening: Number(ustEntryDraft.opening || 0),
+      delivery: Number(ustEntryDraft.delivery || 0),
+      pumped: Number(ustEntryDraft.pumped || 0),
+      posSales: Number(ustEntryDraft.posSales || 0),
+      difference: ustDraftDifference,
+      bookInventory: ustDraftBookInventory,
+      status: Math.abs(ustDraftDifference) > 20 ? 'Needs review' : 'Ready',
+    };
+    setUstRows((current) => [nextRow, ...current]);
+    setSelectedUstId(nextId);
+    setUstEntryDraft({
+      date: ustEntryDraft.date,
+      shift: 'Shift 3',
+      fuelType: ustEntryDraft.fuelType,
+      opening: String(ustDraftBookInventory),
+      delivery: '0',
+      pumped: '0',
+      posSales: '0',
+    });
+    showNotice(`${nextId} saved in demo mode. Real UST save wiring is still pending.`);
+  };
+
   const tabs = [
     { id: 'overview', label: 'Overview', icon: 'fuel' },
     { id: 'deliveries', label: 'Deliveries', icon: 'report' },
+    { id: 'ust', label: 'UST', icon: 'gallons' },
     { id: 'drafts', label: 'Drafts', icon: 'cash' },
   ];
 
@@ -5077,6 +5191,172 @@ const FuelView = () => {
                       </div>
                     </div>
                   )) : <div className="purchase-hint">No attachment rows are tied to the selected delivery yet.</div>}
+                </div>
+              </div>
+            </div>
+          </div>
+        </>
+      ) : null}
+
+      {fuelPage === 'ust' ? (
+        <>
+          <div className="pricebook-kpis">
+            <div className="pricebook-card"><div className="pricebook-card-top"><div className="pricebook-label">UST Readings</div><Icon name="gallons" size={18} /></div><div className="pricebook-value">{fmtN(visibleUstRows.length)}</div><div className="pricebook-note">Visible readings in the current filter</div></div>
+            <div className="pricebook-card"><div className="pricebook-card-top"><div className="pricebook-label">Delivery Gallons</div><Icon name="fuel" size={18} /></div><div className="pricebook-value">{fmtN(ustTotals.delivery, 0)}</div><div className="pricebook-note">Fuel entered into the tanks</div></div>
+            <div className="pricebook-card"><div className="pricebook-card-top"><div className="pricebook-label">UST Pumped</div><Icon name="report" size={18} /></div><div className="pricebook-value">{fmtN(ustTotals.pumped, 0)}</div><div className="pricebook-note">Gallons pumped from tank readings</div></div>
+            <div className="pricebook-card"><div className="pricebook-card-top"><div className="pricebook-label">Variance Watch</div><Icon name="alert" size={18} /></div><div className="pricebook-value">{fmtN(ustTotals.variance, 0)}</div><div className="pricebook-note">Absolute difference to review</div></div>
+          </div>
+
+          <div className="purchase-grid">
+            <div className="purchase-stack">
+              <div className="purchase-surface">
+                <div className="pricebook-toolbar" style={{ padding: '20px 20px 0' }}>
+                  <div>
+                    <div className="pricebook-detail-title">UST readings</div>
+                    <div className="pricebook-detail-sub">Shift-level tank-reading entry and review kept inside the Fuel workspace.</div>
+                  </div>
+                  <div className="pricebook-actions">
+                    <select className="pricebook-select" value={ustFuelTypeFilter} onChange={(e) => setUstFuelTypeFilter(e.target.value)}>
+                      {['All', 'Regular', 'Premium', 'Diesel'].map((item) => <option key={item}>{item}</option>)}
+                    </select>
+                    <button className="pricebook-btn" onClick={() => openUstPacket(selectedUstRow)}>
+                      <Icon name="report" size={15} /> Print packet
+                    </button>
+                    {['CSV', 'XLS', 'JSON'].map((format) => (
+                      <button key={format} className="pricebook-btn" onClick={() => exportUstReadings(format)}>
+                        <Icon name="cash" size={15} /> {format}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="mobile-table-scroll">
+                  <table className="purchase-table">
+                    <thead><tr><th>Date</th><th>Shift</th><th>Fuel Type</th><th className="purchase-right">Opening</th><th className="purchase-right">Delivery</th><th className="purchase-right">Gallons Pumped (UST)</th><th className="purchase-right">POS Sales</th><th className="purchase-right">Difference</th><th className="purchase-right">Book Inventory</th><th>Status</th></tr></thead>
+                    <tbody>
+                      {visibleUstRows.map((row) => (
+                        <tr key={row.id} onClick={() => setSelectedUstId(row.id)} style={{ cursor: 'pointer' }}>
+                          <td><strong>{row.date}</strong><small>{row.id}</small></td>
+                          <td>{row.shift}</td>
+                          <td>{row.fuelType}</td>
+                          <td className="purchase-right">{fmtN(row.opening, 0)}</td>
+                          <td className="purchase-right">{fmtN(row.delivery, 0)}</td>
+                          <td className="purchase-right">{fmtN(row.pumped, 0)}</td>
+                          <td className="purchase-right">{fmtN(row.posSales, 0)}</td>
+                          <td className="purchase-right">{fmtN(row.difference, 0)}</td>
+                          <td className="purchase-right">{fmtN(row.bookInventory, 0)}</td>
+                          <td><span className={`purchase-tag${Math.abs(row.difference) > 20 ? ' amber' : ' blue'}`}>{row.status}</span></td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <div className="purchase-stack">
+              <div className="purchase-note-card">
+                <div className="purchase-panel-head">
+                  <div>
+                    <h3>UST entry</h3>
+                    <p>Mercury-style reading entry shell for saving new tank readings by shift and fuel type.</p>
+                  </div>
+                  <span className="purchase-tag">Entry shell</span>
+                </div>
+                <div className="purchase-form-grid">
+                  <div className="purchase-form-field"><label>Date</label><input className="pricebook-input" type="date" value={ustEntryDraft.date} onChange={(e) => setUstEntryDraft({ ...ustEntryDraft, date: e.target.value })} /></div>
+                  <div className="purchase-form-field"><label>Shift</label><select className="pricebook-select" value={ustEntryDraft.shift} onChange={(e) => setUstEntryDraft({ ...ustEntryDraft, shift: e.target.value })}><option>Shift 1</option><option>Shift 2</option><option>Shift 3</option></select></div>
+                  <div className="purchase-form-field"><label>Fuel Type</label><select className="pricebook-select" value={ustEntryDraft.fuelType} onChange={(e) => setUstEntryDraft({ ...ustEntryDraft, fuelType: e.target.value })}><option>Regular</option><option>Premium</option><option>Diesel</option></select></div>
+                  <div className="purchase-form-field"><label>Opening</label><input className="pricebook-input" value={ustEntryDraft.opening} onChange={(e) => setUstEntryDraft({ ...ustEntryDraft, opening: e.target.value })} /></div>
+                  <div className="purchase-form-field"><label>Delivery</label><input className="pricebook-input" value={ustEntryDraft.delivery} onChange={(e) => setUstEntryDraft({ ...ustEntryDraft, delivery: e.target.value })} /></div>
+                  <div className="purchase-form-field"><label>Gallons Pumped (UST)</label><input className="pricebook-input" value={ustEntryDraft.pumped} onChange={(e) => setUstEntryDraft({ ...ustEntryDraft, pumped: e.target.value })} /></div>
+                  <div className="purchase-form-field"><label>POS Sales</label><input className="pricebook-input" value={ustEntryDraft.posSales} onChange={(e) => setUstEntryDraft({ ...ustEntryDraft, posSales: e.target.value })} /></div>
+                </div>
+                <div className="purchase-kv-list" style={{ marginTop: 16 }}>
+                  <div className="purchase-kv"><span>Variance</span><span>{fmtN(ustDraftDifference, 0)}</span></div>
+                  <div className="purchase-kv"><span>Book inventory</span><span>{fmtN(ustDraftBookInventory, 0)}</span></div>
+                  <div className="purchase-kv"><span>Review state</span><span>{Math.abs(ustDraftDifference) > 20 ? 'Needs review' : 'Ready'}</span></div>
+                </div>
+                <div className="pricebook-actions" style={{ marginTop: 16 }}>
+                  <button className="pricebook-btn primary" onClick={() => saveUstReading()}>
+                    <Icon name="cash" size={15} /> Save reading
+                  </button>
+                  <button className="pricebook-btn" onClick={() => openUstPacket({
+                    id: 'UST-DRAFT',
+                    date: ustEntryDraft.date,
+                    shift: ustEntryDraft.shift,
+                    fuelType: ustEntryDraft.fuelType,
+                    opening: Number(ustEntryDraft.opening || 0),
+                    delivery: Number(ustEntryDraft.delivery || 0),
+                    pumped: Number(ustEntryDraft.pumped || 0),
+                    posSales: Number(ustEntryDraft.posSales || 0),
+                    difference: ustDraftDifference,
+                    bookInventory: ustDraftBookInventory,
+                    status: Math.abs(ustDraftDifference) > 20 ? 'Needs review' : 'Ready',
+                  })}>
+                    <Icon name="report" size={15} /> Print draft
+                  </button>
+                </div>
+              </div>
+
+              <div className="purchase-note-card">
+                <h3>Selected UST reading</h3>
+                <p>Stay inside Fuel while reviewing a variance and deciding whether the reading is ready.</p>
+                {selectedUstRow ? (
+                  <>
+                    <div className="purchase-kv-list">
+                      <div className="purchase-kv"><span>UST</span><span>{selectedUstRow.id}</span></div>
+                      <div className="purchase-kv"><span>Fuel Type</span><span>{selectedUstRow.fuelType}</span></div>
+                      <div className="purchase-kv"><span>Difference</span><span>{fmtN(selectedUstRow.difference, 0)}</span></div>
+                      <div className="purchase-kv"><span>Book inventory</span><span>{fmtN(selectedUstRow.bookInventory, 0)}</span></div>
+                    </div>
+                    <div className="pricebook-actions" style={{ marginTop: 16 }}>
+                      <button className="pricebook-btn" onClick={() => saveUstPacket(selectedUstRow)}>
+                        <Icon name="cash" size={15} /> Save packet
+                      </button>
+                      <button className="pricebook-btn" onClick={() => markUstReviewed(selectedUstRow.id)}>
+                        <Icon name="connect" size={15} /> Mark reviewed
+                      </button>
+                      <button className="pricebook-btn primary" onClick={() => setUstEntryDraft({
+                        date: selectedUstRow.date,
+                        shift: selectedUstRow.shift,
+                        fuelType: selectedUstRow.fuelType,
+                        opening: String(selectedUstRow.opening),
+                        delivery: String(selectedUstRow.delivery),
+                        pumped: String(selectedUstRow.pumped),
+                        posSales: String(selectedUstRow.posSales),
+                      })}>
+                        <Icon name="item" size={15} /> Load into entry
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <div className="purchase-hint">No UST reading is selected right now.</div>
+                )}
+              </div>
+
+              <div className="purchase-note-card">
+                <h3>Variance follow-through</h3>
+                <p>Keep the exception view beside entry so operators can resolve tank differences fast.</p>
+                <div className="purchase-queue-list">
+                  {visibleUstRows.filter((row) => Math.abs(row.difference) > 5).map((row) => (
+                    <div className="purchase-queue-row" key={row.id}>
+                      <div className="purchase-queue-top">
+                        <div>
+                          <div className="purchase-queue-title">{row.id} · {row.fuelType}</div>
+                          <div className="purchase-queue-meta">{row.shift} · Difference {fmtN(row.difference, 0)} · Book {fmtN(row.bookInventory, 0)}</div>
+                        </div>
+                        <span className={`purchase-tag${Math.abs(row.difference) > 20 ? ' amber' : ' blue'}`}>{row.status}</span>
+                      </div>
+                      <div className="pricebook-actions" style={{ marginTop: 12 }}>
+                        <button className="pricebook-btn soft" onClick={() => setSelectedUstId(row.id)}>
+                          <Icon name="report" size={15} /> Open reading
+                        </button>
+                        <button className="pricebook-btn" onClick={() => openUstPacket(row)}>
+                          <Icon name="cash" size={15} /> Print packet
+                        </button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
