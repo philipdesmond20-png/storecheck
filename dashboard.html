@@ -3229,6 +3229,7 @@ const NAV = [
   { id: 'shop', icon: 'shop', label: 'Shop & Store' },
   { id: 'pricebook', icon: 'pricebook', label: 'Inventory' },
   { id: 'purchases', icon: 'payments', label: 'Purchases' },
+  { id: 'financial', icon: 'cash', label: 'Financial' },
   { id: 'operations', icon: 'cash', label: 'Operations' },
   { id: 'multistore', icon: 'connect', label: 'Multi-Store' },
   { id: 'reports', icon: 'calendar', label: 'Reports' },
@@ -3401,6 +3402,27 @@ const ATTACHMENT_LIBRARY = [
   { id: 'ATT-401', fileName: 'INV-88412.pdf', module: 'Purchases', record: 'Metro Beverage Wholesale', type: 'Invoice', added: '2026-05-09 08:12', note: 'Weekly beverage replenishment packet' },
   { id: 'ATT-398', fileName: 'QCS-5510.pdf', module: 'Operating Expenses', record: 'Quick Clean Supply', type: 'Invoice', added: '2026-05-08 15:10', note: 'Janitorial supply receipt' },
   { id: 'ATT-392', fileName: 'weekly-summary-demo.pdf', module: 'Reports', record: 'Weekly Summary PDF', type: 'Report Package', added: '2026-05-08 08:05', note: 'Owner-facing weekly report bundle' },
+];
+
+const HOUSE_ACCOUNT_SUMMARY = [
+  { customer: 'Downtown Plumbing', previous: 418.22, payments: 120.0, purchases: 188.4, current: 486.62, docs: 2, contact: 'Fleet acct 204' },
+  { customer: 'Northside Landscaping', previous: 112.15, payments: 60.0, purchases: 144.75, current: 196.9, docs: 1, contact: 'Crew card set' },
+  { customer: 'City Courier Service', previous: 289.4, payments: 0, purchases: 92.84, current: 382.24, docs: 3, contact: 'Driver signature required' },
+  { customer: 'Main Street Church Van', previous: 56.0, payments: 25.0, purchases: 48.25, current: 79.25, docs: 1, contact: 'Community account' },
+];
+
+const HOUSE_ACCOUNT_LEDGER = [
+  { id: 'HC-601', customer: 'Downtown Plumbing', date: '2026-05-08', shift: 'Day', recordId: 'INV-104', type: 'Purchase', fuelType: 'Regular', total: 126.45, fuel: 78.25, gallons: 22.1, other: 48.2, credits: 0, mop: 'House Account', attachment: 'PLUMB-0508.pdf' },
+  { id: 'HC-598', customer: 'Northside Landscaping', date: '2026-05-08', shift: 'Morning', recordId: 'PAY-087', type: 'Payment', fuelType: '-', total: 60.0, fuel: 0, gallons: 0, other: 0, credits: 60.0, mop: 'Check', attachment: 'LAND-CHK-087.jpg' },
+  { id: 'HC-591', customer: 'City Courier Service', date: '2026-05-07', shift: 'Afternoon', recordId: 'INV-099', type: 'Purchase', fuelType: 'Regular', total: 92.84, fuel: 54.0, gallons: 15.6, other: 38.84, credits: 0, mop: 'House Account', attachment: 'COURIER-0507.pdf' },
+  { id: 'HC-587', customer: 'Main Street Church Van', date: '2026-05-06', shift: 'Day', recordId: 'PAY-081', type: 'Payment', fuelType: '-', total: 25.0, fuel: 0, gallons: 0, other: 0, credits: 25.0, mop: 'Cash', attachment: 'CHURCH-CASH-081.txt' },
+];
+
+const HOUSE_ACCOUNT_ATTACHMENTS = [
+  { id: 'HAD-201', customer: 'Downtown Plumbing', fileName: 'PLUMB-0508.pdf', type: 'Charge Slip', added: '2026-05-08 14:22', status: 'Ready', note: 'Signed fleet fill slip for INV-104' },
+  { id: 'HAD-198', customer: 'Downtown Plumbing', fileName: 'PLUMB-STATEMENT-APR.pdf', type: 'Statement', added: '2026-05-01 09:12', status: 'Ready', note: 'Month-end statement packet' },
+  { id: 'HAD-194', customer: 'City Courier Service', fileName: 'COURIER-0507.pdf', type: 'Charge Slip', added: '2026-05-07 16:48', status: 'Needs review', note: 'Signature visible, vehicle ID blurred' },
+  { id: 'HAD-191', customer: 'Main Street Church Van', fileName: 'CHURCH-CASH-081.txt', type: 'Payment Note', added: '2026-05-06 13:08', status: 'Ready', note: 'Cash payment note entered by manager' },
 ];
 
 const STORE_LOCATIONS = [
@@ -7536,6 +7558,357 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
   );
 };
 
+const FinancialView = ({ currentLocation }) => {
+  const [financialPage, setFinancialPage] = useState('accounts');
+  const [notice, setNotice] = useState('');
+  const [customerFilter, setCustomerFilter] = useState('All');
+  const [summaryRows] = useState(HOUSE_ACCOUNT_SUMMARY);
+  const [ledgerRows] = useState(HOUSE_ACCOUNT_LEDGER);
+  const [houseAttachments, setHouseAttachments] = useState(HOUSE_ACCOUNT_ATTACHMENTS);
+  const [selectedCustomer, setSelectedCustomer] = useState(HOUSE_ACCOUNT_SUMMARY[0].customer);
+  const [selectedAttachmentId, setSelectedAttachmentId] = useState(HOUSE_ACCOUNT_ATTACHMENTS[0].id);
+  const [uploadCustomer, setUploadCustomer] = useState(HOUSE_ACCOUNT_SUMMARY[0].customer);
+
+  const showFinancialNotice = (message) => {
+    setNotice(message);
+    window.clearTimeout(window.__storecheckFinancialNotice);
+    window.__storecheckFinancialNotice = window.setTimeout(() => setNotice(''), 2800);
+  };
+  const slugify = (value) => String(value).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  const customerOptions = ['All', ...summaryRows.map((row) => row.customer)];
+  const visibleSummaryRows = customerFilter === 'All' ? summaryRows : summaryRows.filter((row) => row.customer === customerFilter);
+  const visibleLedgerRows = customerFilter === 'All' ? ledgerRows : ledgerRows.filter((row) => row.customer === customerFilter);
+  const visibleAttachments = customerFilter === 'All' ? houseAttachments : houseAttachments.filter((row) => row.customer === customerFilter);
+  const selectedAccount =
+    visibleSummaryRows.find((row) => row.customer === selectedCustomer) ||
+    summaryRows.find((row) => row.customer === selectedCustomer) ||
+    visibleSummaryRows[0] ||
+    summaryRows[0];
+  const selectedAttachment =
+    visibleAttachments.find((row) => row.id === selectedAttachmentId) ||
+    houseAttachments.find((row) => row.id === selectedAttachmentId) ||
+    visibleAttachments[0] ||
+    houseAttachments[0];
+  const totalCurrent = summaryRows.reduce((sum, row) => sum + row.current, 0);
+  const totalDocs = houseAttachments.length;
+  const docsNeedingReview = houseAttachments.filter((row) => row.status !== 'Ready').length;
+  const renderExportButtons = (rows, filename) => (
+    <div className="pricebook-actions">
+      {['CSV', 'XLS', 'JSON'].map((format) => (
+        <button key={format} className="pricebook-btn" onClick={() => downloadTableData(rows, format, filename)}>
+          <Icon name="cash" size={15} /> {format}
+        </button>
+      ))}
+    </div>
+  );
+  const openPacket = ({ title, subtitle, headers, rows }) => openPrintPreview({ title, subtitle, rows: [headers, ...rows] });
+  const savePacket = ({ title, subtitle, route, note, headers, rows, filename }) => {
+    const html = `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>${title}</title>
+  <style>
+    body{font-family:"DM Sans",Arial,sans-serif;background:#F8FAFC;color:#0F172A;padding:28px}
+    .wrap{max-width:980px;margin:0 auto;background:#fff;border:1px solid #E2E8F0;border-radius:18px;padding:28px;box-shadow:0 12px 40px rgba(15,23,42,.08)}
+    h1{margin:0 0 8px;font-size:28px}
+    p{margin:0;color:#475569}
+    .meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin:20px 0}
+    .meta div{background:#F8FAFC;border:1px solid #E2E8F0;border-radius:12px;padding:12px 14px}
+    .meta strong{display:block;font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:#64748B;margin-bottom:6px}
+    table{width:100%;border-collapse:collapse;margin-top:16px}
+    th,td{padding:12px 14px;border-top:1px solid #E2E8F0;text-align:left}
+    th{background:#F8FAFC;font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:#64748B}
+    td{font-weight:600}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>${title}</h1>
+    <p>${subtitle}</p>
+    <div class="meta">
+      <div><strong>Mercury Route</strong>${route}</div>
+      <div><strong>Context</strong>${note}</div>
+      <div><strong>Prepared</strong>${todayStr()}</div>
+    </div>
+    <table>
+      <thead><tr>${headers.map((cell) => `<th>${cell}</th>`).join('')}</tr></thead>
+      <tbody>${rows.map((row) => `<tr>${row.map((cell) => `<td>${cell}</td>`).join('')}</tr>`).join('')}</tbody>
+    </table>
+  </div>
+</body>
+</html>`;
+    downloadTextData(html, 'text/html', filename, 'html');
+  };
+  const addHouseAttachment = (file) => {
+    if (!file) return;
+    const stamp = new Date().toLocaleString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+    const next = {
+      id: `HAD-${houseAttachments.length + 220}`,
+      customer: uploadCustomer,
+      fileName: file.name,
+      type: 'Document Upload',
+      added: stamp,
+      status: 'Ready',
+      note: 'Uploaded in demo mode for house-account attachment review.',
+    };
+    setHouseAttachments((current) => [next, ...current]);
+    setSelectedAttachmentId(next.id);
+    showFinancialNotice(`${file.name} staged for ${uploadCustomer}. Real \`/localCredits/uploadDocument\` wiring is still pending.`);
+  };
+  const downloadHouseReference = (item = selectedAttachment) => {
+    if (!item) return;
+    downloadTextData(JSON.stringify(item, null, 2), 'application/json', item.fileName.replace(/\.[^.]+$/, '') + '-reference', 'json');
+    showFinancialNotice(`${item.fileName} downloaded as a demo reference. Real \`/localCredits/downloadDocument\` wiring is still pending.`);
+  };
+  const saveAttachmentPacket = (item = selectedAttachment) => {
+    if (!item) return;
+    savePacket({
+      title: `House Account Attachment - ${item.customer}`,
+      subtitle: `${item.fileName} · ${item.type}`,
+      route: '/localCredits/downloadDocument?fileName=',
+      note: 'House account attachment download replacement shell',
+      headers: ['Customer', 'File', 'Type', 'Status', 'Added', 'Note'],
+      rows: [[item.customer, item.fileName, item.type, item.status, item.added, item.note]],
+      filename: `storecheck-house-account-attachment-${slugify(item.customer)}`,
+    });
+    showFinancialNotice(`Attachment packet prepared for ${item.customer}.`);
+  };
+  const previewAccountDocs = (row = selectedAccount) => {
+    if (!row) return;
+    openPacket({
+      title: 'House Account Document Review',
+      subtitle: `${row.customer} · ${row.contact}`,
+      headers: ['Customer', 'Previous', 'Payments', 'Purchases', 'Current', 'Docs'],
+      rows: [[row.customer, fmt(row.previous), fmt(row.payments), fmt(row.purchases), fmt(row.current), fmtN(row.docs)]],
+    });
+  };
+
+  return (
+    <div className="shell">
+      <div className="section-hdr">
+        <h1>Financial</h1>
+        <p>Keep house-account documents visible, exportable, and ready for owner review while live upload and download endpoints are still pending.</p>
+      </div>
+
+      <div className="pricebook-tabs" role="tablist" aria-label="Financial sections">
+        {[
+          { id: 'accounts', label: 'House Accounts', icon: 'cash' },
+          { id: 'attachments', label: 'Attachments', icon: 'item' },
+        ].map((tab) => (
+          <button key={tab.id} className={`pricebook-tab ${financialPage === tab.id ? 'active' : ''}`} onClick={() => financialPage !== tab.id && setFinancialPage(tab.id)}>
+            <Icon name={tab.icon} size={17} /> {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {notice ? <div className="pricebook-notice"><Icon name="cash" size={16} /> {notice}</div> : null}
+
+      <div className="pricebook-kpis">
+        <div className="pricebook-card"><div className="pricebook-card-top"><div className="pricebook-label">House Balance</div><Icon name="cash" size={18} /></div><div className="pricebook-value">{fmt(totalCurrent)}</div><div className="pricebook-note">{fmtN(summaryRows.length)} open customers</div></div>
+        <div className="pricebook-card"><div className="pricebook-card-top"><div className="pricebook-label">Document Rows</div><Icon name="item" size={18} /></div><div className="pricebook-value">{fmtN(totalDocs)}</div><div className="pricebook-note">{fmtN(docsNeedingReview)} still need review</div></div>
+        <div className="pricebook-card"><div className="pricebook-card-top"><div className="pricebook-label">Current Store</div><Icon name="connect" size={18} /></div><div className="pricebook-value" style={{ fontSize: 26 }}>{currentLocation.name}</div><div className="pricebook-note">Financial owner view</div></div>
+      </div>
+
+      {financialPage === 'accounts' ? (
+        <div className="purchase-grid single">
+          <div className="purchase-surface">
+            <div className="pricebook-toolbar" style={{ padding: '20px 20px 0' }}>
+              <div>
+                <div className="pricebook-detail-title">House account summary</div>
+                <div className="pricebook-detail-sub">Customer balances and document counts kept visible before you drill into the attachment queue.</div>
+              </div>
+              <div className="pricebook-actions">
+                <button className="pricebook-btn" onClick={() => previewAccountDocs()}>
+                  <Icon name="report" size={15} /> Review docs
+                </button>
+                <button className="pricebook-btn" onClick={() => financialPage !== 'attachments' && setFinancialPage('attachments')}>
+                  <Icon name="item" size={15} /> Open attachments
+                </button>
+              </div>
+            </div>
+            <div className="pricebook-filters" style={{ padding: '0 20px 16px' }}>
+              <select className="pricebook-select" value={customerFilter} onChange={(e) => setCustomerFilter(e.target.value)}>
+                {customerOptions.map((item) => <option key={item}>{item}</option>)}
+              </select>
+              {renderExportButtons(visibleSummaryRows, 'storecheck-house-account-summary')}
+            </div>
+            <div className="mobile-table-scroll">
+              <table className="purchase-table">
+                <thead><tr><th>Customer</th><th className="purchase-right">Previous</th><th className="purchase-right">Payments</th><th className="purchase-right">Purchases</th><th className="purchase-right">Current</th><th className="purchase-right">Docs</th></tr></thead>
+                <tbody>
+                  {visibleSummaryRows.map((row) => (
+                    <tr key={row.customer} onClick={() => setSelectedCustomer(row.customer)} style={{ cursor: 'pointer' }}>
+                      <td><strong>{row.customer}</strong><small>{row.contact}</small></td>
+                      <td className="purchase-right">{fmt(row.previous)}</td>
+                      <td className="purchase-right">{fmt(row.payments)}</td>
+                      <td className="purchase-right">{fmt(row.purchases)}</td>
+                      <td className="purchase-right">{fmt(row.current)}</td>
+                      <td className="purchase-right">{fmtN(row.docs)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div className="purchase-summary-grid">
+            <div className="purchase-note-card">
+              <h3>Selected customer</h3>
+              <p>Keep the current house-account file context visible before uploading or downloading anything.</p>
+              {selectedAccount ? (
+                <>
+                  <div className="purchase-kv-list">
+                    <div className="purchase-kv"><span>Customer</span><span>{selectedAccount.customer}</span></div>
+                    <div className="purchase-kv"><span>Current balance</span><span>{fmt(selectedAccount.current)}</span></div>
+                    <div className="purchase-kv"><span>Document rows</span><span>{fmtN(selectedAccount.docs)}</span></div>
+                    <div className="purchase-kv"><span>Contact note</span><span>{selectedAccount.contact}</span></div>
+                  </div>
+                  <div className="pricebook-actions" style={{ marginTop: 16 }}>
+                    <button className="pricebook-btn" onClick={() => previewAccountDocs(selectedAccount)}>
+                      <Icon name="report" size={15} /> Review docs
+                    </button>
+                    <button className="pricebook-btn" onClick={() => { setUploadCustomer(selectedAccount.customer); setFinancialPage('attachments'); }}>
+                      <Icon name="item" size={15} /> Upload doc
+                    </button>
+                    <button className="pricebook-btn primary" onClick={() => { setCustomerFilter(selectedAccount.customer); setFinancialPage('attachments'); }}>
+                      <Icon name="connect" size={15} /> View library
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <div className="purchase-hint">No customer is visible for the current filter.</div>
+              )}
+            </div>
+
+            <div className="purchase-note-card">
+              <h3>House account ledger</h3>
+              <p>Document context stays connected to the summary instead of being buried in an upload form.</p>
+              <div className="pricebook-filters" style={{ padding: '0 0 16px' }}>
+                {renderExportButtons(visibleLedgerRows, 'storecheck-house-account-ledger')}
+              </div>
+              <div className="mobile-table-scroll">
+                <table className="purchase-table">
+                  <thead><tr><th>Date</th><th>Customer</th><th>Type</th><th>Fuel Type</th><th className="purchase-right">Total</th><th>Attachment</th></tr></thead>
+                  <tbody>
+                    {visibleLedgerRows.map((row) => (
+                      <tr key={row.id} onClick={() => { setSelectedCustomer(row.customer); setCustomerFilter(row.customer); }} style={{ cursor: 'pointer' }}>
+                        <td><strong>{row.date}</strong><small>{row.recordId} · {row.shift}</small></td>
+                        <td>{row.customer}</td>
+                        <td>{row.type}</td>
+                        <td>{row.fuelType}</td>
+                        <td className="purchase-right">{fmt(row.total)}</td>
+                        <td>{row.attachment}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {financialPage === 'attachments' ? (
+        <div className="attachment-grid">
+          <div className="attachment-card">
+            <div className="purchase-panel-head">
+              <div>
+                <h3>House account attachment library</h3>
+                <p>Upload handoff, download-reference behavior, and owner-facing visibility for house-account documents.</p>
+              </div>
+              {renderExportButtons(visibleAttachments, 'storecheck-house-account-attachments')}
+            </div>
+            <div className="pricebook-filters" style={{ padding: '0 0 16px' }}>
+              <select className="pricebook-select" value={customerFilter} onChange={(e) => setCustomerFilter(e.target.value)}>
+                {customerOptions.map((item) => <option key={item}>{item}</option>)}
+              </select>
+            </div>
+            <div className="attachment-list">
+              {visibleAttachments.map((item) => (
+                <div className="attachment-row" key={item.id} onClick={() => setSelectedAttachmentId(item.id)} style={{ cursor: 'pointer' }}>
+                  <div className="attachment-head">
+                    <div>
+                      <div className="attachment-title">{item.fileName}</div>
+                      <div className="attachment-meta">{item.customer} · {item.type}</div>
+                    </div>
+                    <span className={`purchase-tag${item.status === 'Needs review' ? ' amber' : ' blue'}`}>{item.status}</span>
+                  </div>
+                  <div className="attachment-meta">{item.added} · {item.note}</div>
+                  <div className="attachment-actions">
+                    <button className="pricebook-btn" onClick={(e) => { e.stopPropagation(); downloadHouseReference(item); }}>
+                      <Icon name="report" size={15} /> Download reference
+                    </button>
+                    <button className="pricebook-btn" onClick={(e) => { e.stopPropagation(); saveAttachmentPacket(item); }}>
+                      <Icon name="cash" size={15} /> Save packet
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="report-delivery-stack">
+            <div className="attachment-card">
+              <div className="purchase-panel-head">
+                <div>
+                  <h3>Upload handoff</h3>
+                  <p>Mirror the Mercury house-account file upload path without leaving the financial workspace.</p>
+                </div>
+              </div>
+              <div className="report-delivery-form">
+                <div className="full">
+                  <label className="form-label">Customer</label>
+                  <select className="form-input" value={uploadCustomer} onChange={(e) => setUploadCustomer(e.target.value)}>
+                    {summaryRows.map((row) => <option key={row.customer}>{row.customer}</option>)}
+                  </select>
+                </div>
+                <div className="full">
+                  <label className="form-label">Document upload</label>
+                  <input className="purchase-file" type="file" onChange={(e) => addHouseAttachment(e.target.files?.[0])} />
+                </div>
+              </div>
+              <div className="purchase-callout">This is a demo-safe upload handoff for `/localCredits/uploadDocument`. Real binary upload and persisted storage still need endpoint wiring.</div>
+            </div>
+
+            <div className="attachment-card">
+              <div className="purchase-panel-head">
+                <div>
+                  <h3>Selected attachment</h3>
+                  <p>Keep the active document visible before downloading a reference or preparing a packet.</p>
+                </div>
+              </div>
+              {selectedAttachment ? (
+                <>
+                  <div className="purchase-kv-list">
+                    <div className="purchase-kv"><span>Customer</span><span>{selectedAttachment.customer}</span></div>
+                    <div className="purchase-kv"><span>File</span><span>{selectedAttachment.fileName}</span></div>
+                    <div className="purchase-kv"><span>Status</span><span>{selectedAttachment.status}</span></div>
+                    <div className="purchase-kv"><span>Type</span><span>{selectedAttachment.type}</span></div>
+                  </div>
+                  <div className="pricebook-actions" style={{ marginTop: 16 }}>
+                    <button className="pricebook-btn" onClick={() => downloadHouseReference(selectedAttachment)}>
+                      <Icon name="report" size={15} /> Download reference
+                    </button>
+                    <button className="pricebook-btn" onClick={() => saveAttachmentPacket(selectedAttachment)}>
+                      <Icon name="cash" size={15} /> Save packet
+                    </button>
+                    <button className="pricebook-btn primary" onClick={() => previewAccountDocs(summaryRows.find((row) => row.customer === selectedAttachment.customer) || selectedAccount)}>
+                      <Icon name="connect" size={15} /> Open customer
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <div className="purchase-hint">No attachment is visible for the current filter.</div>
+              )}
+            </div>
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+};
+
 const OperationsView = ({ currentLocation, setLocationId }) => {
   const [operationsPage, setOperationsPage] = useState('overview');
   const [searchMode, setSearchMode] = useState('combined');
@@ -9185,6 +9558,7 @@ const App = () => {
           {view === 'shop' ? <ShopView viewMode={viewMode} shopCategory={shopCategory} setShopCategory={setShopCategory} /> : null}
           {view === 'pricebook' ? <PricebookView pricebookPage={pricebookPage} setPricebookPage={setPricebookPage} /> : null}
           {view === 'purchases' ? <PurchasesView purchasePage={purchasePage} setPurchasePage={setPurchasePage} /> : null}
+          {view === 'financial' ? <FinancialView currentLocation={currentLocation} /> : null}
           {view === 'operations' ? <OperationsView currentLocation={currentLocation} setLocationId={setLocationId} /> : null}
           {view === 'multistore' ? <MultiStoreView currentLocation={currentLocation} setLocationId={setLocationId} setView={setView} /> : null}
           {view === 'reports' ? <ReportsView currentLocation={currentLocation} reportPage={reportPage} setReportPage={setReportPage} /> : null}
