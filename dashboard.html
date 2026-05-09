@@ -1789,6 +1789,11 @@ button,input{font:inherit}
   border-radius:20px;
   background:#fff;
   box-shadow:var(--shadow-soft);
+  cursor:pointer;
+}
+.pricebook-pending-row.active{
+  border-color:rgba(39,198,107,.34);
+  background:#F7FCF9;
 }
 .pricebook-pending-title{
   font-weight:900;
@@ -3286,9 +3291,74 @@ const PRICEBOOK_DEALS = [
 ];
 
 const PRICEBOOK_PENDING = [
-  { id: 'POS-391', change: 'Price update', item: 'Coca-Cola 20oz', from: '$2.39', to: '$2.49', requestedBy: 'A. Patel', status: 'Ready to send' },
-  { id: 'POS-407', change: 'New deal', item: 'Coffee + Donut Combo', from: 'Not active', to: 'Draft deal', requestedBy: 'Manager', status: 'Needs review' },
-  { id: 'POS-419', change: 'Tax map', item: 'Doritos Nacho 2.75oz', from: 'Standard', to: 'Food', requestedBy: 'M. Chen', status: 'Ready to send' },
+  {
+    id: 'POS-391',
+    change: 'Price update',
+    type: 'Retail',
+    item: 'Coca-Cola 20oz',
+    from: '$2.39',
+    to: '$2.49',
+    requestedBy: 'A. Patel',
+    requestedAt: '07:12',
+    source: 'Item Setup',
+    route: '/pricebook/itemDetails_new',
+    store: 'Main Street Gas & Go',
+    lastAttempt: 'Not sent',
+    status: 'Ready to send',
+    note: 'Shelf price raised after cost increase on the latest beverage order.',
+    history: ['Draft saved from item editor', 'Margin review completed'],
+  },
+  {
+    id: 'POS-407',
+    change: 'New deal',
+    type: 'Promotion',
+    item: 'Coffee + Donut Combo',
+    from: 'Not active',
+    to: 'Draft deal',
+    requestedBy: 'Manager',
+    requestedAt: '08:04',
+    source: 'Deals',
+    route: '/pricebook/dealsMain',
+    store: 'Main Street Gas & Go',
+    lastAttempt: 'Waiting for owner review',
+    status: 'Needs review',
+    note: 'Combo needs final review before labels and POS sync can be staged.',
+    history: ['Deal draft created', 'Promo dates validated'],
+  },
+  {
+    id: 'POS-419',
+    change: 'Tax map',
+    type: 'Tax',
+    item: 'Doritos Nacho 2.75oz',
+    from: 'Standard',
+    to: 'Food',
+    requestedBy: 'M. Chen',
+    requestedAt: '09:31',
+    source: 'Item Setup',
+    route: '/pricebook/itemDetails_new',
+    store: 'Sandy Cross Fuel Center',
+    lastAttempt: 'Packet prepared',
+    status: 'Ready to send',
+    note: 'Food-tax correction prepared after audit review.',
+    history: ['Tax exception flagged', 'Correction packet prepared'],
+  },
+  {
+    id: 'POS-426',
+    change: 'Status change',
+    type: 'Item',
+    item: 'Instant Lottery Pack',
+    from: 'Active',
+    to: 'Manual only',
+    requestedBy: 'J. Lopez',
+    requestedAt: '10:18',
+    source: 'Inventory',
+    route: '/pricebook/inventory',
+    store: 'Sandy Cross Fuel Center',
+    lastAttempt: 'Held in StoreCheck',
+    status: 'Held',
+    note: 'Lottery controls stay in StoreCheck review until manager confirms the pack status.',
+    history: ['Queue created from inventory grid', 'Manual override requested'],
+  },
 ];
 
 const PURCHASE_CATEGORY_SUMMARY = [
@@ -6726,7 +6796,17 @@ const PricebookView = ({ pricebookPage, setPricebookPage }) => {
   const [selectedSku, setSelectedSku] = useState(PRICEBOOK_ITEMS[0].sku);
   const [notice, setNotice] = useState('');
   const [draftOpen, setDraftOpen] = useState(false);
-  const [pendingReviewed, setPendingReviewed] = useState([]);
+  const [pendingSearch, setPendingSearch] = useState('');
+  const [pendingStatusFilter, setPendingStatusFilter] = useState('All');
+  const [pendingTypeFilter, setPendingTypeFilter] = useState('All');
+  const [pendingRows, setPendingRows] = useState(PRICEBOOK_PENDING);
+  const [selectedPendingId, setSelectedPendingId] = useState(PRICEBOOK_PENDING[0].id);
+  const [pendingSyncEvents, setPendingSyncEvents] = useState([
+    { id: 'PSE-1', packetId: 'POS-391', time: '07:16', action: 'Draft queued', actor: 'A. Patel', status: 'Awaiting review' },
+    { id: 'PSE-2', packetId: 'POS-407', time: '08:11', action: 'Promo packet checked', actor: 'Manager', status: 'Needs review' },
+    { id: 'PSE-3', packetId: 'POS-419', time: '09:36', action: 'Tax correction compared', actor: 'M. Chen', status: 'Ready to send' },
+    { id: 'PSE-4', packetId: 'POS-426', time: '10:21', action: 'Manual hold applied', actor: 'J. Lopez', status: 'Held' },
+  ]);
 
   const selectedItem = PRICEBOOK_ITEMS.find((item) => item.sku === selectedSku) || PRICEBOOK_ITEMS[0];
   const searchText = search.trim().toLowerCase();
@@ -6735,8 +6815,26 @@ const PricebookView = ({ pricebookPage, setPricebookPage }) => {
     const textMatch = !searchText || searchable.some((value) => String(value).toLowerCase().includes(searchText));
     return textMatch && (department === 'All' || item.department === department);
   });
+  const pendingSearchText = pendingSearch.trim().toLowerCase();
+  const visiblePendingRows = pendingRows.filter((item) => {
+    const searchable = [item.id, item.change, item.type, item.item, item.from, item.to, item.requestedBy, item.source, item.status, item.store, item.note];
+    const matchesText = !pendingSearchText || searchable.some((value) => String(value).toLowerCase().includes(pendingSearchText));
+    const matchesStatus = pendingStatusFilter === 'All' ? true : item.status === pendingStatusFilter;
+    const matchesType = pendingTypeFilter === 'All' ? true : item.type === pendingTypeFilter;
+    return matchesText && matchesStatus && matchesType;
+  });
+  const selectedPendingRow = visiblePendingRows.find((item) => item.id === selectedPendingId)
+    || pendingRows.find((item) => item.id === selectedPendingId)
+    || visiblePendingRows[0]
+    || pendingRows[0];
+  const selectedPendingEvents = selectedPendingRow
+    ? pendingSyncEvents.filter((event) => event.packetId === selectedPendingRow.id)
+    : [];
   const activeDeals = PRICEBOOK_DEALS.filter((deal) => deal.status === 'Active').length;
-  const pendingCount = PRICEBOOK_PENDING.filter((item) => !pendingReviewed.includes(item.id)).length;
+  const pendingCount = pendingRows.filter((item) => item.status !== 'Approved').length;
+  const pendingReadyCount = pendingRows.filter((item) => item.status === 'Ready to send' || item.status === 'Reviewed').length;
+  const pendingReviewCount = pendingRows.filter((item) => item.status === 'Needs review').length;
+  const pendingHeldCount = pendingRows.filter((item) => item.status === 'Held').length;
   const lowStock = PRICEBOOK_ITEMS.filter((item) => item.qty <= 18).length;
   const avgMargin = Math.round(PRICEBOOK_ITEMS.reduce((sum, item) => sum + item.margin, 0) / PRICEBOOK_ITEMS.length);
 
@@ -6747,7 +6845,144 @@ const PricebookView = ({ pricebookPage, setPricebookPage }) => {
   };
   const exportItems = (format) => downloadTableData(filteredItems, format, `storecheck-pricebook-items-${department.toLowerCase().replaceAll(' ', '-')}`);
   const exportDeals = (format) => downloadTableData(PRICEBOOK_DEALS, format, 'storecheck-pricebook-deals');
-  const exportPending = (format) => downloadTableData(PRICEBOOK_PENDING, format, 'storecheck-pending-pos-changes');
+  const exportPending = (format) => downloadTableData(visiblePendingRows, format, 'storecheck-pending-pos-changes');
+  const exportPendingEvents = (format) => downloadTableData(selectedPendingEvents, format, `storecheck-pending-pos-events-${String(selectedPendingRow?.id || 'all').toLowerCase()}`);
+  const stampPendingTime = () => new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+  const pushPendingEvent = (packetId, action, actor, status) => {
+    const time = stampPendingTime();
+    setPendingSyncEvents((current) => [
+      { id: `PSE-${Date.now()}`, packetId, time, action, actor, status },
+      ...current,
+    ].slice(0, 12));
+  };
+  const openPendingPacket = (item = selectedPendingRow) => {
+    if (!item) return;
+    openPrintPreview({
+      title: 'Pending POS Packet',
+      subtitle: `${item.id} · ${item.store}`,
+      rows: [
+        ['Field', 'Value'],
+        ['Item', item.item],
+        ['Change', item.change],
+        ['Type', item.type],
+        ['From', item.from],
+        ['To', item.to],
+        ['Requested By', item.requestedBy],
+        ['Source', item.source],
+        ['Mercury Route', item.route],
+        ['Status', item.status],
+      ],
+    });
+  };
+  const savePendingPacket = (item = selectedPendingRow) => {
+    if (!item) return;
+    const html = `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Pending POS Packet</title>
+  <style>
+    body{font-family:"DM Sans",Arial,sans-serif;background:#F8FAFC;color:#0F172A;padding:28px}
+    .wrap{max-width:980px;margin:0 auto;background:#fff;border:1px solid #E2E8F0;border-radius:18px;padding:28px;box-shadow:0 12px 40px rgba(15,23,42,.08)}
+    h1{margin:0 0 8px;font-size:28px}
+    p{margin:0;color:#475569}
+    .meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin:20px 0}
+    .meta div{background:#F8FAFC;border:1px solid #E2E8F0;border-radius:12px;padding:12px 14px}
+    .meta strong{display:block;font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:#64748B;margin-bottom:6px}
+    table{width:100%;border-collapse:collapse;margin-top:16px}
+    th,td{padding:12px 14px;border-top:1px solid #E2E8F0;text-align:left}
+    th{background:#F8FAFC;font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:#64748B}
+    td{font-weight:600}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Pending POS Packet</h1>
+    <p>${item.id} · ${item.store}</p>
+    <div class="meta">
+      <div><strong>Mercury Route</strong>${item.route}</div>
+      <div><strong>Status</strong>${item.status}</div>
+      <div><strong>Prepared</strong>${todayStr()}</div>
+    </div>
+    <table>
+      <thead><tr><th>Field</th><th>Value</th></tr></thead>
+      <tbody>
+        <tr><td>Item</td><td>${item.item}</td></tr>
+        <tr><td>Change</td><td>${item.change}</td></tr>
+        <tr><td>Type</td><td>${item.type}</td></tr>
+        <tr><td>From</td><td>${item.from}</td></tr>
+        <tr><td>To</td><td>${item.to}</td></tr>
+        <tr><td>Requested By</td><td>${item.requestedBy}</td></tr>
+        <tr><td>Requested At</td><td>${item.requestedAt}</td></tr>
+        <tr><td>Source</td><td>${item.source}</td></tr>
+        <tr><td>Note</td><td>${item.note}</td></tr>
+      </tbody>
+    </table>
+  </div>
+</body>
+</html>`;
+    downloadTextData(html, 'text/html', `storecheck-pending-pos-${String(item.id).toLowerCase()}`, 'html');
+    showNotice(`${item.id} packet saved in demo mode.`);
+  };
+  const updatePendingRow = (id, patch) => {
+    setPendingRows((current) => current.map((item) => (item.id === id ? { ...item, ...patch } : item)));
+  };
+  const markPendingReviewed = (item = selectedPendingRow) => {
+    if (!item) return;
+    const time = stampPendingTime();
+    updatePendingRow(item.id, {
+      status: 'Reviewed',
+      lastAttempt: `Reviewed ${time}`,
+      history: [...item.history, `Reviewed by owner at ${time}`],
+    });
+    pushPendingEvent(item.id, 'Marked reviewed', item.requestedBy, 'Reviewed');
+    setSelectedPendingId(item.id);
+    showNotice(`${item.id} marked reviewed in demo mode.`);
+  };
+  const holdPendingPacket = (item = selectedPendingRow) => {
+    if (!item) return;
+    const time = stampPendingTime();
+    updatePendingRow(item.id, {
+      status: 'Held',
+      lastAttempt: `Held ${time}`,
+      history: [...item.history, `Held in StoreCheck at ${time}`],
+    });
+    pushPendingEvent(item.id, 'Hold applied', item.requestedBy, 'Held');
+    showNotice(`${item.id} moved to hold in demo mode.`);
+  };
+  const approvePendingPacket = (item = selectedPendingRow) => {
+    if (!item) return;
+    const time = stampPendingTime();
+    updatePendingRow(item.id, {
+      status: 'Approved',
+      lastAttempt: `Approved ${time}`,
+      history: [...item.history, `Approved for POS bundle at ${time}`],
+    });
+    pushPendingEvent(item.id, 'Approved for POS bundle', item.requestedBy, 'Approved');
+    showNotice(`${item.id} approved for the next POS bundle in demo mode.`);
+  };
+  const stagePendingBundle = () => {
+    const readyIds = visiblePendingRows
+      .filter((item) => item.status === 'Ready to send' || item.status === 'Reviewed')
+      .map((item) => item.id);
+    if (!readyIds.length) {
+      showNotice('No visible packets are ready to stage yet.');
+      return;
+    }
+    const time = stampPendingTime();
+    setPendingRows((current) => current.map((item) => (
+      readyIds.includes(item.id)
+        ? { ...item, status: 'Staged', lastAttempt: `Bundle staged ${time}`, history: [...item.history, `Bundle staged at ${time}`] }
+        : item
+    )));
+    readyIds.forEach((id) => pushPendingEvent(id, 'Bundle staged', 'StoreCheck owner', 'Staged'));
+    showNotice(`${readyIds.length} pending POS packet${readyIds.length === 1 ? '' : 's'} staged for sync in demo mode.`);
+  };
+  const keepPendingInStoreCheck = (item = selectedPendingRow) => {
+    if (!item) return;
+    pushPendingEvent(item.id, 'Redirect fallback opened', item.requestedBy, 'StoreCheck review');
+    showNotice('Mercury redirects this route to the puzzle page, so StoreCheck keeps the owner in this review workspace.');
+  };
   const tabs = [
     { id: 'inventory', label: 'Inventory', icon: 'pricebook' },
     { id: 'item', label: 'Item Setup', icon: 'item' },
@@ -6932,39 +7167,139 @@ const PricebookView = ({ pricebookPage, setPricebookPage }) => {
       ) : null}
 
       {pricebookPage === 'pending' ? (
-        <div className="pricebook-workspace single">
-          <div className="pricebook-editor">
+        <div className="pricebook-workspace">
+          <div className="pricebook-table-card">
             <div className="pricebook-toolbar">
               <div>
                 <div className="pricebook-detail-title">Pending POS changes</div>
-                <div className="pricebook-detail-sub">Review price, tax, item, and promotion changes before sending them to the POS.</div>
+                <div className="pricebook-detail-sub">Use StoreCheck as the owner-facing review rail while Mercury still redirects this route away from the queue.</div>
               </div>
               {renderExportButtons(exportPending)}
             </div>
-            <div className="pricebook-pending-list">
-              {PRICEBOOK_PENDING.map((item) => {
-                const reviewed = pendingReviewed.includes(item.id);
-                return (
-                  <div className="pricebook-pending-row" key={item.id}>
-                    <div>
-                      <div className="pricebook-pending-title">{item.change}: {item.item}</div>
-                      <div className="pricebook-pending-meta">{item.id} · {item.from} to {item.to} · requested by {item.requestedBy}</div>
-                    </div>
-                    <span className={`pricebook-status ${reviewed ? '' : item.status === 'Needs review' ? 'warn' : 'pending'}`}>{reviewed ? 'Reviewed' : item.status}</span>
-                    <button className="pricebook-btn" onClick={() => {
-                      setPendingReviewed((current) => current.includes(item.id) ? current : [...current, item.id]);
-                      showNotice(`${item.id} marked reviewed.`);
-                    }}>
-                      <Icon name="sync" size={15} /> Mark reviewed
+            <div className="pricebook-filters" style={{ padding: '0 20px 16px' }}>
+              <input className="pricebook-search" value={pendingSearch} onChange={(e) => setPendingSearch(e.target.value)} placeholder="Search packet, item, requestor, route, or note" />
+              <select className="pricebook-select" value={pendingStatusFilter} onChange={(e) => setPendingStatusFilter(e.target.value)}>
+                {['All', ...uniqueValues(pendingRows, 'status')].map((item) => <option key={item}>{item}</option>)}
+              </select>
+              <select className="pricebook-select" value={pendingTypeFilter} onChange={(e) => setPendingTypeFilter(e.target.value)}>
+                {['All', ...uniqueValues(pendingRows, 'type')].map((item) => <option key={item}>{item}</option>)}
+              </select>
+            </div>
+            <div className="pricebook-pending-list" style={{ padding: '0 20px 20px' }}>
+              {visiblePendingRows.length ? visiblePendingRows.map((item) => (
+                <div className={`pricebook-pending-row ${selectedPendingRow?.id === item.id ? 'active' : ''}`} key={item.id} onClick={() => setSelectedPendingId(item.id)}>
+                  <div>
+                    <div className="pricebook-pending-title">{item.change}: {item.item}</div>
+                    <div className="pricebook-pending-meta">{item.id} · {item.type} · {item.from} to {item.to}</div>
+                    <div className="pricebook-pending-meta">{item.source} · {item.requestedAt} · {item.requestedBy}</div>
+                  </div>
+                  <span className={`pricebook-status ${item.status === 'Needs review' || item.status === 'Held' ? 'warn' : item.status === 'Approved' || item.status === 'Staged' ? 'pending' : ''}`}>{item.status}</span>
+                  <button className="pricebook-btn" onClick={(event) => {
+                    event.stopPropagation();
+                    setSelectedPendingId(item.id);
+                    markPendingReviewed(item);
+                  }}>
+                    <Icon name="sync" size={15} /> Mark reviewed
+                  </button>
+                </div>
+              )) : (
+                <div className="pricebook-draft">
+                  <h3>No pending packets</h3>
+                  <div className="pricebook-note">Adjust the queue filters to bring packets back into view.</div>
+                </div>
+              )}
+            </div>
+            <div className="pricebook-action-strip" style={{ padding: '0 20px 20px' }}>
+              <span>{fmtN(pendingReadyCount)} ready or reviewed, {fmtN(pendingReviewCount)} need review, and {fmtN(pendingHeldCount)} are held in StoreCheck.</span>
+              <div className="pricebook-actions">
+                <button className="pricebook-btn" onClick={() => exportPendingEvents('CSV')}>
+                  <Icon name="report" size={15} /> Export event log
+                </button>
+                <button className="pricebook-btn primary" onClick={() => stagePendingBundle()}>
+                  <Icon name="sync" size={15} /> Stage POS bundle
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="pricebook-detail-card">
+            {selectedPendingRow ? (
+              <>
+                <div className="pricebook-detail-title">Selected POS packet</div>
+                <div className="pricebook-detail-sub">{selectedPendingRow.id} · {selectedPendingRow.store} · {selectedPendingRow.route}</div>
+                <div className="pricebook-metric-list">
+                  <div className="pricebook-metric"><span>Item</span><span>{selectedPendingRow.item}</span></div>
+                  <div className="pricebook-metric"><span>Change</span><span>{selectedPendingRow.change}</span></div>
+                  <div className="pricebook-metric"><span>Type</span><span>{selectedPendingRow.type}</span></div>
+                  <div className="pricebook-metric"><span>Requested by</span><span>{selectedPendingRow.requestedBy}</span></div>
+                  <div className="pricebook-metric"><span>Requested at</span><span>{selectedPendingRow.requestedAt}</span></div>
+                  <div className="pricebook-metric"><span>From / To</span><span>{selectedPendingRow.from} to {selectedPendingRow.to}</span></div>
+                  <div className="pricebook-metric"><span>Status</span><span>{selectedPendingRow.status}</span></div>
+                  <div className="pricebook-metric"><span>Last event</span><span>{selectedPendingRow.lastAttempt}</span></div>
+                </div>
+                <div className="pricebook-actions" style={{ marginTop: 16 }}>
+                  <button className="pricebook-btn" onClick={() => openPendingPacket()}>
+                    <Icon name="report" size={15} /> Preview packet
+                  </button>
+                  <button className="pricebook-btn" onClick={() => savePendingPacket()}>
+                    <Icon name="cash" size={15} /> Save packet
+                  </button>
+                  <button className="pricebook-btn" onClick={() => holdPendingPacket()}>
+                    <Icon name="alert" size={15} /> Hold
+                  </button>
+                  <button className="pricebook-btn primary" onClick={() => approvePendingPacket()}>
+                    <Icon name="save" size={15} /> Approve
+                  </button>
+                </div>
+
+                <div className="pricebook-draft" style={{ marginTop: 18 }}>
+                  <h3>Packet note</h3>
+                  <div className="pricebook-note" style={{ marginTop: 0 }}>{selectedPendingRow.note}</div>
+                  <div className="purchase-queue-list" style={{ marginTop: 14 }}>
+                    {selectedPendingRow.history.map((entry, index) => (
+                      <div className="purchase-queue-row" key={`${selectedPendingRow.id}-history-${index}`}>
+                        <div className="purchase-queue-top">
+                          <div>
+                            <div className="purchase-queue-title">{entry}</div>
+                            <div className="purchase-queue-meta">{selectedPendingRow.source} · {selectedPendingRow.store}</div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="pricebook-draft" style={{ marginTop: 18 }}>
+                  <h3>Pending push events</h3>
+                  <div className="purchase-queue-list">
+                    {selectedPendingEvents.map((event) => (
+                      <div className="purchase-queue-row" key={event.id}>
+                        <div className="purchase-queue-top">
+                          <div>
+                            <div className="purchase-queue-title">{event.action}</div>
+                            <div className="purchase-queue-meta">{event.time} · {event.actor}</div>
+                          </div>
+                          <span className={`purchase-tag${event.status === 'Awaiting review' || event.status === 'Needs review' || event.status === 'Held' ? ' amber' : ' blue'}`}>{event.status}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="pricebook-draft" style={{ marginTop: 18 }}>
+                  <h3>Legacy route fallback</h3>
+                  <div className="pricebook-note" style={{ marginTop: 0 }}>Mercury sends `/pricebook/pendingToPosMain` back to the puzzle page for this store/session, so StoreCheck keeps the review, approval, and export flow here instead.</div>
+                  <div className="pricebook-actions" style={{ marginTop: 16 }}>
+                    <button className="pricebook-btn" onClick={() => keepPendingInStoreCheck()}>
+                      <Icon name="report" size={15} /> Keep review here
+                    </button>
+                    <button className="pricebook-btn primary" onClick={() => setPricebookPage('inventory')}>
+                      <Icon name="pricebook" size={15} /> Open inventory
                     </button>
                   </div>
-                );
-              })}
-            </div>
-            <div className="pricebook-action-strip">
-              <span>Once connected, reviewed changes can be sent to the live POS from this queue.</span>
-              <button className="pricebook-btn primary" onClick={() => showNotice('Ready-to-send changes staged for POS sync.')}><Icon name="sync" size={15} /> Stage POS sync</button>
-            </div>
+                </div>
+              </>
+            ) : null}
           </div>
         </div>
       ) : null}
