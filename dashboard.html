@@ -3684,7 +3684,7 @@ const Sidebar = ({
   </aside>
 );
 
-const TopBar = ({ view, currentLocation, setActive, setMobileNavOpen }) => {
+const TopBar = ({ view, currentLocation, registerStatus, setActive, setMobileNavOpen }) => {
   return (
     <div className="topbar">
       <div className="topbar-inner">
@@ -3702,6 +3702,10 @@ const TopBar = ({ view, currentLocation, setActive, setMobileNavOpen }) => {
           <div className="source-pill">
             <span className="source-dot"></span>
             {MOCK.source === 'gilbargo' ? 'Gilbargo POS' : 'Ruby POS'}
+          </div>
+          <div className="source-pill">
+            <span className="source-dot"></span>
+            Register {registerStatus}
           </div>
           <div className="topbar-btn" title="Alerts">
             <Icon name="bell" size={18} bg="rgba(59,130,246,0.14)" fg="#3B82F6" />
@@ -6833,7 +6837,7 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
   );
 };
 
-const SettingsView = ({ currentLocation, setLocationId }) => {
+const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setAgreementAccepted, setLocationId, setRegisterStatus }) => {
   const [src, setSrc] = useState(MOCK.source);
   const [fuelAlertPct, setFuelAlertPct] = useState(25);
   const [sessionNotice, setSessionNotice] = useState('');
@@ -6857,6 +6861,31 @@ const SettingsView = ({ currentLocation, setLocationId }) => {
       {sessionNotice ? <div className="pricebook-notice"><Icon name="gear" size={16} /> {sessionNotice}</div> : null}
 
       <div className="settings-grid">
+        <div className="settings-card">
+          <div className="settings-title">Session Init & Agreements</div>
+          <div className="settings-sub">Replacement shell for Mercury licence checks, agreement acceptance, and register/session status.</div>
+          <div className="connect-status">
+            <span className="source-dot"></span>
+            <span>Register status: {registerStatus}</span>
+          </div>
+          <div className="toggle-row">
+            <span className="toggle-label">Store agreement accepted for this session</span>
+            <input type="checkbox" checked={agreementAccepted} onChange={(e) => setAgreementAccepted(e.target.checked)} />
+          </div>
+          <div className="toggle-row">
+            <span className="toggle-label">Session licence check</span>
+            <span className="purchase-tag blue">{agreementAccepted ? 'Passed' : 'Pending'}</span>
+          </div>
+          <button className="connect-btn" onClick={() => showSessionNotice(agreementAccepted ? 'Agreement acceptance saved in demo mode. Real `/user/saveAgreementDetails` wiring still pending.' : 'Enable agreement acceptance before saving the demo session state.')}>
+            <Icon name="save" size={16} bg="rgba(255,255,255,0.12)" fg="#86EFAC" />
+            <span>Save Agreement State</span>
+          </button>
+          <button className="connect-btn" style={{ marginTop: 10 }} onClick={() => { setRegisterStatus(registerStatus === 'Connected' ? 'Refresh Needed' : 'Connected'); showSessionNotice('Register status refreshed in demo mode. Real `/user/checkRegisterStatus` wiring still pending.'); }}>
+            <Icon name="connect" size={16} bg="rgba(255,255,255,0.12)" fg="#86EFAC" />
+            <span>Refresh Register Status</span>
+          </button>
+        </div>
+
         <div className="settings-card">
           <div className="settings-title">Location & Session</div>
           <div className="settings-sub">Replacement shell for Mercury location switching and logout flow.</div>
@@ -7005,6 +7034,8 @@ const App = () => {
   const [view, setView] = useState('today');
   const [viewMode, setViewMode] = useState('default');
   const [locationId, setLocationId] = useState(STORE_LOCATIONS[0].id);
+  const [agreementAccepted, setAgreementAccepted] = useState(true);
+  const [registerStatus, setRegisterStatus] = useState('Connected');
   const [shopCategory, setShopCategory] = useState('overview');
   const [shopExpanded, setShopExpanded] = useState(true);
   const [reportPage, setReportPage] = useState('week');
@@ -7035,7 +7066,7 @@ const App = () => {
         setMobileNavOpen={setMobileNavOpen}
       />
       <div className="main">
-        <TopBar view={view} currentLocation={currentLocation} setActive={setView} setMobileNavOpen={setMobileNavOpen} />
+        <TopBar view={view} currentLocation={currentLocation} registerStatus={registerStatus} setActive={setView} setMobileNavOpen={setMobileNavOpen} />
         <div className="content">
           {view === 'today' ? <TodayView viewMode={viewMode} setViewMode={setViewMode} /> : null}
           {view === 'transactions' ? <TransactionsView /> : null}
@@ -7044,7 +7075,7 @@ const App = () => {
           {view === 'pricebook' ? <PricebookView pricebookPage={pricebookPage} setPricebookPage={setPricebookPage} /> : null}
           {view === 'purchases' ? <PurchasesView purchasePage={purchasePage} setPurchasePage={setPurchasePage} /> : null}
           {view === 'reports' ? <ReportsView currentLocation={currentLocation} reportPage={reportPage} setReportPage={setReportPage} /> : null}
-          {view === 'settings' ? <SettingsView currentLocation={currentLocation} setLocationId={setLocationId} /> : null}
+          {view === 'settings' ? <SettingsView agreementAccepted={agreementAccepted} currentLocation={currentLocation} registerStatus={registerStatus} setAgreementAccepted={setAgreementAccepted} setLocationId={setLocationId} setRegisterStatus={setRegisterStatus} /> : null}
         </div>
       </div>
     </>
