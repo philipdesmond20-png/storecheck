@@ -4084,8 +4084,10 @@ const TodayView = ({ viewMode, setViewMode }) => {
 const FuelView = () => {
   const [fuelPage, setFuelPage] = useState('overview');
   const [showAddDelivery, setShowAddDelivery] = useState(false);
+  const [showAddDraft, setShowAddDraft] = useState(false);
   const [selectedDeliveryId, setSelectedDeliveryId] = useState('DLV-118');
   const [selectedDraftId, setSelectedDraftId] = useState('DR-224');
+  const [selectedNetworkBatchId, setSelectedNetworkBatchId] = useState('NB-4201');
   const [selectedFuelAttachmentId, setSelectedFuelAttachmentId] = useState('FAT-301');
   const [fuelNotice, setFuelNotice] = useState('');
   const [deliveryDraft, setDeliveryDraft] = useState({
@@ -4109,21 +4111,31 @@ const FuelView = () => {
     { id: 'DLV-114', deliveryDate: '2026-05-08', shift: 'Shift 1', volume: 7410, draftDate: '2026-05-09', totalAmount: 21908.16, status: 'Drafted', invoice: 'INV-8836', draft: 'DR-224', bol: 'Attached' },
     { id: 'DLV-109', deliveryDate: '2026-05-06', shift: 'Shift 3', volume: 6880, draftDate: '2026-05-07', totalAmount: 20464.92, status: 'Drafted', invoice: 'INV-8820', draft: 'DR-221', bol: 'Attached' },
   ]);
-  const [draftRows] = useState([
-    { id: 'DR-224', draftDate: '2026-05-09', fuelInvoices: 3, batches: 2, fees: 245.18, rebate: 121.4, expenses: 90.25, otherCredits: -18.0, draftAmount: 24791.79, attachments: '2 docs', status: 'Needs review', deliveries: ['DLV-118', 'DLV-114'], invoices: ['INV-8841', 'INV-8836'] },
-    { id: 'DR-221', draftDate: '2026-05-07', fuelInvoices: 2, batches: 2, fees: 211.74, rebate: 98.3, expenses: 74.16, otherCredits: 0, draftAmount: 20383.72, attachments: '1 doc', status: 'Submitted', deliveries: ['DLV-109'], invoices: ['INV-8820'] },
+  const [draftRows, setDraftRows] = useState([
+    { id: 'DR-224', draftDate: '2026-05-09', fuelInvoices: 3, batches: 1, fees: 245.18, rebate: 121.4, expenses: 90.25, otherCredits: -18.0, draftAmount: 24791.79, attachments: '2 docs', status: 'Needs review', deliveries: ['DLV-118', 'DLV-114'], invoices: ['INV-8841', 'INV-8836'], linkedBatches: ['NB-4201'] },
+    { id: 'DR-221', draftDate: '2026-05-07', fuelInvoices: 2, batches: 1, fees: 211.74, rebate: 98.3, expenses: 74.16, otherCredits: 0, draftAmount: 20383.72, attachments: '1 doc', status: 'Submitted', deliveries: ['DLV-109'], invoices: ['INV-8820'], linkedBatches: ['NB-4198'] },
   ]);
   const [fuelAttachments, setFuelAttachments] = useState([
     { id: 'FAT-301', deliveryId: 'DLV-118', draftId: 'DR-224', fileName: 'INV-8841.pdf', type: 'Invoice Attachment', added: '2026-05-09 08:14', status: 'Ready', note: 'Invoice queued for open draft follow-through.' },
     { id: 'FAT-302', deliveryId: 'DLV-114', draftId: 'DR-224', fileName: 'BOL-5509.pdf', type: 'BOL Attachment', added: '2026-05-08 11:42', status: 'Ready', note: 'Signed BOL linked to drafted delivery.' },
     { id: 'FAT-303', deliveryId: 'DLV-109', draftId: 'DR-221', fileName: 'INV-8820.pdf', type: 'Invoice Attachment', added: '2026-05-06 17:18', status: 'Ready', note: 'Fuel invoice matched to submitted draft.' },
   ]);
-  const networkBatches = [
-    { id: 'NB-4201', date: '2026-05-09', gross: 12644.8, fees: 116.44, net: 12528.36, status: 'Ready' },
-    { id: 'NB-4198', date: '2026-05-08', gross: 11392.75, fees: 104.22, net: 11288.53, status: 'Settled' },
-  ];
+  const [networkBatchRows, setNetworkBatchRows] = useState([
+    { id: 'NB-4201', date: '2026-05-09', gross: 12644.8, fees: 116.44, net: 12528.36, status: 'Ready', linkedDraft: 'DR-224' },
+    { id: 'NB-4198', date: '2026-05-08', gross: 11392.75, fees: 104.22, net: 11288.53, status: 'Settled', linkedDraft: 'DR-221' },
+  ]);
+  const [draftComposer, setDraftComposer] = useState({
+    draftDate: '2026-05-10',
+    fees: '245.18',
+    rebate: '121.40',
+    expenses: '90.25',
+    otherCredits: '-18.00',
+    deliveryIds: ['DLV-118'],
+    batchIds: ['NB-4201'],
+  });
   const selectedDelivery = deliveryRows.find((row) => row.id === selectedDeliveryId) || deliveryRows[0];
   const selectedDraft = draftRows.find((row) => row.id === selectedDraftId) || draftRows[0];
+  const selectedNetworkBatch = networkBatchRows.find((row) => row.id === selectedNetworkBatchId) || networkBatchRows[0];
   const selectedFuelAttachment =
     fuelAttachments.find((row) => row.id === selectedFuelAttachmentId) ||
     fuelAttachments.find((row) => row.deliveryId === selectedDelivery?.id) ||
@@ -4133,6 +4145,18 @@ const FuelView = () => {
   const countDraftAttachments = (draftId) => fuelAttachments.filter((row) => row.draftId === draftId).length;
   const deliveryAttachmentRows = selectedDelivery ? fuelAttachments.filter((row) => row.deliveryId === selectedDelivery.id) : [];
   const draftAttachmentRows = selectedDraft ? fuelAttachments.filter((row) => row.draftId === selectedDraft.id) : [];
+  const selectedDraftBatchRows = selectedDraft ? networkBatchRows.filter((row) => (selectedDraft.linkedBatches || []).includes(row.id)) : [];
+  const draftComposerDeliveryRows = deliveryRows.filter((row) => draftComposer.deliveryIds.includes(row.id));
+  const draftComposerBatchRows = networkBatchRows.filter((row) => draftComposer.batchIds.includes(row.id));
+  const draftComposerInvoices = draftComposerDeliveryRows.map((row) => row.invoice);
+  const draftComposerVolume = draftComposerDeliveryRows.reduce((sum, row) => sum + row.volume, 0);
+  const draftComposerBase = draftComposerDeliveryRows.reduce((sum, row) => sum + row.totalAmount, 0);
+  const draftComposerAmount =
+    draftComposerBase +
+    Number(draftComposer.fees || 0) -
+    Number(draftComposer.rebate || 0) +
+    Number(draftComposer.expenses || 0) +
+    Number(draftComposer.otherCredits || 0);
   const deliveryTotals = deliveryRows.reduce(
     (acc, row) => ({
       volume: acc.volume + row.volume,
@@ -4284,6 +4308,123 @@ const FuelView = () => {
     showNotice(`${row.id} draft attachment review opened in demo mode.`);
   };
 
+  const openDraftActionPacket = (row = selectedDraft) => {
+    if (!row) return;
+    openFuelPacket({
+      title: `Fuel Draft Action Packet - ${row.id}`,
+      subtitle: `${row.draftDate} · ${row.status}`,
+      headers: ['Draft', 'Deliveries', 'Invoices', 'Batches', 'Fees', 'Rebate', 'Expenses', 'Other', 'Amount'],
+      rows: [[
+        row.id,
+        row.deliveries.join(', '),
+        row.invoices.join(', '),
+        (row.linkedBatches || []).join(', ') || 'None linked',
+        fmt(row.fees),
+        fmt(row.rebate),
+        fmt(row.expenses),
+        fmt(row.otherCredits),
+        fmt(row.draftAmount),
+      ]],
+    });
+    showNotice(`${row.id} action packet opened in demo mode.`);
+  };
+
+  const saveDraftActionPacket = (row = selectedDraft) => {
+    if (!row) return;
+    saveFuelPacket({
+      title: `Fuel Draft Action Packet - ${row.id}`,
+      subtitle: `${row.draftDate} · ${row.status}`,
+      route: `/jobberBatches/getDraftDetails/${row.id}`,
+      note: 'Fuel draft action replacement shell',
+      headers: ['Draft', 'Deliveries', 'Invoices', 'Batches', 'Fees', 'Rebate', 'Expenses', 'Other', 'Amount'],
+      rows: [[
+        row.id,
+        row.deliveries.join(', '),
+        row.invoices.join(', '),
+        (row.linkedBatches || []).join(', ') || 'None linked',
+        fmt(row.fees),
+        fmt(row.rebate),
+        fmt(row.expenses),
+        fmt(row.otherCredits),
+        fmt(row.draftAmount),
+      ]],
+      filename: `storecheck-fuel-draft-${String(row.id).toLowerCase()}`,
+    });
+    showNotice(`${row.id} action packet prepared in demo mode.`);
+  };
+
+  const openNetworkBatchPacket = (row = selectedNetworkBatch) => {
+    if (!row) return;
+    openFuelPacket({
+      title: `Fuel Network Batch - ${row.id}`,
+      subtitle: `${row.date} · ${row.status}`,
+      headers: ['Batch', 'Linked Draft', 'Gross', 'Fees', 'Net', 'Status'],
+      rows: [[row.id, row.linkedDraft || 'Open', fmt(row.gross), fmt(row.fees), fmt(row.net), row.status]],
+    });
+    showNotice(`${row.id} network batch opened in demo mode.`);
+  };
+
+  const saveNetworkBatchPacket = (row = selectedNetworkBatch) => {
+    if (!row) return;
+    saveFuelPacket({
+      title: `Fuel Network Batch - ${row.id}`,
+      subtitle: `${row.date} · ${row.status}`,
+      route: '/jobberBatches/index',
+      note: 'Fuel network-batch replacement shell',
+      headers: ['Batch', 'Linked Draft', 'Gross', 'Fees', 'Net', 'Status'],
+      rows: [[row.id, row.linkedDraft || 'Open', fmt(row.gross), fmt(row.fees), fmt(row.net), row.status]],
+      filename: `storecheck-network-batch-${String(row.id).toLowerCase()}`,
+    });
+    showNotice(`${row.id} network batch packet prepared in demo mode.`);
+  };
+
+  const setDraftStatus = (draftId, status) => {
+    setDraftRows((current) => current.map((row) => (row.id === draftId ? { ...row, status } : row)));
+    showNotice(`${draftId} marked ${status.toLowerCase()} in demo mode. Real draft-save endpoint is still pending.`);
+  };
+
+  const toggleDraftComposerDelivery = (deliveryId) => {
+    setDraftComposer((current) => ({
+      ...current,
+      deliveryIds: current.deliveryIds.includes(deliveryId)
+        ? current.deliveryIds.filter((id) => id !== deliveryId)
+        : [...current.deliveryIds, deliveryId],
+    }));
+  };
+
+  const toggleDraftComposerBatch = (batchId) => {
+    setDraftComposer((current) => ({
+      ...current,
+      batchIds: current.batchIds.includes(batchId)
+        ? current.batchIds.filter((id) => id !== batchId)
+        : [...current.batchIds, batchId],
+    }));
+  };
+
+  const linkNetworkBatchToDraft = (batch = selectedNetworkBatch, draft = selectedDraft) => {
+    if (!batch || !draft) return;
+    const previousDraftId = batch.linkedDraft;
+    setNetworkBatchRows((current) => current.map((row) => (
+      row.id === batch.id
+        ? { ...row, linkedDraft: draft.id, status: row.status === 'Settled' ? 'Settled' : 'Linked' }
+        : row
+    )));
+    setDraftRows((current) => current.map((row) => {
+      if (row.id === previousDraftId && row.id !== draft.id) {
+        const nextBatches = (row.linkedBatches || []).filter((id) => id !== batch.id);
+        return { ...row, linkedBatches: nextBatches, batches: nextBatches.length };
+      }
+      if (row.id === draft.id) {
+        const nextBatches = Array.from(new Set([...(row.linkedBatches || []), batch.id]));
+        return { ...row, linkedBatches: nextBatches, batches: nextBatches.length };
+      }
+      return row;
+    }));
+    setSelectedDraftId(draft.id);
+    setSelectedNetworkBatchId(batch.id);
+    showNotice(`${batch.id} linked to ${draft.id} in demo mode. Real network-batch save wiring is still pending.`);
+  };
+
   const saveDelivery = () => {
     const nextId = `DLV-${120 + deliveryRows.length}`;
     const nextDraftDate = 'Open';
@@ -4346,6 +4487,69 @@ const FuelView = () => {
     });
     showNotice('Delivery and attachment handoff saved in demo mode. Real Add Delivery save wiring is still pending.');
     setShowAddDelivery(false);
+  };
+
+  const saveDraft = () => {
+    if (!draftComposerDeliveryRows.length) {
+      showNotice('Select at least one delivery before saving a draft.');
+      return;
+    }
+    const nextId = `DR-${225 + draftRows.length}`;
+    const nextDraft = {
+      id: nextId,
+      draftDate: draftComposer.draftDate,
+      fuelInvoices: draftComposerInvoices.length,
+      batches: draftComposer.batchIds.length,
+      fees: Number(draftComposer.fees || 0),
+      rebate: Number(draftComposer.rebate || 0),
+      expenses: Number(draftComposer.expenses || 0),
+      otherCredits: Number(draftComposer.otherCredits || 0),
+      draftAmount: Number(draftComposerAmount.toFixed(2)),
+      attachments: `${draftComposerDeliveryRows.reduce((sum, row) => sum + countDeliveryAttachments(row.id), 0)} docs`,
+      status: 'Needs review',
+      deliveries: draftComposer.deliveryIds,
+      invoices: draftComposerInvoices,
+      linkedBatches: draftComposer.batchIds,
+    };
+    const firstAttachment = fuelAttachments.find((item) => draftComposer.deliveryIds.includes(item.deliveryId));
+    const remainingOpenDeliveries = deliveryRows
+      .filter((row) => !draftComposer.deliveryIds.includes(row.id) && row.status !== 'Drafted')
+      .map((row) => row.id)
+      .slice(0, 1);
+    const remainingOpenBatches = networkBatchRows
+      .filter((row) => !draftComposer.batchIds.includes(row.id) && row.status !== 'Settled')
+      .map((row) => row.id)
+      .slice(0, 1);
+    setDraftRows((current) => [nextDraft, ...current]);
+    setDeliveryRows((current) => current.map((row) => (
+      draftComposer.deliveryIds.includes(row.id)
+        ? { ...row, draft: nextId, draftDate: draftComposer.draftDate, status: 'Drafted' }
+        : row
+    )));
+    setFuelAttachments((current) => current.map((item) => (
+      draftComposer.deliveryIds.includes(item.deliveryId)
+        ? { ...item, draftId: nextId, note: `Linked to ${nextId} through the draft action flow in demo mode.` }
+        : item
+    )));
+    setNetworkBatchRows((current) => current.map((row) => (
+      draftComposer.batchIds.includes(row.id)
+        ? { ...row, linkedDraft: nextId, status: row.status === 'Settled' ? 'Settled' : 'Linked' }
+        : row
+    )));
+    if (firstAttachment) setSelectedFuelAttachmentId(firstAttachment.id);
+    setSelectedDraftId(nextId);
+    setSelectedNetworkBatchId(draftComposer.batchIds[0] || selectedNetworkBatchId);
+    setDraftComposer({
+      draftDate: '2026-05-10',
+      fees: '245.18',
+      rebate: '121.40',
+      expenses: '90.25',
+      otherCredits: '-18.00',
+      deliveryIds: remainingOpenDeliveries,
+      batchIds: remainingOpenBatches,
+    });
+    setShowAddDraft(false);
+    showNotice(`Draft ${nextId} saved in demo mode. Real fuel draft save and detail endpoints are still pending.`);
   };
 
   const tabs = [
@@ -4635,6 +4839,12 @@ const FuelView = () => {
                   <div className="pricebook-detail-sub">Draft management with a drilldown shell for the Mercury draft detail request.</div>
                 </div>
                 <div className="pricebook-actions">
+                  <button className="pricebook-btn" onClick={() => openDraftActionPacket(selectedDraft)}>
+                    <Icon name="report" size={15} /> Print packet
+                  </button>
+                  <button className="pricebook-btn primary" onClick={() => setShowAddDraft(!showAddDraft)}>
+                    <Icon name="item" size={15} /> {showAddDraft ? 'Hide Add Draft' : 'Add Draft'}
+                  </button>
                   {['CSV', 'XLS', 'JSON'].map((format) => (
                     <button key={format} className="pricebook-btn" onClick={() => exportDrafts(format)}>
                       <Icon name="cash" size={15} /> {format}
@@ -4667,6 +4877,93 @@ const FuelView = () => {
           </div>
 
           <div className="purchase-stack">
+            {showAddDraft ? (
+              <div className="purchase-note-card">
+                <div className="purchase-panel-head">
+                  <div>
+                    <h3>Add Draft</h3>
+                    <p>Operator shell for building a draft from visible deliveries and network batches.</p>
+                  </div>
+                  <span className="purchase-tag">Draft shell</span>
+                </div>
+                <div className="purchase-form-grid">
+                  <div className="purchase-form-field"><label>Draft Date</label><input className="pricebook-input" type="date" value={draftComposer.draftDate} onChange={(e) => setDraftComposer({ ...draftComposer, draftDate: e.target.value })} /></div>
+                  <div className="purchase-form-field"><label>Fees</label><input className="pricebook-input" value={draftComposer.fees} onChange={(e) => setDraftComposer({ ...draftComposer, fees: e.target.value })} /></div>
+                  <div className="purchase-form-field"><label>Rebate</label><input className="pricebook-input" value={draftComposer.rebate} onChange={(e) => setDraftComposer({ ...draftComposer, rebate: e.target.value })} /></div>
+                  <div className="purchase-form-field"><label>Expenses</label><input className="pricebook-input" value={draftComposer.expenses} onChange={(e) => setDraftComposer({ ...draftComposer, expenses: e.target.value })} /></div>
+                  <div className="purchase-form-field"><label>Other Fees / Credits</label><input className="pricebook-input" value={draftComposer.otherCredits} onChange={(e) => setDraftComposer({ ...draftComposer, otherCredits: e.target.value })} /></div>
+                </div>
+                <div className="purchase-panel-head" style={{ marginTop: 18 }}>
+                  <div>
+                    <h3 style={{ fontSize: 16, marginBottom: 4 }}>Deliveries in draft</h3>
+                    <p>Pick the open deliveries that should flow into this draft.</p>
+                  </div>
+                </div>
+                <div className="purchase-queue-list">
+                  {deliveryRows.filter((row) => row.draft === 'Open' || draftComposer.deliveryIds.includes(row.id)).map((row) => (
+                    <div className="purchase-queue-row" key={row.id}>
+                      <div className="purchase-queue-top">
+                        <div>
+                          <div className="purchase-queue-title">{row.id} · {row.deliveryDate}</div>
+                          <div className="purchase-queue-meta">{row.invoice} · {fmt(row.totalAmount)} · {fmtN(row.volume, 0)} gal</div>
+                        </div>
+                        <span className={`purchase-tag${draftComposer.deliveryIds.includes(row.id) ? ' blue' : ' amber'}`}>{draftComposer.deliveryIds.includes(row.id) ? 'Selected' : row.status}</span>
+                      </div>
+                      <div className="pricebook-actions" style={{ marginTop: 12 }}>
+                        <button className="pricebook-btn" onClick={() => toggleDraftComposerDelivery(row.id)}>
+                          <Icon name="item" size={15} /> {draftComposer.deliveryIds.includes(row.id) ? 'Remove' : 'Use in draft'}
+                        </button>
+                        <button className="pricebook-btn soft" onClick={() => setSelectedDeliveryId(row.id)}>
+                          <Icon name="connect" size={15} /> Open delivery
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="purchase-panel-head" style={{ marginTop: 18 }}>
+                  <div>
+                    <h3 style={{ fontSize: 16, marginBottom: 4 }}>Network batches in draft</h3>
+                    <p>Keep the batch settlement tie-out visible before saving the draft.</p>
+                  </div>
+                </div>
+                <div className="purchase-queue-list">
+                  {networkBatchRows.filter((row) => row.status !== 'Settled' || draftComposer.batchIds.includes(row.id)).map((row) => (
+                    <div className="purchase-queue-row" key={row.id}>
+                      <div className="purchase-queue-top">
+                        <div>
+                          <div className="purchase-queue-title">{row.id}</div>
+                          <div className="purchase-queue-meta">{row.date} · Net {fmt(row.net)} · Linked {row.linkedDraft || 'Open'}</div>
+                        </div>
+                        <span className={`purchase-tag${draftComposer.batchIds.includes(row.id) ? ' blue' : ' amber'}`}>{draftComposer.batchIds.includes(row.id) ? 'Selected' : row.status}</span>
+                      </div>
+                      <div className="pricebook-actions" style={{ marginTop: 12 }}>
+                        <button className="pricebook-btn" onClick={() => toggleDraftComposerBatch(row.id)}>
+                          <Icon name="cash" size={15} /> {draftComposer.batchIds.includes(row.id) ? 'Remove' : 'Use in draft'}
+                        </button>
+                        <button className="pricebook-btn soft" onClick={() => setSelectedNetworkBatchId(row.id)}>
+                          <Icon name="report" size={15} /> Open batch
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="purchase-kv-list" style={{ marginTop: 16 }}>
+                  <div className="purchase-kv"><span>Fuel invoices</span><span>{fmtN(draftComposerInvoices.length)}</span></div>
+                  <div className="purchase-kv"><span>Selected gallons</span><span>{fmtN(draftComposerVolume, 0)}</span></div>
+                  <div className="purchase-kv"><span>Batch net</span><span>{fmt(draftComposerBatchRows.reduce((sum, row) => sum + row.net, 0))}</span></div>
+                  <div className="purchase-kv"><span>Draft amount</span><span>{fmt(draftComposerAmount)}</span></div>
+                </div>
+                <div className="pricebook-actions" style={{ marginTop: 16 }}>
+                  <button className="pricebook-btn primary" onClick={() => saveDraft()}>
+                    <Icon name="cash" size={15} /> Save Draft
+                  </button>
+                  <button className="pricebook-btn" onClick={() => setShowAddDraft(false)}>
+                    <Icon name="report" size={15} /> Cancel
+                  </button>
+                </div>
+              </div>
+            ) : null}
+
             <div className="purchase-note-card">
               <div className="purchase-panel-head">
                 <div>
@@ -4679,6 +4976,7 @@ const FuelView = () => {
                 <div className="purchase-kv"><span>Draft ID</span><span>{selectedDraft.id}</span></div>
                 <div className="purchase-kv"><span>Invoices</span><span>{selectedDraft.invoices.join(', ')}</span></div>
                 <div className="purchase-kv"><span>Deliveries</span><span>{selectedDraft.deliveries.join(', ')}</span></div>
+                <div className="purchase-kv"><span>Linked batches</span><span>{(selectedDraft.linkedBatches || []).join(', ') || 'Open'}</span></div>
                 <div className="purchase-kv"><span>Draft amount</span><span>{fmt(selectedDraft.draftAmount)}</span></div>
                 <div className="purchase-kv"><span>Attachments</span><span>{fmtN(countDraftAttachments(selectedDraft.id))} docs</span></div>
               </div>
@@ -4686,11 +4984,33 @@ const FuelView = () => {
                 <button className="pricebook-btn" onClick={() => reviewDraftAttachments(selectedDraft)}>
                   <Icon name="report" size={15} /> Review docs
                 </button>
-                <button className="pricebook-btn" onClick={() => saveFuelAttachmentPacket(draftAttachmentRows[0] || selectedFuelAttachment)}>
-                  <Icon name="cash" size={15} /> Save packet
+                <button className="pricebook-btn" onClick={() => openDraftActionPacket(selectedDraft)}>
+                  <Icon name="cash" size={15} /> Print packet
                 </button>
                 <button className="pricebook-btn primary" onClick={() => showNotice(`${selectedDraft.id} reopened for edit in demo mode.`)}>
                   <Icon name="item" size={15} /> Open draft
+                </button>
+              </div>
+            </div>
+
+            <div className="purchase-note-card">
+              <h3>Draft action packet</h3>
+              <p>Keep the main owner actions visible while the draft is being reviewed and posted.</p>
+              <div className="purchase-kv-list">
+                <div className="purchase-kv"><span>Review state</span><span>{selectedDraft.status}</span></div>
+                <div className="purchase-kv"><span>Network batches</span><span>{selectedDraftBatchRows.length ? selectedDraftBatchRows.map((row) => row.id).join(', ') : 'Not linked yet'}</span></div>
+                <div className="purchase-kv"><span>Fuel invoices</span><span>{fmtN(selectedDraft.invoices.length)}</span></div>
+                <div className="purchase-kv"><span>Prepared amount</span><span>{fmt(selectedDraft.draftAmount)}</span></div>
+              </div>
+              <div className="pricebook-actions" style={{ marginTop: 16 }}>
+                <button className="pricebook-btn" onClick={() => saveDraftActionPacket(selectedDraft)}>
+                  <Icon name="cash" size={15} /> Save packet
+                </button>
+                <button className="pricebook-btn" onClick={() => setDraftStatus(selectedDraft.id, 'Ready to post')}>
+                  <Icon name="connect" size={15} /> Mark ready
+                </button>
+                <button className="pricebook-btn primary" onClick={() => setDraftStatus(selectedDraft.id, selectedDraft.status === 'Submitted' ? 'Needs review' : 'Submitted')}>
+                  <Icon name="success" size={15} /> {selectedDraft.status === 'Submitted' ? 'Reopen' : 'Submit draft'}
                 </button>
               </div>
             </div>
@@ -4752,11 +5072,55 @@ const FuelView = () => {
             <div className="purchase-note-card">
               <h3>Network batches</h3>
               <p>Supporting settlement context kept visible beside the draft drilldown.</p>
-              <div className="purchase-kv-list">
-                {networkBatches.map((row) => (
-                  <div className="purchase-kv" key={row.id}><span>{row.id} · {row.date}</span><span>{fmt(row.net)}</span></div>
+              <div className="purchase-queue-list">
+                {networkBatchRows.map((row) => (
+                  <div className="purchase-queue-row" key={row.id}>
+                    <div className="purchase-queue-top">
+                      <div>
+                        <div className="purchase-queue-title">{row.id}</div>
+                        <div className="purchase-queue-meta">{row.date} · Gross {fmt(row.gross)} · Net {fmt(row.net)}</div>
+                      </div>
+                      <span className={`purchase-tag${row.status === 'Settled' ? ' blue' : row.status === 'Linked' ? ' green' : ' amber'}`}>{row.status}</span>
+                    </div>
+                    <div className="pricebook-actions" style={{ marginTop: 12 }}>
+                      <button className="pricebook-btn soft" onClick={() => setSelectedNetworkBatchId(row.id)}>
+                        <Icon name="report" size={15} /> Select batch
+                      </button>
+                      <button className="pricebook-btn" onClick={() => openNetworkBatchPacket(row)}>
+                        <Icon name="cash" size={15} /> Open packet
+                      </button>
+                    </div>
+                  </div>
                 ))}
               </div>
+            </div>
+
+            <div className="purchase-note-card">
+              <h3>Selected network batch</h3>
+              <p>Batch-level follow-through stays beside the draft instead of becoming a separate workflow.</p>
+              {selectedNetworkBatch ? (
+                <>
+                  <div className="purchase-kv-list">
+                    <div className="purchase-kv"><span>Batch</span><span>{selectedNetworkBatch.id}</span></div>
+                    <div className="purchase-kv"><span>Linked draft</span><span>{selectedNetworkBatch.linkedDraft || 'Open'}</span></div>
+                    <div className="purchase-kv"><span>Fees</span><span>{fmt(selectedNetworkBatch.fees)}</span></div>
+                    <div className="purchase-kv"><span>Net</span><span>{fmt(selectedNetworkBatch.net)}</span></div>
+                  </div>
+                  <div className="pricebook-actions" style={{ marginTop: 16 }}>
+                    <button className="pricebook-btn" onClick={() => saveNetworkBatchPacket(selectedNetworkBatch)}>
+                      <Icon name="cash" size={15} /> Save packet
+                    </button>
+                    <button className="pricebook-btn" onClick={() => linkNetworkBatchToDraft(selectedNetworkBatch, selectedDraft)}>
+                      <Icon name="connect" size={15} /> Use in draft
+                    </button>
+                    <button className="pricebook-btn primary" onClick={() => openDraftDetail(selectedNetworkBatch.linkedDraft || selectedDraft.id)}>
+                      <Icon name="item" size={15} /> Open draft
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <div className="purchase-hint">No network batch is selected right now.</div>
+              )}
             </div>
           </div>
         </div>
