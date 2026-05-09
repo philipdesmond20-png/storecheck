@@ -2106,6 +2106,63 @@ button,input{font:inherit}
   height:16px;
   accent-color:#27C66B;
 }
+.report-delivery-grid{
+  display:grid;
+  grid-template-columns:minmax(0,1.1fr) minmax(320px,.9fr);
+  gap:18px;
+  align-items:start;
+}
+.report-delivery-stack{
+  display:grid;
+  gap:18px;
+}
+.report-delivery-card{
+  border:1px solid var(--line);
+  border-radius:24px;
+  padding:20px;
+  background:#fff;
+  box-shadow:var(--shadow-soft);
+}
+.report-delivery-list{
+  display:grid;
+  gap:12px;
+  margin-top:16px;
+}
+.report-delivery-row{
+  display:grid;
+  gap:10px;
+  padding:16px;
+  border:1px solid var(--line);
+  border-radius:20px;
+  background:#fff;
+}
+.report-delivery-head{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:12px;
+}
+.report-delivery-title{
+  color:var(--text-1);
+  font-size:15px;
+  font-weight:900;
+}
+.report-delivery-meta{
+  color:var(--text-3);
+  font-size:13px;
+  font-weight:700;
+}
+.report-delivery-actions{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+}
+.report-delivery-form{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:14px;
+}
+.report-delivery-form .full{grid-column:1 / -1}
 .purchase-status-dot{
   display:inline-flex;
   width:9px;
@@ -2839,7 +2896,9 @@ button,input{font:inherit}
   .purchase-summary-grid,
   .purchase-form-grid,
   .purchase-split,
-  .purchase-mini-grid{
+  .purchase-mini-grid,
+  .report-delivery-grid,
+  .report-delivery-form{
     grid-template-columns:1fr;
   }
   .pricebook-tabs{overflow-x:auto}
@@ -2851,7 +2910,8 @@ button,input{font:inherit}
   .purchase-history-top,
   .purchase-history-bottom,
   .purchase-queue-top,
-  .purchase-setup-item{
+  .purchase-setup-item,
+  .report-delivery-head{
     flex-direction:column;
     align-items:flex-start;
   }
@@ -3113,6 +3173,7 @@ const reportNavItems = [
   { id: 'week', label: 'This Week' },
   { id: 'monthly', label: 'Monthly' },
   { id: 'custom', label: 'Custom' },
+  { id: 'delivery', label: 'Delivery' },
 ];
 
 const TRANSACTION_ROWS = [
@@ -3245,6 +3306,19 @@ const DEAD_INVENTORY_ROWS = [
   { id: 'DI-1172', upc: '080000753214', department: 'Beverages', itemName: 'Energy Shot Citrus', retail: 2.99, cost: 1.84, inventory: 9, totalCost: 16.56, totalRetail: 26.91, lastSold: '2025-11-04', criteria: '6 Months', action: 'Front counter move' },
 ];
 
+const REPORT_DELIVERY_QUEUE = [
+  { id: 'DLV-301', report: 'Weekly Summary PDF', recipient: 'owner@mainstreetgas.com', status: 'Ready', lastRun: '2026-05-09 08:05', source: 'This Week' },
+  { id: 'DLV-298', report: 'Daily Shift Email', recipient: 'accounting@mainstreetgas.com', status: 'Needs review', lastRun: '2026-05-08 21:18', source: 'Day Report' },
+  { id: 'DLV-291', report: 'QuickBooks Export', recipient: 'bookkeeper@mainstreetgas.com', status: 'Ready', lastRun: '2026-05-08 07:10', source: 'Export Center' },
+];
+
+const REPORT_PRINT_LIBRARY = [
+  { name: 'Summary PDF', reportName: 'summaryPdf', surface: 'This Week / Monthly', format: 'PDF Preview', note: 'Mercury `createSummaryPdf` replacement shell' },
+  { name: 'Days PDF', reportName: 'daysPdf', surface: 'This Week', format: 'PDF Preview', note: 'Mercury `createDaysPdf` replacement shell' },
+  { name: 'Daily PDF', reportName: 'dailyPdf', surface: 'Custom / Daily', format: 'PDF Preview', note: 'Mercury `createDailyPdf` replacement shell' },
+  { name: 'Printable Report Window', reportName: 'openReport', surface: 'Shared report renderer', format: 'HTML Print View', note: 'Mercury `openReport?reportName=` replacement shell' },
+];
+
 const uniqueValues = (rows, key) => [...new Set(rows.map((row) => row[key]))].sort();
 const sumRows = (rows) => rows.reduce((sum, row) => sum + row.amount, 0);
 const groupRows = (rows, key) =>
@@ -3307,6 +3381,52 @@ const downloadTableData = (rows, format, filename) => {
   link.click();
   link.remove();
   URL.revokeObjectURL(url);
+};
+
+const downloadTextData = (body, mime, filename, extension) => {
+  const blob = new Blob([body], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `${filename}.${extension}`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+};
+
+const openPrintPreview = ({ title, subtitle, rows }) => {
+  const popup = window.open('', '_blank', 'noopener,noreferrer,width=960,height=720');
+  if (!popup) return false;
+  const tableRows = rows
+    .map((row) => `<tr>${row.map((cell) => `<td style="padding:10px 12px;border-top:1px solid #E5E7EB;font:600 13px DM Sans, sans-serif;color:#0F172A;">${cell}</td>`).join('')}</tr>`)
+    .join('');
+  popup.document.write(`
+    <html>
+      <head>
+        <title>${title}</title>
+        <style>
+          body{font-family:"DM Sans",sans-serif;padding:32px;color:#0F172A}
+          h1{margin:0 0 6px;font-size:28px}
+          p{margin:0 0 18px;color:#475569;font-weight:600}
+          table{width:100%;border-collapse:collapse}
+          th{padding:10px 12px;text-align:left;background:#F8FAFC;color:#64748B;font-size:11px;letter-spacing:.12em;text-transform:uppercase}
+          .badge{display:inline-block;margin-bottom:18px;padding:7px 12px;border-radius:999px;background:#ECFDF3;color:#15803D;font-size:12px;font-weight:800}
+        </style>
+      </head>
+      <body>
+        <span class="badge">StoreCheck Print Preview</span>
+        <h1>${title}</h1>
+        <p>${subtitle}</p>
+        <table>
+          <thead><tr>${rows[0].map((_, i) => `<th>${['Period','Fuel','Shop','Lottery','Total','Gallons'][i] || `Col ${i + 1}`}</th>`).join('')}</tr></thead>
+          <tbody>${tableRows}</tbody>
+        </table>
+      </body>
+    </html>
+  `);
+  popup.document.close();
+  return true;
 };
 
 const Sidebar = ({
@@ -5942,6 +6062,9 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
 };
 
 const ReportsView = ({ reportPage, setReportPage }) => {
+  const [deliveryNotice, setDeliveryNotice] = useState('');
+  const [deliveryEmail, setDeliveryEmail] = useState('owner@mainstreetgas.com');
+  const [deliverySelection, setDeliverySelection] = useState('Weekly Summary PDF');
   const rows = MOCK.week;
   const totals = rows.reduce(
     (a, r) => ({
@@ -6003,7 +6126,36 @@ const ReportsView = ({ reportPage, setReportPage }) => {
     { id: 'week', label: 'This Week' },
     { id: 'monthly', label: 'Monthly' },
     { id: 'custom', label: 'Custom' },
+    { id: 'delivery', label: 'Delivery' },
   ];
+
+  const showDeliveryNotice = (message) => {
+    setDeliveryNotice(message);
+    window.clearTimeout(window.__storecheckReportDeliveryNotice);
+    window.__storecheckReportDeliveryNotice = window.setTimeout(() => setDeliveryNotice(''), 2800);
+  };
+
+  const weekPrintRows = rows.map((r) => [r.day, fmt(r.fuel), fmt(r.shop), fmt(r.lottery), fmt(r.total), fmtN(r.gallons)]);
+  const monthPrintRows = monthlyRows.map((r) => [r.label, fmt(r.fuel), fmt(r.shop), fmt(r.lottery), fmt(r.total), fmtN(r.gallons)]);
+  const customPrintRows = customSnapshots.map((r) => [r.label, fmt(r.fuel), fmt(r.shop), fmt(r.lottery), fmt(r.total), fmtN(r.gallons)]);
+  const exportDeliveryData = (kind) => {
+    if (kind === 'xml') {
+      const xml = `<report><store>${MOCK.store.name}</store><weekTotal>${totals.total.toFixed(2)}</weekTotal><days>${rows.map((r) => `<day name="${r.day}" total="${r.total}" fuel="${r.fuel}" shop="${r.shop}" lottery="${r.lottery}" gallons="${r.gallons}" />`).join('')}</days></report>`;
+      downloadTextData(xml, 'application/xml', 'storecheck-sales-report', 'xml');
+      return;
+    }
+    if (kind === 'quickbooks') {
+      const qbo = ['TRNS\tDATE\tACCNT\tNAME\tAMOUNT\tDOCNUM', ...rows.map((r, i) => `TRNS\t${r.date}\tSales\t${MOCK.store.name}\t${r.total.toFixed(2)}\tQB-${i + 1}`)].join('\n');
+      downloadTextData(qbo, 'text/plain', 'storecheck-quickbooks-export', 'iif');
+      return;
+    }
+    downloadTableData(rows, kind.toUpperCase(), `storecheck-report-${reportPage}`);
+  };
+
+  const openReportSurface = (title, subtitle, printRows) => {
+    const opened = openPrintPreview({ title, subtitle, rows: printRows });
+    showDeliveryNotice(opened ? `${title} opened in print preview.` : 'Print preview was blocked by the browser.');
+  };
 
   const reportSwitcher = (
     <div className="view-switch" style={{ marginBottom: 18 }}>
@@ -6019,17 +6171,168 @@ const ReportsView = ({ reportPage, setReportPage }) => {
     </div>
   );
 
-  if (reportPage === 'monthly') {
+  const deliveryActions = (title, printRows) => (
+    <div className="pricebook-actions" style={{ marginBottom: 18 }}>
+      <button className="pricebook-btn" onClick={() => openReportSurface(title, `${MOCK.store.name} · ${todayStr()}`, printRows)}>
+        <Icon name="report" size={15} /> Print preview
+      </button>
+      <button className="pricebook-btn" onClick={() => showDeliveryNotice(`${title} queued to ${deliveryEmail}. Live email endpoint still pending.`)}>
+        <Icon name="bell" size={15} /> Email
+      </button>
+      <button className="pricebook-btn primary" onClick={() => exportDeliveryData('csv')}>
+        <Icon name="cash" size={15} /> Export CSV
+      </button>
+    </div>
+  );
+
+  if (reportPage === 'delivery') {
     return (
       <div className="shell">
         <div className="section-hdr">
-          <h1>Reports - Monthly</h1>
-          <p>Month-level rollups for trend checks, owner review, and reconciliation.</p>
+          <h1>Reports - Delivery</h1>
+          <p>Print, email, and export report packages from one place while the live Mercury delivery endpoints are still pending.</p>
         </div>
 
         {reportSwitcher}
+        {deliveryNotice ? <div className="pricebook-notice"><Icon name="report" size={16} /> {deliveryNotice}</div> : null}
 
-        <div className="week-hero">
+        <div className="report-delivery-grid">
+          <div className="report-delivery-stack">
+            <div className="report-delivery-card">
+              <div className="purchase-panel-head">
+                <div>
+                  <h3>Print center</h3>
+                  <p>Replacement shell for Mercury report windows and PDF generation flows.</p>
+                </div>
+              </div>
+              <div className="report-delivery-list">
+                {REPORT_PRINT_LIBRARY.map((row) => (
+                  <div className="report-delivery-row" key={row.name}>
+                    <div className="report-delivery-head">
+                      <div>
+                        <div className="report-delivery-title">{row.name}</div>
+                        <div className="report-delivery-meta">{row.surface} · {row.note}</div>
+                      </div>
+                      <span className="purchase-tag blue">{row.format}</span>
+                    </div>
+                    <div className="report-delivery-actions">
+                      <button className="pricebook-btn" onClick={() => openReportSurface(row.name, `${MOCK.store.name} · delivery layer preview`, row.name === 'Summary PDF' ? monthPrintRows : row.name === 'Days PDF' ? weekPrintRows : customPrintRows)}>
+                        <Icon name="report" size={15} /> Open print view
+                      </button>
+                      <button className="pricebook-btn" onClick={() => showDeliveryNotice(`${row.name} prepared as a demo print package.`)}>
+                        <Icon name="cash" size={15} /> Save package
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="report-delivery-card">
+              <div className="purchase-panel-head">
+                <div>
+                  <h3>Export center</h3>
+                  <p>Client-side replacements for daily downloads, QuickBooks export, and XML handoff.</p>
+                </div>
+              </div>
+              <div className="report-delivery-actions">
+                <button className="pricebook-btn" onClick={() => { exportDeliveryData('csv'); showDeliveryNotice('Day report CSV downloaded.'); }}>
+                  <Icon name="cash" size={15} /> Download report
+                </button>
+                <button className="pricebook-btn" onClick={() => { exportDeliveryData('quickbooks'); showDeliveryNotice('QuickBooks demo export downloaded.'); }}>
+                  <Icon name="cash" size={15} /> QuickBooks
+                </button>
+                <button className="pricebook-btn primary" onClick={() => { exportDeliveryData('xml'); showDeliveryNotice('XML demo export downloaded.'); }}>
+                  <Icon name="cash" size={15} /> XML
+                </button>
+              </div>
+              <div className="purchase-kv-list">
+                <div className="purchase-kv"><span>Weekly source rows</span><span>{fmtN(rows.length)}</span></div>
+                <div className="purchase-kv"><span>Monthly source rows</span><span>{fmtN(monthlyRows.length)}</span></div>
+                <div className="purchase-kv"><span>Custom windows</span><span>{fmtN(customSnapshots.length)}</span></div>
+              </div>
+            </div>
+          </div>
+
+          <div className="report-delivery-stack">
+            <div className="report-delivery-card">
+              <div className="purchase-panel-head">
+                <div>
+                  <h3>Email delivery</h3>
+                  <p>Owner-facing shell for Mercury day and shift email actions.</p>
+                </div>
+              </div>
+              <div className="report-delivery-form">
+                <div>
+                  <label className="form-label">Report package</label>
+                  <select className="form-input" value={deliverySelection} onChange={(e) => setDeliverySelection(e.target.value)}>
+                    {['Weekly Summary PDF', 'Day Report Email', 'Daily PDF', 'QuickBooks Export'].map((item) => <option key={item}>{item}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="form-label">Recipient</label>
+                  <input className="form-input" value={deliveryEmail} onChange={(e) => setDeliveryEmail(e.target.value)} />
+                </div>
+                <div className="full">
+                  <label className="form-label">Message note</label>
+                  <input className="form-input" defaultValue="StoreCheck demo delivery layer. Live Mercury/Vercel wiring still pending." />
+                </div>
+              </div>
+              <div className="report-delivery-actions">
+                <button className="pricebook-btn primary" onClick={() => showDeliveryNotice(`${deliverySelection} queued to ${deliveryEmail}. Live email endpoint still pending.`)}>
+                  <Icon name="bell" size={15} /> Queue email
+                </button>
+              </div>
+            </div>
+
+            <div className="report-delivery-card">
+              <div className="purchase-panel-head">
+                <div>
+                  <h3>Delivery queue</h3>
+                  <p>Short operational queue so owners know what was prepared, reviewed, or still needs follow-up.</p>
+                </div>
+              </div>
+              <div className="report-delivery-list">
+                {REPORT_DELIVERY_QUEUE.map((row) => (
+                  <div className="report-delivery-row" key={row.id}>
+                    <div className="report-delivery-head">
+                      <div>
+                        <div className="report-delivery-title">{row.report}</div>
+                        <div className="report-delivery-meta">{row.recipient} · {row.lastRun} · {row.source}</div>
+                      </div>
+                      <span className={`purchase-tag${row.status === 'Needs review' ? ' amber' : ' blue'}`}>{row.status}</span>
+                    </div>
+                    <div className="report-delivery-actions">
+                      <button className="pricebook-btn" onClick={() => showDeliveryNotice(`${row.report} reopened for review.`)}>
+                        <Icon name="report" size={15} /> Review
+                      </button>
+                      <button className="pricebook-btn" onClick={() => showDeliveryNotice(`${row.report} re-queued to ${row.recipient}.`)}>
+                        <Icon name="bell" size={15} /> Re-send
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (reportPage === 'monthly') {
+    return (
+      <div className="shell">
+      <div className="section-hdr">
+        <h1>Reports - Monthly</h1>
+        <p>Month-level rollups for trend checks, owner review, and reconciliation.</p>
+      </div>
+
+      {reportSwitcher}
+      {deliveryNotice ? <div className="pricebook-notice"><Icon name="report" size={16} /> {deliveryNotice}</div> : null}
+      {deliveryActions('Monthly Summary Report', monthPrintRows)}
+
+      <div className="week-hero">
           {[
             { icon: 'cash', label: 'Month Total', val: fmt(monthlyTotals.total), dark: true, tone: iconDefaults.green },
             { icon: 'fuel', label: 'Fuel Sales', val: fmt(monthlyTotals.fuel), dark: false, tone: iconDefaults.fuel },
@@ -6114,6 +6417,8 @@ const ReportsView = ({ reportPage, setReportPage }) => {
         </div>
 
         {reportSwitcher}
+        {deliveryNotice ? <div className="pricebook-notice"><Icon name="report" size={16} /> {deliveryNotice}</div> : null}
+        {deliveryActions('Custom Window Report', customPrintRows)}
 
         <div className="settings-card" style={{ marginBottom: 20 }}>
           <div className="settings-title">Date & Time Filter</div>
@@ -6213,6 +6518,8 @@ const ReportsView = ({ reportPage, setReportPage }) => {
       </div>
 
       {reportSwitcher}
+      {deliveryNotice ? <div className="pricebook-notice"><Icon name="report" size={16} /> {deliveryNotice}</div> : null}
+      {deliveryActions('Weekly Summary Report', weekPrintRows)}
 
       <div className="week-hero">
         {[
