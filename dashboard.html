@@ -8764,6 +8764,14 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
   const [loginEmail, setLoginEmail] = useState(ACCOUNT_EMAIL_SETTINGS.login);
   const [reportEmail, setReportEmail] = useState(ACCOUNT_EMAIL_SETTINGS.reports);
   const [alertsEmail, setAlertsEmail] = useState(ACCOUNT_EMAIL_SETTINGS.alerts);
+  const [releaseRows, setReleaseRows] = useState(
+    RELEASE_NOTES.map((item, index) => ({
+      ...item,
+      id: `REL-${index + 1}`,
+      status: index === 0 ? 'Needs review' : 'Reviewed',
+    }))
+  );
+  const [selectedReleaseId, setSelectedReleaseId] = useState('REL-1');
   const [tempSessionOpen, setTempSessionOpen] = useState(false);
   const [newScreensEnabled, setNewScreensEnabled] = useState(true);
 
@@ -8771,6 +8779,110 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
     setSessionNotice(message);
     window.clearTimeout(window.__storecheckSessionNotice);
     window.__storecheckSessionNotice = window.setTimeout(() => setSessionNotice(''), 2800);
+  };
+  const selectedRelease = releaseRows.find((item) => item.id === selectedReleaseId) || releaseRows[0];
+  const settingsPacketHtml = ({ title, subtitle, route, note, headers, rows }) => `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>${title}</title>
+  <style>
+    body{font-family:"DM Sans",Arial,sans-serif;background:#F8FAFC;color:#0F172A;padding:28px}
+    .wrap{max-width:980px;margin:0 auto;background:#fff;border:1px solid #E2E8F0;border-radius:18px;padding:28px;box-shadow:0 12px 40px rgba(15,23,42,.08)}
+    h1{margin:0 0 8px;font-size:28px}
+    p{margin:0;color:#475569}
+    .meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin:20px 0}
+    .meta div{background:#F8FAFC;border:1px solid #E2E8F0;border-radius:12px;padding:12px 14px}
+    .meta strong{display:block;font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:#64748B;margin-bottom:6px}
+    table{width:100%;border-collapse:collapse;margin-top:16px}
+    th,td{padding:12px 14px;border-top:1px solid #E2E8F0;text-align:left}
+    th{background:#F8FAFC;font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:#64748B}
+    td{font-weight:600}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>${title}</h1>
+    <p>${subtitle}</p>
+    <div class="meta">
+      <div><strong>Mercury Route</strong>${route}</div>
+      <div><strong>Context</strong>${note}</div>
+      <div><strong>Prepared</strong>${todayStr()}</div>
+    </div>
+    <table>
+      <thead><tr>${headers.map((cell) => `<th>${cell}</th>`).join('')}</tr></thead>
+      <tbody>${rows.map((row) => `<tr>${row.map((cell) => `<td>${cell}</td>`).join('')}</tr>`).join('')}</tbody>
+    </table>
+  </div>
+</body>
+</html>`;
+  const openSettingsPacket = ({ title, subtitle, headers, rows }) => openPrintPreview({ title, subtitle, rows: [headers, ...rows] });
+  const saveSettingsPacket = ({ title, subtitle, route, note, headers, rows, filename }) => {
+    const html = settingsPacketHtml({ title, subtitle, route, note, headers, rows });
+    downloadTextData(html, 'text/html', filename, 'html');
+  };
+  const previewAccountSettings = () =>
+    openSettingsPacket({
+      title: 'Admin Account Settings',
+      subtitle: `${currentLocation.name} · configured email routing`,
+      headers: ['Role', 'Email', 'Surface'],
+      rows: [
+        ['Login / Account', loginEmail, 'Admin / Account'],
+        ['Report Delivery', reportEmail, 'Reports / Delivery'],
+        ['Alerts', alertsEmail, 'Alerts / Session'],
+      ],
+    });
+  const saveAccountSettingsPacket = () => {
+    saveSettingsPacket({
+      title: 'Admin Account Settings Packet',
+      subtitle: `${currentLocation.name} · configured email routing`,
+      route: '/administration/email',
+      note: 'Admin account and email settings replacement shell',
+      headers: ['Role', 'Email', 'Surface'],
+      rows: [
+        ['Login / Account', loginEmail, 'Admin / Account'],
+        ['Report Delivery', reportEmail, 'Reports / Delivery'],
+        ['Alerts', alertsEmail, 'Alerts / Session'],
+      ],
+      filename: 'storecheck-admin-account-settings',
+    });
+    showSessionNotice('Admin account settings packet saved in demo mode.');
+  };
+  const saveLogoutPacket = () => {
+    saveSettingsPacket({
+      title: 'Session Logout Packet',
+      subtitle: `${currentLocation.name} · ${currentLocation.manager}`,
+      route: '/user/logout',
+      note: 'Logout and session handoff replacement shell',
+      headers: ['Store', 'Manager', 'Register Status', 'Agreement', 'Temp Session'],
+      rows: [[currentLocation.name, currentLocation.manager, registerStatus, agreementAccepted ? 'Accepted' : 'Pending', tempSessionOpen ? 'Open' : 'Closed']],
+      filename: 'storecheck-session-logout',
+    });
+    showSessionNotice('Logout/session packet saved in demo mode. Real logout endpoint still pending.');
+  };
+  const previewReleaseNotes = () =>
+    openSettingsPacket({
+      title: 'Release Notes',
+      subtitle: `${currentLocation.name} · StoreCheck updates`,
+      headers: ['Date', 'Title', 'Status', 'Note'],
+      rows: releaseRows.map((item) => [item.date, item.title, item.status, item.note]),
+    });
+  const saveReleaseNotesPacket = () => {
+    saveSettingsPacket({
+      title: 'Release Notes Packet',
+      subtitle: `${currentLocation.name} · StoreCheck updates`,
+      route: '/user/openReleasePage',
+      note: 'Release notes and updates replacement shell',
+      headers: ['Date', 'Title', 'Status', 'Note'],
+      rows: releaseRows.map((item) => [item.date, item.title, item.status, item.note]),
+      filename: 'storecheck-release-notes',
+    });
+    showSessionNotice('Release-notes packet saved in demo mode.');
+  };
+  const markReleaseReviewed = (id) => {
+    setReleaseRows((current) => current.map((item) => (item.id === id ? { ...item, status: 'Reviewed' } : item)));
+    setSelectedReleaseId(id);
+    showSessionNotice(`${id} marked reviewed in demo mode.`);
   };
 
   return (
@@ -8818,6 +8930,24 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
           <div className="connect-status">
             <span className="source-dot"></span>
             <span>{currentLocation.manager} · {currentLocation.status}</span>
+          </div>
+          <div className="purchase-kv-list">
+            <div className="purchase-kv"><span>Register</span><span>{registerStatus}</span></div>
+            <div className="purchase-kv"><span>Agreement</span><span>{agreementAccepted ? 'Accepted' : 'Pending'}</span></div>
+            <div className="purchase-kv"><span>Temp session</span><span>{tempSessionOpen ? 'Open' : 'Closed'}</span></div>
+          </div>
+          <div className="pricebook-actions" style={{ marginTop: 16 }}>
+            <button className="pricebook-btn" onClick={() => openSettingsPacket({
+              title: 'Session Logout Review',
+              subtitle: `${currentLocation.name} · ${currentLocation.manager}`,
+              headers: ['Store', 'Manager', 'Register Status', 'Agreement', 'Temp Session'],
+              rows: [[currentLocation.name, currentLocation.manager, registerStatus, agreementAccepted ? 'Accepted' : 'Pending', tempSessionOpen ? 'Open' : 'Closed']],
+            })}>
+              <Icon name="report" size={15} /> Preview handoff
+            </button>
+            <button className="pricebook-btn" onClick={() => saveLogoutPacket()}>
+              <Icon name="cash" size={15} /> Save packet
+            </button>
           </div>
           <button className="connect-btn" onClick={() => showSessionNotice('Demo session signed out. Real logout endpoint still pending.')}>
             <Icon name="close" size={16} bg="rgba(255,255,255,0.12)" fg="#86EFAC" />
@@ -8920,6 +9050,19 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
           <input className="form-input" value={reportEmail} onChange={(e) => setReportEmail(e.target.value)} />
           <label className="form-label">Alerts Email</label>
           <input className="form-input" value={alertsEmail} onChange={(e) => setAlertsEmail(e.target.value)} />
+          <div className="purchase-kv-list">
+            <div className="purchase-kv"><span>Login route</span><span>{loginEmail}</span></div>
+            <div className="purchase-kv"><span>Reports route</span><span>{reportEmail}</span></div>
+            <div className="purchase-kv"><span>Alerts route</span><span>{alertsEmail}</span></div>
+          </div>
+          <div className="pricebook-actions" style={{ marginTop: 16 }}>
+            <button className="pricebook-btn" onClick={() => previewAccountSettings()}>
+              <Icon name="report" size={15} /> Preview packet
+            </button>
+            <button className="pricebook-btn" onClick={() => saveAccountSettingsPacket()}>
+              <Icon name="cash" size={15} /> Save packet
+            </button>
+          </div>
           <button className="connect-btn" onClick={() => showSessionNotice('Admin account settings saved in demo mode. Real `/administration/email` wiring still pending.')}>
             <Icon name="save" size={16} bg="rgba(255,255,255,0.12)" fg="#86EFAC" />
             <span>Save Account Settings</span>
@@ -8959,14 +9102,35 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
         <div className="settings-card">
           <div className="settings-title">Release Notes & Updates</div>
           <div className="settings-sub">Replacement shell for Mercury release notes and update visibility.</div>
-          {RELEASE_NOTES.map((item) => (
-            <div key={`${item.date}-${item.title}`} className="toggle-row">
+          {releaseRows.map((item) => (
+            <div key={item.id} className="toggle-row" onClick={() => setSelectedReleaseId(item.id)} style={{ cursor: 'pointer' }}>
               <div className="toggle-label">
                 <div style={{ fontWeight: 800 }}>{item.title}</div>
                 <div style={{ color: 'var(--text-3)', fontSize: 12, marginTop: 4 }}>{item.date} · {item.note}</div>
               </div>
+              <span className={`purchase-tag${item.status === 'Needs review' ? ' amber' : ''}`}>{item.status}</span>
             </div>
           ))}
+          {selectedRelease ? (
+            <div className="purchase-kv-list">
+              <div className="purchase-kv"><span>Selected update</span><span>{selectedRelease.title}</span></div>
+              <div className="purchase-kv"><span>Status</span><span>{selectedRelease.status}</span></div>
+              <div className="purchase-kv"><span>Date</span><span>{selectedRelease.date}</span></div>
+            </div>
+          ) : null}
+          <div className="pricebook-actions" style={{ marginTop: 16 }}>
+            <button className="pricebook-btn" onClick={() => previewReleaseNotes()}>
+              <Icon name="report" size={15} /> Preview notes
+            </button>
+            <button className="pricebook-btn" onClick={() => saveReleaseNotesPacket()}>
+              <Icon name="cash" size={15} /> Save packet
+            </button>
+            {selectedRelease ? (
+              <button className="pricebook-btn primary" onClick={() => markReleaseReviewed(selectedRelease.id)}>
+                <Icon name="sync" size={15} /> Mark reviewed
+              </button>
+            ) : null}
+          </div>
           <button className="connect-btn" onClick={() => showSessionNotice('Release notes opened in demo mode. Live update feed still pending.')}>
             <Icon name="report" size={16} bg="rgba(255,255,255,0.12)" fg="#86EFAC" />
             <span>Open Release Notes</span>
