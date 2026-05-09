@@ -9411,10 +9411,34 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
   const [multiPage, setMultiPage] = useState('overview');
   const [compareDate, setCompareDate] = useState('2026-05-09');
   const [selectedStore, setSelectedStore] = useState('All');
+  const [loginSearch, setLoginSearch] = useState('');
+  const [loginLocationId, setLoginLocationId] = useState(currentLocation.id);
+  const [launchTarget, setLaunchTarget] = useState('today');
+  const [authFlowRows, setAuthFlowRows] = useState([
+    { id: 'AUTH-1', time: '08:42', step: 'Location picker opened', route: '/user/viewLocations', store: 'Main Street Gas & Go', status: 'Ready' },
+    { id: 'AUTH-2', time: '08:43', step: 'Redirect to dashboard', route: '/user/openHomePage', store: 'Main Street Gas & Go', status: 'Complete' },
+  ]);
   const [notice, setNotice] = useState('');
 
   const filteredCompare =
     selectedStore === 'All' ? MULTI_STORE_COMPARE : MULTI_STORE_COMPARE.filter((row) => row.store === selectedStore);
+  const filteredLoginLocations = STORE_LOCATIONS.filter((item) => {
+    const haystack = `${item.name} ${item.location} ${item.manager} ${item.status}`.toLowerCase();
+    return haystack.includes(loginSearch.toLowerCase());
+  });
+  const selectedLoginLocation =
+    STORE_LOCATIONS.find((item) => item.id === loginLocationId) ||
+    filteredLoginLocations[0] ||
+    STORE_LOCATIONS[0];
+  const launcherTargets = [
+    { id: 'today', label: "Today's Summary", icon: 'home', note: 'Open dashboard after login redirect' },
+    { id: 'fuel', label: 'Fuel', icon: 'fuel', note: 'Jump straight to deliveries and margins' },
+    { id: 'purchases', label: 'Purchases', icon: 'payments', note: 'Open vendor, expense, and cost workflows' },
+    { id: 'pricebook', label: 'Inventory', icon: 'pricebook', note: 'Open pricebook and pending POS work' },
+    { id: 'reports', label: 'Reports', icon: 'calendar', note: 'Open reporting and delivery surfaces' },
+    { id: 'settings', label: 'Settings', icon: 'gear', note: 'Open session, account, and store controls' },
+  ];
+  const selectedLaunchTarget = launcherTargets.find((item) => item.id === launchTarget) || launcherTargets[0];
   const compareTotals = filteredCompare.reduce(
     (acc, row) => ({
       fuel: acc.fuel + row.fuel,
@@ -9431,11 +9455,114 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
     window.clearTimeout(window.__storecheckMultiStoreNotice);
     window.__storecheckMultiStoreNotice = window.setTimeout(() => setNotice(''), 2800);
   };
+  const multiStorePacketHtml = ({ title, subtitle, route, note, headers, rows }) => `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>${title}</title>
+  <style>
+    body{font-family:"DM Sans",Arial,sans-serif;background:#F8FAFC;color:#0F172A;padding:28px}
+    .wrap{max-width:980px;margin:0 auto;background:#fff;border:1px solid #E2E8F0;border-radius:18px;padding:28px;box-shadow:0 12px 40px rgba(15,23,42,.08)}
+    h1{margin:0 0 8px;font-size:28px}
+    p{margin:0;color:#475569}
+    .meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin:20px 0}
+    .meta div{background:#F8FAFC;border:1px solid #E2E8F0;border-radius:12px;padding:12px 14px}
+    .meta strong{display:block;font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:#64748B;margin-bottom:6px}
+    table{width:100%;border-collapse:collapse;margin-top:16px}
+    th,td{padding:12px 14px;border-top:1px solid #E2E8F0;text-align:left}
+    th{background:#F8FAFC;font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:#64748B}
+    td{font-weight:600}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>${title}</h1>
+    <p>${subtitle}</p>
+    <div class="meta">
+      <div><strong>Mercury Route</strong>${route}</div>
+      <div><strong>Context</strong>${note}</div>
+      <div><strong>Prepared</strong>${todayStr()}</div>
+    </div>
+    <table>
+      <thead><tr>${headers.map((cell) => `<th>${cell}</th>`).join('')}</tr></thead>
+      <tbody>${rows.map((row) => `<tr>${row.map((cell) => `<td>${cell}</td>`).join('')}</tr>`).join('')}</tbody>
+    </table>
+  </div>
+</body>
+</html>`;
+  const openMultiStorePacket = ({ title, subtitle, headers, rows }) => openPrintPreview({ title, subtitle, rows: [headers, ...rows] });
+  const saveMultiStorePacket = ({ title, subtitle, route, note, headers, rows, filename }) => {
+    const html = multiStorePacketHtml({ title, subtitle, route, note, headers, rows });
+    downloadTextData(html, 'text/html', filename, 'html');
+  };
+  const stampAuthFlow = (step, route, store, status) => {
+    const time = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    setAuthFlowRows((current) => [
+      { id: `AUTH-${Date.now()}`, time, step, route, store, status },
+      ...current,
+    ].slice(0, 6));
+  };
+  const previewLocationPicker = () =>
+    openMultiStorePacket({
+      title: 'Post-Login Location Picker',
+      subtitle: `${selectedLoginLocation.name} · selected for session`,
+      headers: ['Store', 'Location', 'Manager', 'Status', 'Selected'],
+      rows: filteredLoginLocations.map((item) => [item.name, item.location, item.manager, item.status, item.id === selectedLoginLocation.id ? 'Yes' : 'No']),
+    });
+  const saveLocationPickerPacket = () => {
+    saveMultiStorePacket({
+      title: 'Post-Login Location Picker Packet',
+      subtitle: `${selectedLoginLocation.name} · selected for session`,
+      route: '/user/viewLocations',
+      note: 'Post-auth location picker replacement shell',
+      headers: ['Store', 'Location', 'Manager', 'Status', 'Selected'],
+      rows: filteredLoginLocations.map((item) => [item.name, item.location, item.manager, item.status, item.id === selectedLoginLocation.id ? 'Yes' : 'No']),
+      filename: 'storecheck-post-login-location-picker',
+    });
+    showNotice('Location-picker packet saved in demo mode.');
+  };
+  const openHomeRedirect = () => {
+    setLocationId(selectedLoginLocation.id);
+    setView('today');
+    stampAuthFlow('Redirect to dashboard', '/user/openHomePage', selectedLoginLocation.name, 'Complete');
+    showNotice(`${selectedLoginLocation.name} opened from the post-login redirect in demo mode.`);
+  };
+  const saveHomeRedirectPacket = () => {
+    saveMultiStorePacket({
+      title: 'Post-Auth Redirect Packet',
+      subtitle: `${selectedLoginLocation.name} · Today's Summary`,
+      route: '/user/openHomePage',
+      note: 'Post-login redirect replacement shell',
+      headers: ['Store', 'Manager', 'Destination', 'Route'],
+      rows: [[selectedLoginLocation.name, selectedLoginLocation.manager, "Today's Summary", '/user/openHomePage']],
+      filename: 'storecheck-post-auth-redirect',
+    });
+    showNotice('Post-auth redirect packet saved in demo mode.');
+  };
+  const openModuleLauncher = () => {
+    setLocationId(selectedLoginLocation.id);
+    setView(selectedLaunchTarget.id);
+    stampAuthFlow(`Module opened: ${selectedLaunchTarget.label}`, '/user/puzzleMainPage', selectedLoginLocation.name, 'Launched');
+    showNotice(`${selectedLaunchTarget.label} opened for ${selectedLoginLocation.name} in demo mode.`);
+  };
+  const saveModuleLauncherPacket = () => {
+    saveMultiStorePacket({
+      title: 'Module Launcher Packet',
+      subtitle: `${selectedLoginLocation.name} · ${selectedLaunchTarget.label}`,
+      route: '/user/puzzleMainPage',
+      note: 'Module launcher replacement shell after location selection',
+      headers: ['Store', 'Module', 'Manager', 'Route'],
+      rows: [[selectedLoginLocation.name, selectedLaunchTarget.label, selectedLoginLocation.manager, '/user/puzzleMainPage']],
+      filename: 'storecheck-module-launcher',
+    });
+    showNotice('Module-launcher packet saved in demo mode.');
+  };
   const exportCompare = (format) => downloadTableData(filteredCompare, format, 'storecheck-multi-store-compare');
   const tabs = [
     { id: 'overview', label: 'Overview', icon: 'connect' },
     { id: 'compare', label: 'Daily Compare', icon: 'calendar' },
     { id: 'switcher', label: 'Store Switcher', icon: 'shop' },
+    { id: 'login', label: 'Login Flow', icon: 'home' },
   ];
 
   return (
@@ -9500,7 +9627,7 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
               <p>Replacement shell for Mercury multi-dashboard redirect and store-picker flow.</p>
               <div className="purchase-kv-list">
                 <div className="purchase-kv"><span>Active location</span><span>{currentLocation.name}</span></div>
-                <div className="purchase-kv"><span>Picker coverage</span><span>Sidebar + Settings + Multi-Store</span></div>
+                <div className="purchase-kv"><span>Picker coverage</span><span>Sidebar + Settings + Multi-Store + Login Flow</span></div>
                 <div className="purchase-kv"><span>Redirect mode</span><span>Dashboard shell only</span></div>
               </div>
               <button className="pricebook-btn primary" style={{ marginTop: 16 }} onClick={() => { setView('today'); showNotice(`Redirected to ${currentLocation.name} in demo mode.`); }}>
@@ -9601,6 +9728,121 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
                 <div className="purchase-kv"><span>Sidebar picker</span><span>Ready</span></div>
                 <div className="purchase-kv"><span>Settings picker</span><span>Ready</span></div>
                 <div className="purchase-kv"><span>Multi-store switcher</span><span>Ready</span></div>
+                <div className="purchase-kv"><span>Post-login picker</span><span>Ready</span></div>
+                <div className="purchase-kv"><span>Module launcher</span><span>Ready</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {multiPage === 'login' ? (
+        <div className="purchase-grid">
+          <div className="purchase-stack">
+            <div className="purchase-surface">
+              <div className="pricebook-toolbar" style={{ padding: '20px 20px 0' }}>
+                <div>
+                  <div className="pricebook-detail-title">Post-login location picker</div>
+                  <div className="pricebook-detail-sub">Make the Mercury location selection and home redirect visible before the module launcher opens.</div>
+                </div>
+                <div className="pricebook-actions">
+                  <input className="pricebook-input" value={loginSearch} onChange={(e) => setLoginSearch(e.target.value)} placeholder="Search stores, manager, or address" />
+                  <button className="pricebook-btn" onClick={() => previewLocationPicker()}>
+                    <Icon name="report" size={15} /> Preview picker
+                  </button>
+                  <button className="pricebook-btn" onClick={() => saveLocationPickerPacket()}>
+                    <Icon name="cash" size={15} /> Save packet
+                  </button>
+                </div>
+              </div>
+              <div className="purchase-summary-grid">
+                {filteredLoginLocations.map((item) => (
+                  <div className="purchase-note-card" key={item.id}>
+                    <div className="purchase-panel-head">
+                      <div>
+                        <h3>{item.name}</h3>
+                        <p>{item.location} · {item.manager}</p>
+                      </div>
+                      <span className={`purchase-tag${item.id === selectedLoginLocation.id ? ' blue' : ''}`}>{item.id === selectedLoginLocation.id ? 'Selected' : item.status}</span>
+                    </div>
+                    <div className="purchase-kv-list">
+                      <div className="purchase-kv"><span>Role</span><span>{item.status}</span></div>
+                      <div className="purchase-kv"><span>Manager</span><span>{item.manager}</span></div>
+                    </div>
+                    <div className="pricebook-actions" style={{ marginTop: 16 }}>
+                      <button className="pricebook-btn" onClick={() => { setLoginLocationId(item.id); stampAuthFlow('Location selected', '/user/viewLocations', item.name, 'Selected'); showNotice(`${item.name} selected in the post-login picker.`); }}>
+                        <Icon name="connect" size={15} /> Select store
+                      </button>
+                      <button className="pricebook-btn primary" onClick={() => { setLoginLocationId(item.id); setLocationId(item.id); setView('today'); stampAuthFlow('Redirect to dashboard', '/user/openHomePage', item.name, 'Complete'); showNotice(`${item.name} opened from the post-login picker in demo mode.`); }}>
+                        <Icon name="home" size={15} /> Continue
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="purchase-stack">
+            <div className="purchase-note-card">
+              <h3>Selected login location</h3>
+              <p>Keep the chosen location and redirect route visible before opening the dashboard or a module.</p>
+              <div className="purchase-kv-list">
+                <div className="purchase-kv"><span>Store</span><span>{selectedLoginLocation.name}</span></div>
+                <div className="purchase-kv"><span>Manager</span><span>{selectedLoginLocation.manager}</span></div>
+                <div className="purchase-kv"><span>Picker route</span><span>/user/viewLocations</span></div>
+                <div className="purchase-kv"><span>Home route</span><span>/user/openHomePage</span></div>
+              </div>
+              <div className="pricebook-actions" style={{ marginTop: 16 }}>
+                <button className="pricebook-btn" onClick={() => saveHomeRedirectPacket()}>
+                  <Icon name="cash" size={15} /> Save redirect
+                </button>
+                <button className="pricebook-btn primary" onClick={() => openHomeRedirect()}>
+                  <Icon name="home" size={15} /> Open home
+                </button>
+              </div>
+            </div>
+
+            <div className="purchase-note-card">
+              <h3>Module launcher</h3>
+              <p>Replacement shell for Mercury module-launch context after the store is chosen.</p>
+              <div className="pricebook-actions" style={{ flexWrap: 'wrap' }}>
+                {launcherTargets.map((item) => (
+                  <button key={item.id} className={`pricebook-btn${launchTarget === item.id ? ' primary' : ''}`} onClick={() => setLaunchTarget(item.id)}>
+                    <Icon name={item.icon} size={15} /> {item.label}
+                  </button>
+                ))}
+              </div>
+              <div className="purchase-kv-list" style={{ marginTop: 16 }}>
+                <div className="purchase-kv"><span>Selected module</span><span>{selectedLaunchTarget.label}</span></div>
+                <div className="purchase-kv"><span>Launcher route</span><span>/user/puzzleMainPage</span></div>
+                <div className="purchase-kv"><span>Context</span><span>{selectedLaunchTarget.note}</span></div>
+              </div>
+              <div className="pricebook-actions" style={{ marginTop: 16 }}>
+                <button className="pricebook-btn" onClick={() => saveModuleLauncherPacket()}>
+                  <Icon name="cash" size={15} /> Save launcher
+                </button>
+                <button className="pricebook-btn primary" onClick={() => openModuleLauncher()}>
+                  <Icon name={selectedLaunchTarget.icon} size={15} /> Open module
+                </button>
+              </div>
+            </div>
+
+            <div className="purchase-note-card">
+              <h3>Recent auth flow</h3>
+              <p>Session handoff stays visible so owners can see where the login flow routed next.</p>
+              <div className="purchase-queue-list">
+                {authFlowRows.map((row) => (
+                  <div className="purchase-queue-row" key={row.id}>
+                    <div className="purchase-queue-top">
+                      <div>
+                        <div className="purchase-queue-title">{row.step}</div>
+                        <div className="purchase-queue-meta">{row.time} · {row.store} · {row.route}</div>
+                      </div>
+                      <span className={`purchase-tag${row.status === 'Complete' || row.status === 'Launched' ? ' blue' : ' amber'}`}>{row.status}</span>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
