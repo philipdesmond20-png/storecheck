@@ -5776,7 +5776,11 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
   const [deadDept, setDeadDept] = useState('All');
   const [deadWindow, setDeadWindow] = useState('12 Months');
   const [deadCriteria, setDeadCriteria] = useState('All flagged items');
+  const [purchaseLedgerRows, setPurchaseLedgerRows] = useState(PURCHASE_LEDGER);
+  const [costUpdateRows, setCostUpdateRows] = useState(COST_UPDATE_ROWS);
+  const [deadInventoryRows, setDeadInventoryRows] = useState(DEAD_INVENTORY_ROWS.map((row) => ({ ...row, stage: 'Review' })));
   const [deadSelected, setDeadSelected] = useState(DEAD_INVENTORY_ROWS.slice(0, 2).map((row) => row.id));
+  const [selectedLedgerId, setSelectedLedgerId] = useState(PURCHASE_LEDGER.find((row) => row.status !== 'Cleared')?.id || PURCHASE_LEDGER[0].id);
   const [attachments, setAttachments] = useState(ATTACHMENT_LIBRARY);
   const [purchaseDraft, setPurchaseDraft] = useState({
     date: '2026-05-09',
@@ -5800,12 +5804,13 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
   const purchaseSpendTotal = PURCHASE_CATEGORY_SUMMARY.reduce((sum, row) => sum + row.expenses, 0);
   const purchaseRetailTotal = PURCHASE_CATEGORY_SUMMARY.reduce((sum, row) => sum + row.retail, 0);
   const paymentTotal = PURCHASE_PAYMENT_METHODS.reduce((sum, row) => sum + row.amount, 0);
-  const cashPurchaseTotal = PURCHASE_LEDGER.filter((row) => row.paymentType === 'Cash').reduce((sum, row) => sum + row.storeExpense, 0);
+  const cashPurchaseTotal = purchaseLedgerRows.filter((row) => row.paymentType === 'Cash').reduce((sum, row) => sum + row.storeExpense, 0);
   const cashExpenseTotal = OPERATING_EXPENSES.filter((row) => row.paymentType === 'Cash').reduce((sum, row) => sum + row.amount, 0);
-  const filteredPurchaseLedger = vendorFilter === 'All' ? PURCHASE_LEDGER : PURCHASE_LEDGER.filter((row) => row.vendor === vendorFilter);
+  const filteredPurchaseLedger = vendorFilter === 'All' ? purchaseLedgerRows : purchaseLedgerRows.filter((row) => row.vendor === vendorFilter);
   const filteredExpenses = vendorFilter === 'All' ? OPERATING_EXPENSES : OPERATING_EXPENSES.filter((row) => row.vendor === vendorFilter);
-  const filteredCostUpdates = COST_UPDATE_ROWS.filter((row) => costCategory === 'All' || row.category === costCategory);
-  const filteredDeadInventory = DEAD_INVENTORY_ROWS.filter((row) => {
+  const costFilteredRows = costUpdateRows.filter((row) => costCategory === 'All' || row.category === costCategory);
+  const visibleCostUpdates = costFilteredRows.filter((row) => costView === 'Latest Updates' || (costView === 'Needs Confirm' ? row.status === 'Needs confirm' : row.status === 'Ready'));
+  const filteredDeadInventory = deadInventoryRows.filter((row) => {
     const deptMatch = deadDept === 'All' || row.department === deadDept;
     const windowMatch = deadWindow === 'All' || row.criteria === deadWindow;
     const criteriaMatch =
@@ -5815,12 +5820,15 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
   });
   const activeVendors = VENDOR_MASTER.filter((row) => row.active).length;
   const pendingReviews = PURCHASE_REVIEW_QUEUE.filter((row) => row.status !== 'Ready to post').length;
-  const unclearedLedger = PURCHASE_LEDGER.filter((row) => row.status !== 'Cleared').length;
+  const unclearedLedger = purchaseLedgerRows.filter((row) => row.status !== 'Cleared').length;
   const expenseMonthTotal = OPERATING_EXPENSES.reduce((sum, row) => sum + row.amount, 0);
-  const pendingCostConfirms = COST_UPDATE_ROWS.filter((row) => row.status !== 'Ready').length;
-  const deadInventoryUnits = DEAD_INVENTORY_ROWS.reduce((sum, row) => sum + row.inventory, 0);
-  const deadInventoryCost = DEAD_INVENTORY_ROWS.reduce((sum, row) => sum + row.totalCost, 0);
-  const vendorOptions = ['All', ...uniqueValues([...PURCHASE_LEDGER, ...OPERATING_EXPENSES], 'vendor')];
+  const pendingCostConfirms = costUpdateRows.filter((row) => row.status !== 'Ready').length;
+  const deadInventoryUnits = deadInventoryRows.reduce((sum, row) => sum + row.inventory, 0);
+  const deadInventoryCost = deadInventoryRows.reduce((sum, row) => sum + row.totalCost, 0);
+  const vendorOptions = ['All', ...uniqueValues([...purchaseLedgerRows, ...OPERATING_EXPENSES], 'vendor')];
+  const selectedLedger = filteredPurchaseLedger.find((row) => row.id === selectedLedgerId) || filteredPurchaseLedger[0] || purchaseLedgerRows[0];
+  const selectedDeadRows = deadInventoryRows.filter((row) => deadSelected.includes(row.id));
+  const stagedInactiveCount = deadInventoryRows.filter((row) => row.stage === 'Staged InActive').length;
   const tabs = [
     { id: 'overview', label: 'Overview', icon: 'payments' },
     { id: 'purchase', label: 'Add Purchase', icon: 'pricebook' },
@@ -5853,7 +5861,7 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
     setDeadWindow('12 Months');
     setDeadDept('All');
     setDeadCriteria('All flagged items');
-    setDeadSelected(DEAD_INVENTORY_ROWS.slice(0, 2).map((row) => row.id));
+    setDeadSelected(deadInventoryRows.slice(0, 2).map((row) => row.id));
   };
   const addAttachment = (file, module, record, type) => {
     if (!file) return;
@@ -5875,6 +5883,160 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
   const downloadAttachment = (item) => {
     const body = JSON.stringify(item, null, 2);
     downloadTextData(body, 'application/json', item.fileName.replace(/\.[^.]+$/, '') + '-reference', 'json');
+  };
+  const buildPacketHtml = ({ title, subtitle, route, note, headers, rows }) => `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>${title}</title>
+  <style>
+    body{font-family:"DM Sans",Arial,sans-serif;background:#F8FAFC;color:#0F172A;padding:28px}
+    .wrap{max-width:980px;margin:0 auto;background:#fff;border:1px solid #E2E8F0;border-radius:18px;padding:28px;box-shadow:0 12px 40px rgba(15,23,42,.08)}
+    h1{margin:0 0 8px;font-size:28px}
+    p{margin:0;color:#475569}
+    .meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin:20px 0}
+    .meta div{background:#F8FAFC;border:1px solid #E2E8F0;border-radius:12px;padding:12px 14px}
+    .meta strong{display:block;font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:#64748B;margin-bottom:6px}
+    table{width:100%;border-collapse:collapse;margin-top:16px}
+    th,td{padding:12px 14px;border-top:1px solid #E2E8F0;text-align:left}
+    th{background:#F8FAFC;font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:#64748B}
+    td{font-weight:600}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>${title}</h1>
+    <p>${subtitle}</p>
+    <div class="meta">
+      <div><strong>Mercury Route</strong>${route}</div>
+      <div><strong>Context</strong>${note}</div>
+      <div><strong>Prepared</strong>${todayStr()}</div>
+    </div>
+    <table>
+      <thead><tr>${headers.map((cell) => `<th>${cell}</th>`).join('')}</tr></thead>
+      <tbody>${rows.map((row) => `<tr>${row.map((cell) => `<td>${cell}</td>`).join('')}</tr>`).join('')}</tbody>
+    </table>
+  </div>
+</body>
+</html>`;
+  const openPacketPreview = ({ title, subtitle, headers, rows }) =>
+    openPrintPreview({ title, subtitle, rows: [headers, ...rows] });
+  const savePacket = ({ title, subtitle, route, note, headers, rows, filename, extension = 'html' }) => {
+    const html = buildPacketHtml({ title, subtitle, route, note, headers, rows });
+    downloadTextData(html, 'text/html', filename, extension);
+  };
+  const confirmLedgerRow = (id) => {
+    setPurchaseLedgerRows((current) =>
+      current.map((row) =>
+        row.id === id
+          ? {
+              ...row,
+              status: 'Cleared',
+              difference: 0,
+              comments: row.comments.includes('Confirmed') ? row.comments : `${row.comments} · Confirmed in demo mode.`,
+            }
+          : row
+      )
+    );
+    setSelectedLedgerId(id);
+    showNotice(`${id} marked cleared in demo mode. Real purchase-post endpoint is still pending.`);
+  };
+  const previewLedger = () =>
+    openPacketPreview({
+      title: 'Purchase Ledger',
+      subtitle: 'StoreCheck demo posting workflow',
+      headers: ['Date', 'Vendor', 'Payment', 'Store Expense', 'Store Audit', 'Difference', 'Status'],
+      rows: filteredPurchaseLedger.map((row) => [row.date, row.vendor, row.paymentType, fmt(row.storeExpense), fmt(row.storeAudit), row.difference ? fmt(row.difference) : '-', row.status]),
+    });
+  const emailLedgerPacket = (row = selectedLedger) => {
+    if (!row) return;
+    savePacket({
+      title: `Purchase Ledger Packet - ${row.id}`,
+      subtitle: `${row.vendor} · ${row.date}`,
+      route: '/storeExpenses/index',
+      note: 'Purchases Ledger E-mail replacement shell',
+      headers: ['Date', 'Vendor', 'Payment', 'Check #', 'Expense', 'Audit', 'Difference', 'Status', 'Invoice'],
+      rows: [[row.date, row.vendor, row.paymentType, row.checkNo, fmt(row.storeExpense), fmt(row.storeAudit), row.difference ? fmt(row.difference) : '-', row.status, row.invoice]],
+      filename: `storecheck-purchase-ledger-${row.id.toLowerCase()}`,
+    });
+    showNotice(`Ledger packet prepared for ${row.vendor}. Live purchase e-mail endpoint is still pending.`);
+  };
+  const printCostPacket = () =>
+    openPacketPreview({
+      title: 'Cost Updates',
+      subtitle: 'StoreCheck demo cost confirmation queue',
+      headers: ['Update Time', 'UPC', 'Item', 'Prev Cost', 'New Cost', 'Retail', 'Status'],
+      rows: visibleCostUpdates.map((row) => [row.updatedAt, row.upc, row.itemName, fmt(row.prevCost), fmt(row.newCost), fmt(row.retail), row.status]),
+    });
+  const emailCostPacket = () => {
+    savePacket({
+      title: 'Cost Update Email Packet',
+      subtitle: `${visibleCostUpdates.length} visible updates`,
+      route: '/storeExpenses/index',
+      note: 'Cost Updates E-mail replacement shell',
+      headers: ['Update Time', 'Item', 'Category', 'Prev Cost', 'New Cost', 'Margin', 'Status'],
+      rows: visibleCostUpdates.map((row) => [row.updatedAt, row.itemName, row.category, fmt(row.prevCost), fmt(row.newCost), `${row.margin}%`, row.status]),
+      filename: 'storecheck-cost-update-email-packet',
+    });
+    showNotice('Cost update e-mail packet prepared in demo mode. Live e-mail endpoint is still pending.');
+  };
+  const confirmCostRow = (id) => {
+    setCostUpdateRows((current) => current.map((row) => (row.id === id ? { ...row, status: 'Ready' } : row)));
+    showNotice(`${id} marked confirmed in demo mode. Real save/sync endpoint is still pending.`);
+  };
+  const confirmAllCosts = () => {
+    if (!visibleCostUpdates.length) {
+      showNotice('No visible cost updates to confirm.');
+      return;
+    }
+    setCostUpdateRows((current) =>
+      current.map((row) =>
+        visibleCostUpdates.some((item) => item.id === row.id) ? { ...row, status: 'Ready' } : row
+      )
+    );
+    showNotice(`${visibleCostUpdates.length} visible cost updates marked confirmed in demo mode.`);
+  };
+  const reviewDeadSelection = () => {
+    if (!selectedDeadRows.length) {
+      showNotice('Select at least one dead inventory row first.');
+      return;
+    }
+    openPacketPreview({
+      title: 'Dead Inventory Inactivation Review',
+      subtitle: `${selectedDeadRows.length} selected items`,
+      headers: ['UPC', 'Department', 'Item', 'Inventory', 'Total Cost', 'Recommendation', 'Stage'],
+      rows: selectedDeadRows.map((row) => [row.upc, row.department, row.itemName, fmtN(row.inventory), fmt(row.totalCost), row.action, row.stage]),
+    });
+  };
+  const stageInactiveItems = () => {
+    if (!deadSelected.length) {
+      showNotice('Select at least one item before staging an inactivation pass.');
+      return;
+    }
+    setDeadInventoryRows((current) =>
+      current.map((row) =>
+        deadSelected.includes(row.id)
+          ? { ...row, stage: 'Staged InActive' }
+          : row
+      )
+    );
+    showNotice(`${deadSelected.length} items staged for inactivation review. Real inactivation endpoint is still pending.`);
+  };
+  const saveDeadPacket = () => {
+    if (!selectedDeadRows.length) {
+      showNotice('Select at least one dead inventory row first.');
+      return;
+    }
+    savePacket({
+      title: 'Dead Inventory Inactivation Packet',
+      subtitle: `${selectedDeadRows.length} selected items`,
+      route: '/storeExpenses/index',
+      note: 'Dead Inventory InActive replacement shell',
+      headers: ['UPC', 'Department', 'Item', 'Inventory', 'Total Cost', 'Criteria', 'Stage'],
+      rows: selectedDeadRows.map((row) => [row.upc, row.department, row.itemName, fmtN(row.inventory), fmt(row.totalCost), row.criteria, row.stage]),
+      filename: 'storecheck-dead-inventory-inactive-packet',
+    });
+    showNotice('Dead inventory inactivation packet saved in demo mode.');
   };
   const exportRows = (rows, format, filename) => downloadTableData(rows, format, filename);
 
@@ -6065,7 +6227,7 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
               <div className="purchase-form-field"><label>Amount</label><input className="pricebook-input" value={purchaseDraft.amount} onChange={(e) => handlePurchaseDraft('amount', e.target.value)} /></div>
               <div className="purchase-form-field"><label>Payment type</label><select className="pricebook-select" value={purchaseDraft.paymentType} onChange={(e) => handlePurchaseDraft('paymentType', e.target.value)}>{['Cash', 'Check', 'EFT'].map((item) => <option key={item}>{item}</option>)}</select></div>
               <div className="purchase-form-field"><label>Check #</label><input className="pricebook-input" value={purchaseDraft.checkNo} onChange={(e) => handlePurchaseDraft('checkNo', e.target.value)} placeholder="Optional" /></div>
-              <div className="purchase-form-field"><label>Vendor</label><select className="pricebook-select" value={purchaseDraft.vendor} onChange={(e) => handlePurchaseDraft('vendor', e.target.value)}>{uniqueValues(PURCHASE_LEDGER, 'vendor').map((item) => <option key={item}>{item}</option>)}</select></div>
+              <div className="purchase-form-field"><label>Vendor</label><select className="pricebook-select" value={purchaseDraft.vendor} onChange={(e) => handlePurchaseDraft('vendor', e.target.value)}>{uniqueValues(purchaseLedgerRows, 'vendor').map((item) => <option key={item}>{item}</option>)}</select></div>
               <div className="purchase-form-field full"><label>Comments</label><textarea className="pricebook-input" value={purchaseDraft.comments} onChange={(e) => handlePurchaseDraft('comments', e.target.value)} /></div>
               <div className="purchase-form-field full"><label>Invoice upload</label><input className="purchase-file" type="file" onChange={(e) => addAttachment(e.target.files?.[0], 'Purchases', purchaseDraft.vendor, 'Invoice')} /></div>
             </div>
@@ -6109,7 +6271,7 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
               <h3>Recent purchases</h3>
               <p>Keep the last few grocery and operating buys visible while entering new invoices.</p>
               <div className="purchase-history-list">
-                {PURCHASE_LEDGER.slice(0, 3).map((row) => (
+                {purchaseLedgerRows.slice(0, 3).map((row) => (
                   <div className="purchase-history-row" key={row.id}>
                     <div className="purchase-history-top">
                       <div>
@@ -6205,19 +6367,30 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
                   <div className="pricebook-detail-title">Purchase ledger</div>
                   <div className="pricebook-detail-sub">Export-ready grocery and supply history, with Mercury-style expense versus audit comparison.</div>
                 </div>
-                {renderExportButtons(filteredPurchaseLedger, 'storecheck-purchase-ledger')}
+                <div className="pricebook-actions">
+                  <button className="pricebook-btn" onClick={() => previewLedger()}>
+                    <Icon name="report" size={15} /> Print
+                  </button>
+                  <button className="pricebook-btn" onClick={() => emailLedgerPacket()}>
+                    <Icon name="bell" size={15} /> E-mail
+                  </button>
+                  <button className="pricebook-btn primary" onClick={() => setPurchasePage('purchase')}>
+                    <Icon name="cash" size={15} /> Add Purchase
+                  </button>
+                </div>
               </div>
               <div className="pricebook-filters" style={{ padding: '0 20px 16px' }}>
                 <select className="pricebook-select" value={vendorFilter} onChange={(e) => setVendorFilter(e.target.value)}>
                   {vendorOptions.map((item) => <option key={item}>{item}</option>)}
                 </select>
+                {renderExportButtons(filteredPurchaseLedger, 'storecheck-purchase-ledger')}
               </div>
               <div className="mobile-table-scroll">
                 <table className="purchase-table">
                   <thead><tr><th>Date</th><th>Vendor</th><th>Payment</th><th>Check #</th><th className="purchase-right">Store Expense</th><th className="purchase-right">Store Audit</th><th className="purchase-right">Difference</th><th className="purchase-right">Items</th><th>Status</th><th>Invoice</th><th>Comments</th><th>Check Print</th></tr></thead>
                   <tbody>
                     {filteredPurchaseLedger.map((row) => (
-                      <tr key={row.id}>
+                      <tr key={row.id} onClick={() => setSelectedLedgerId(row.id)} style={{ cursor: 'pointer' }}>
                         <td>{row.date}</td>
                         <td>{row.vendor}</td>
                         <td>{row.paymentType}</td>
@@ -6226,7 +6399,15 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
                         <td className="purchase-right">{fmt(row.storeAudit)}</td>
                         <td className="purchase-right">{row.difference ? fmt(row.difference) : '-'}</td>
                         <td className="purchase-right">{fmtN(row.items)}</td>
-                        <td><span className={`purchase-tag${toneClass(row.status)}`}>{row.status}</span></td>
+                        <td>
+                          {row.status === 'Confirm' ? (
+                            <button className="pricebook-btn primary" onClick={(e) => { e.stopPropagation(); confirmLedgerRow(row.id); }}>
+                              <Icon name="sync" size={15} /> Confirm
+                            </button>
+                          ) : (
+                            <span className={`purchase-tag${toneClass(row.status)}`}>{row.status}</span>
+                          )}
+                        </td>
                         <td>{row.invoice}</td>
                         <td>{row.comments}</td>
                         <td>{row.checkPrint}</td>
@@ -6265,6 +6446,54 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
                 </table>
               </div>
             </div>
+
+            <div className="purchase-summary-grid">
+              <div className="purchase-note-card">
+                <h3>Ledger posting summary</h3>
+                <p>Short owner-facing checkpoint before marking vendor rows fully cleared.</p>
+                <div className="purchase-kv-list">
+                  <div className="purchase-kv"><span>Visible purchase rows</span><span>{fmtN(filteredPurchaseLedger.length)}</span></div>
+                  <div className="purchase-kv"><span>Uncleared rows</span><span>{fmtN(filteredPurchaseLedger.filter((row) => row.status !== 'Cleared').length)}</span></div>
+                  <div className="purchase-kv"><span>Visible expense rows</span><span>{fmtN(filteredExpenses.length)}</span></div>
+                  <div className="purchase-kv"><span>Selected vendor filter</span><span>{vendorFilter}</span></div>
+                </div>
+              </div>
+
+              <div className="purchase-note-card">
+                <h3>Selected ledger row</h3>
+                <p>Use this workbench to mirror the Mercury clear-and-share workflow without leaving the ledger.</p>
+                {selectedLedger ? (
+                  <>
+                    <div className="purchase-kv-list">
+                      <div className="purchase-kv"><span>Vendor</span><span>{selectedLedger.vendor}</span></div>
+                      <div className="purchase-kv"><span>Difference</span><span>{selectedLedger.difference ? fmt(selectedLedger.difference) : '-'}</span></div>
+                      <div className="purchase-kv"><span>Status</span><span>{selectedLedger.status}</span></div>
+                      <div className="purchase-kv"><span>Invoice</span><span>{selectedLedger.invoice}</span></div>
+                    </div>
+                    <div className="pricebook-actions" style={{ marginTop: 16 }}>
+                      <button className="pricebook-btn" onClick={() => emailLedgerPacket(selectedLedger)}>
+                        <Icon name="bell" size={15} /> E-mail packet
+                      </button>
+                      <button className="pricebook-btn" onClick={() => openPacketPreview({
+                        title: `Purchase Ledger Row - ${selectedLedger.id}`,
+                        subtitle: `${selectedLedger.vendor} · ${selectedLedger.date}`,
+                        headers: ['Date', 'Vendor', 'Payment', 'Check #', 'Expense', 'Audit', 'Difference', 'Status'],
+                        rows: [[selectedLedger.date, selectedLedger.vendor, selectedLedger.paymentType, selectedLedger.checkNo, fmt(selectedLedger.storeExpense), fmt(selectedLedger.storeAudit), selectedLedger.difference ? fmt(selectedLedger.difference) : '-', selectedLedger.status]],
+                      })}>
+                        <Icon name="report" size={15} /> Print row
+                      </button>
+                      {selectedLedger.status !== 'Cleared' ? (
+                        <button className="pricebook-btn primary" onClick={() => confirmLedgerRow(selectedLedger.id)}>
+                          <Icon name="sync" size={15} /> Mark cleared
+                        </button>
+                      ) : null}
+                    </div>
+                  </>
+                ) : (
+                  <div className="purchase-hint">No ledger row is visible for the current filter.</div>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       ) : null}
@@ -6278,33 +6507,34 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
                   <div className="pricebook-detail-title">Item cost updates</div>
                   <div className="pricebook-detail-sub">Review purchase-linked cost changes before they affect margin reporting and downstream POS pricing.</div>
                 </div>
-                {renderExportButtons(filteredCostUpdates, 'storecheck-cost-updates')}
+                {renderExportButtons(visibleCostUpdates, 'storecheck-cost-updates')}
               </div>
               <div className="pricebook-filters" style={{ padding: '0 20px 16px' }}>
                 <div className="purchase-inline-filters">
                   <select className="pricebook-select" value={costCategory} onChange={(e) => setCostCategory(e.target.value)}>
-                    {['All', ...uniqueValues(COST_UPDATE_ROWS, 'category')].map((item) => <option key={item}>{item}</option>)}
+                    {['All', ...uniqueValues(costUpdateRows, 'category')].map((item) => <option key={item}>{item}</option>)}
                   </select>
                   <select className="pricebook-select" value={costView} onChange={(e) => setCostView(e.target.value)}>
                     {['Latest Updates', 'Needs Confirm', 'Ready'].map((item) => <option key={item}>{item}</option>)}
                   </select>
                 </div>
                 <div className="pricebook-actions">
-                  <button className="pricebook-btn" onClick={() => showNotice('Cost update print view will use the report layer once connected.')}>
+                  <button className="pricebook-btn" onClick={() => printCostPacket()}>
                     <Icon name="report" size={15} /> Print
                   </button>
-                  <button className="pricebook-btn primary" onClick={() => showNotice('All visible demo cost updates marked confirmed.')}>
+                  <button className="pricebook-btn" onClick={() => emailCostPacket()}>
+                    <Icon name="bell" size={15} /> E-mail
+                  </button>
+                  <button className="pricebook-btn primary" onClick={() => confirmAllCosts()}>
                     <Icon name="sync" size={15} /> Confirm all
                   </button>
                 </div>
               </div>
               <div className="mobile-table-scroll">
                 <table className="purchase-table">
-                  <thead><tr><th>Update Time</th><th>UPC</th><th>Item</th><th>Category</th><th className="purchase-right">Prev Cost</th><th className="purchase-right">New Cost</th><th className="purchase-right">Retail</th><th className="purchase-right">Rebate</th><th className="purchase-right">Margin</th><th>Group</th><th>Status</th></tr></thead>
+                  <thead><tr><th>Update Time</th><th>UPC</th><th>Item</th><th>Category</th><th className="purchase-right">Prev Cost</th><th className="purchase-right">New Cost</th><th className="purchase-right">Retail</th><th className="purchase-right">Rebate</th><th className="purchase-right">Margin</th><th>Group</th><th>Status</th><th>Action</th></tr></thead>
                   <tbody>
-                    {filteredCostUpdates
-                      .filter((row) => costView === 'Latest Updates' || (costView === 'Needs Confirm' ? row.status === 'Needs confirm' : row.status === 'Ready'))
-                      .map((row) => (
+                    {visibleCostUpdates.map((row) => (
                         <tr key={row.id}>
                           <td><strong>{row.updatedAt}</strong><small>{row.source} · {row.id}</small></td>
                           <td>{row.upc}</td>
@@ -6317,6 +6547,15 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
                           <td className="purchase-right">{row.margin}%</td>
                           <td>{row.group}</td>
                           <td><span className={`purchase-tag${toneClass(row.status)}`}>{row.status}</span></td>
+                          <td>
+                            {row.status === 'Needs confirm' ? (
+                              <button className="pricebook-btn primary" onClick={() => confirmCostRow(row.id)}>
+                                <Icon name="sync" size={15} /> Confirm
+                              </button>
+                            ) : (
+                              <span className="purchase-hint">Ready</span>
+                            )}
+                          </td>
                         </tr>
                       ))}
                   </tbody>
@@ -6338,12 +6577,12 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
                 </div>
                 <div className="purchase-mini-card">
                   <div className="label">Visible categories</div>
-                  <div className="value">{fmtN(uniqueValues(COST_UPDATE_ROWS, 'category').length)}</div>
+                  <div className="value">{fmtN(uniqueValues(costUpdateRows, 'category').length)}</div>
                   <div className="meta">Cross-check with vendor invoice categories</div>
                 </div>
               </div>
               <div className="purchase-badge-list">
-                {uniqueValues(COST_UPDATE_ROWS, 'category').map((item) => <span key={item} className="purchase-badge">{item}</span>)}
+                {uniqueValues(costUpdateRows, 'category').map((item) => <span key={item} className="purchase-badge">{item}</span>)}
               </div>
             </div>
 
@@ -6355,6 +6594,14 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
                 <div className="purchase-kv"><span>2. Confirm costs</span><span>Protect margin reporting</span></div>
                 <div className="purchase-kv"><span>3. Export or email</span><span>Accounting-ready handoff</span></div>
                 <div className="purchase-kv"><span>4. Sync later</span><span>POS endpoint still pending</span></div>
+              </div>
+              <div className="pricebook-actions" style={{ marginTop: 16 }}>
+                <button className="pricebook-btn" onClick={() => emailCostPacket()}>
+                  <Icon name="bell" size={15} /> E-mail packet
+                </button>
+                <button className="pricebook-btn primary" onClick={() => confirmAllCosts()}>
+                  <Icon name="sync" size={15} /> Confirm visible
+                </button>
               </div>
             </div>
           </div>
@@ -6378,24 +6625,30 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
                     {['6 Months', '12 Months', '15 Months', '18 Months', 'All'].map((item) => <option key={item}>{item}</option>)}
                   </select>
                   <select className="pricebook-select" value={deadDept} onChange={(e) => setDeadDept(e.target.value)}>
-                    {['All', ...uniqueValues(DEAD_INVENTORY_ROWS, 'department')].map((item) => <option key={item}>{item}</option>)}
+                    {['All', ...uniqueValues(deadInventoryRows, 'department')].map((item) => <option key={item}>{item}</option>)}
                   </select>
                   <select className="pricebook-select" value={deadCriteria} onChange={(e) => setDeadCriteria(e.target.value)}>
                     {['All flagged items', 'Inactivate candidates', 'Markdown candidates'].map((item) => <option key={item}>{item}</option>)}
                   </select>
                 </div>
                 <div className="pricebook-actions">
+                  <button className="pricebook-btn" onClick={() => showNotice(`${filteredDeadInventory.length} dead inventory rows loaded for the current review filters.`)}>
+                    <Icon name="report" size={15} /> Apply
+                  </button>
                   <button className="pricebook-btn" onClick={() => { resetDeadFilters(); showNotice('Dead inventory filters cleared back to the default review set.'); }}>
                     <Icon name="close" size={15} /> Clear
                   </button>
-                  <button className="pricebook-btn primary" onClick={() => showNotice(`${deadSelected.length} dead inventory items marked for inactivation review.`)}>
+                  <button className="pricebook-btn" onClick={() => reviewDeadSelection()}>
+                    <Icon name="report" size={15} /> Review
+                  </button>
+                  <button className="pricebook-btn primary" onClick={() => stageInactiveItems()}>
                     <Icon name="alert" size={15} /> InActive
                   </button>
                 </div>
               </div>
               <div className="mobile-table-scroll">
                 <table className="purchase-table">
-                  <thead><tr><th></th><th>UPC</th><th>Department</th><th>Item</th><th className="purchase-right">Retail</th><th className="purchase-right">Cost</th><th className="purchase-right">Inventory</th><th className="purchase-right">Total Cost</th><th className="purchase-right">Total Retail</th><th>Criteria</th></tr></thead>
+                  <thead><tr><th></th><th>UPC</th><th>Department</th><th>Item</th><th className="purchase-right">Retail</th><th className="purchase-right">Cost</th><th className="purchase-right">Inventory</th><th className="purchase-right">Total Cost</th><th className="purchase-right">Total Retail</th><th>Criteria</th><th>Stage</th></tr></thead>
                   <tbody>
                     {filteredDeadInventory.map((row) => (
                       <tr key={row.id}>
@@ -6409,13 +6662,14 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
                         <td className="purchase-right">{fmt(row.totalCost)}</td>
                         <td className="purchase-right">{fmt(row.totalRetail)}</td>
                         <td><span className={`purchase-tag${row.action.includes('Inactivate') ? ' amber' : row.action.includes('markdown') ? ' blue' : ''}`}>{row.criteria}</span></td>
+                        <td><span className={`purchase-tag${row.stage === 'Staged InActive' ? ' amber' : ' blue'}`}>{row.stage}</span></td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
             </div>
-            <div className="purchase-callout">Inactivated items will not ring on the register. This tab keeps that action visible and deliberate instead of burying it in a spreadsheet export.</div>
+            <div className="purchase-callout">Inactivated items will not ring on the register. Total Items: 20,667 · Dead Inventory Items: 20,413. This tab keeps that action visible and deliberate instead of burying it in a spreadsheet export.</div>
           </div>
 
           <div className="purchase-stack">
@@ -6433,22 +6687,38 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
                   <div className="value">{fmtN(deadInventoryUnits)}</div>
                   <div className="meta">{fmt(deadInventoryCost)} cost at risk</div>
                 </div>
+                <div className="purchase-mini-card">
+                  <div className="label">Staged inactive</div>
+                  <div className="value">{fmtN(stagedInactiveCount)}</div>
+                  <div className="meta">Ready for final endpoint wiring later</div>
+                </div>
               </div>
               <div className="purchase-kv-list">
                 <div className="purchase-kv"><span>Total cost</span><span>{fmt(deadInventoryCost)}</span></div>
-                <div className="purchase-kv"><span>Total retail</span><span>{fmt(DEAD_INVENTORY_ROWS.reduce((sum, row) => sum + row.totalRetail, 0))}</span></div>
+                <div className="purchase-kv"><span>Total retail</span><span>{fmt(deadInventoryRows.reduce((sum, row) => sum + row.totalRetail, 0))}</span></div>
                 <div className="purchase-kv"><span>Oldest window</span><span>18 Months</span></div>
               </div>
             </div>
 
             <div className="purchase-note-card">
-              <h3>Recovery actions</h3>
-              <p>What the owner can do next before deciding on a full inactivation pass.</p>
+              <h3>Inactivation review</h3>
+              <p>Keep the selected items visible before finalizing an inactive batch.</p>
               <div className="purchase-kv-list">
-                <div className="purchase-kv"><span>Front counter move</span><span>Surface slow units</span></div>
-                <div className="purchase-kv"><span>Markdown list</span><span>Bundle to clear cash</span></div>
-                <div className="purchase-kv"><span>Inactivate list</span><span>Protect register mix</span></div>
-                <div className="purchase-kv"><span>Export CSV</span><span>Share with ops/accounting</span></div>
+                <div className="purchase-kv"><span>Selected rows</span><span>{fmtN(selectedDeadRows.length)}</span></div>
+                <div className="purchase-kv"><span>Selected cost</span><span>{fmt(selectedDeadRows.reduce((sum, row) => sum + row.totalCost, 0))}</span></div>
+                <div className="purchase-kv"><span>Selected retail</span><span>{fmt(selectedDeadRows.reduce((sum, row) => sum + row.totalRetail, 0))}</span></div>
+                <div className="purchase-kv"><span>Current stage</span><span>{stagedInactiveCount ? 'Review packet ready' : 'Select items first'}</span></div>
+              </div>
+              <div className="pricebook-actions" style={{ marginTop: 16 }}>
+                <button className="pricebook-btn" onClick={() => reviewDeadSelection()}>
+                  <Icon name="report" size={15} /> Review selection
+                </button>
+                <button className="pricebook-btn" onClick={() => saveDeadPacket()}>
+                  <Icon name="cash" size={15} /> Save packet
+                </button>
+                <button className="pricebook-btn primary" onClick={() => stageInactiveItems()}>
+                  <Icon name="alert" size={15} /> Stage InActive
+                </button>
               </div>
             </div>
           </div>
