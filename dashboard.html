@@ -10561,14 +10561,23 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
   const [loginEmail, setLoginEmail] = useState(ACCOUNT_EMAIL_SETTINGS.login);
   const [reportEmail, setReportEmail] = useState(ACCOUNT_EMAIL_SETTINGS.reports);
   const [alertsEmail, setAlertsEmail] = useState(ACCOUNT_EMAIL_SETTINGS.alerts);
+  const [logoutReason, setLogoutReason] = useState('End of shift');
+  const [logoutDestination, setLogoutDestination] = useState('Return to login');
   const [releaseRows, setReleaseRows] = useState(
     RELEASE_NOTES.map((item, index) => ({
       ...item,
       id: `REL-${index + 1}`,
       status: index === 0 ? 'Needs review' : 'Reviewed',
+      audience: index === 0 ? 'Owners' : index === 1 ? 'Accounting' : 'Managers',
     }))
   );
   const [selectedReleaseId, setSelectedReleaseId] = useState('REL-1');
+  const [releaseFilter, setReleaseFilter] = useState('All');
+  const [releaseSearch, setReleaseSearch] = useState('');
+  const [logoutQueue, setLogoutQueue] = useState([
+    { id: 'LQ-1', time: '17:12', reason: 'End of shift', destination: 'Return to login', store: 'Main Street Gas & Go', status: 'Pending updates' },
+    { id: 'LQ-2', time: '08:05', reason: 'Store handoff', destination: 'Open release notes', store: 'Sandy Cross Fuel Center', status: 'Complete' },
+  ]);
   const [tempSessionOpen, setTempSessionOpen] = useState(false);
   const [newScreensEnabled, setNewScreensEnabled] = useState(true);
 
@@ -10578,6 +10587,19 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
     window.__storecheckSessionNotice = window.setTimeout(() => setSessionNotice(''), 2800);
   };
   const selectedRelease = releaseRows.find((item) => item.id === selectedReleaseId) || releaseRows[0];
+  const visibleReleaseRows = releaseRows.filter((item) => {
+    const matchesFilter = releaseFilter === 'All' ? true : item.status === releaseFilter;
+    const haystack = `${item.title} ${item.note} ${item.date} ${item.audience}`.toLowerCase();
+    return matchesFilter && haystack.includes(releaseSearch.toLowerCase());
+  });
+  const releaseNeedsReviewCount = releaseRows.filter((item) => item.status === 'Needs review').length;
+  const stampLogoutQueue = (status) => {
+    const time = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    setLogoutQueue((current) => [
+      { id: `LQ-${Date.now()}`, time, reason: logoutReason, destination: logoutDestination, store: currentLocation.name, status },
+      ...current,
+    ].slice(0, 6));
+  };
   const settingsPacketHtml = ({ title, subtitle, route, note, headers, rows }) => `<!doctype html>
 <html lang="en">
 <head>
@@ -10645,17 +10667,30 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
     });
     showSessionNotice('Admin account settings packet saved in demo mode.');
   };
+  const previewLogoutHandoff = () =>
+    openSettingsPacket({
+      title: 'Logout Confirmation',
+      subtitle: `${currentLocation.name} · ${logoutReason}`,
+      headers: ['Store', 'Reason', 'Next Step', 'Register', 'Pending Updates', 'Temp Session'],
+      rows: [[currentLocation.name, logoutReason, logoutDestination, registerStatus, fmtN(releaseNeedsReviewCount), tempSessionOpen ? 'Open' : 'Closed']],
+    });
   const saveLogoutPacket = () => {
     saveSettingsPacket({
       title: 'Session Logout Packet',
-      subtitle: `${currentLocation.name} · ${currentLocation.manager}`,
+      subtitle: `${currentLocation.name} · ${logoutReason}`,
       route: '/user/logout',
       note: 'Logout and session handoff replacement shell',
-      headers: ['Store', 'Manager', 'Register Status', 'Agreement', 'Temp Session'],
-      rows: [[currentLocation.name, currentLocation.manager, registerStatus, agreementAccepted ? 'Accepted' : 'Pending', tempSessionOpen ? 'Open' : 'Closed']],
+      headers: ['Store', 'Manager', 'Reason', 'Next Step', 'Register Status', 'Pending Updates', 'Temp Session'],
+      rows: [[currentLocation.name, currentLocation.manager, logoutReason, logoutDestination, registerStatus, fmtN(releaseNeedsReviewCount), tempSessionOpen ? 'Open' : 'Closed']],
       filename: 'storecheck-session-logout',
     });
     showSessionNotice('Logout/session packet saved in demo mode. Real logout endpoint still pending.');
+  };
+  const confirmLogoutHandoff = () => {
+    stampLogoutQueue(releaseNeedsReviewCount ? 'Pending updates' : 'Complete');
+    setTempSessionOpen(false);
+    setRegisterStatus(registerStatus === 'Connected' ? 'Refresh Needed' : registerStatus);
+    showSessionNotice(`Logout handoff staged for ${currentLocation.name} in demo mode. Real \`/user/logout\` wiring still pending.`);
   };
   const previewReleaseNotes = () =>
     openSettingsPacket({
@@ -10664,6 +10699,20 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
       headers: ['Date', 'Title', 'Status', 'Note'],
       rows: releaseRows.map((item) => [item.date, item.title, item.status, item.note]),
     });
+  const openSelectedRelease = (item = selectedRelease) => {
+    if (!item) return;
+    setSelectedReleaseId(item.id);
+    setReleaseRows((current) => current.map((row) => (
+      row.id === item.id && row.status === 'Needs review' ? { ...row, status: 'Opened' } : row
+    )));
+    openSettingsPacket({
+      title: 'Release Note Review',
+      subtitle: `${currentLocation.name} · ${item.title}`,
+      headers: ['Date', 'Title', 'Status', 'Audience', 'Note'],
+      rows: [[item.date, item.title, item.status, item.audience, item.note]],
+    });
+    showSessionNotice(`${item.id} opened in demo mode. Live \`/user/openReleasePage\` wiring still pending.`);
+  };
   const saveReleaseNotesPacket = () => {
     saveSettingsPacket({
       title: 'Release Notes Packet',
@@ -10675,6 +10724,19 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
       filename: 'storecheck-release-notes',
     });
     showSessionNotice('Release-notes packet saved in demo mode.');
+  };
+  const saveSelectedReleasePacket = (item = selectedRelease) => {
+    if (!item) return;
+    saveSettingsPacket({
+      title: 'Release Review Packet',
+      subtitle: `${currentLocation.name} · ${item.title}`,
+      route: '/user/openReleasePage',
+      note: 'Release-note review replacement shell',
+      headers: ['Date', 'Title', 'Status', 'Audience', 'Note'],
+      rows: [[item.date, item.title, item.status, item.audience, item.note]],
+      filename: `storecheck-release-${String(item.id).toLowerCase()}`,
+    });
+    showSessionNotice(`${item.id} release packet saved in demo mode.`);
   };
   const markReleaseReviewed = (id) => {
     setReleaseRows((current) => current.map((item) => (item.id === id ? { ...item, status: 'Reviewed' } : item)));
@@ -10732,24 +10794,51 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
             <div className="purchase-kv"><span>Register</span><span>{registerStatus}</span></div>
             <div className="purchase-kv"><span>Agreement</span><span>{agreementAccepted ? 'Accepted' : 'Pending'}</span></div>
             <div className="purchase-kv"><span>Temp session</span><span>{tempSessionOpen ? 'Open' : 'Closed'}</span></div>
+            <div className="purchase-kv"><span>Pending updates</span><span>{fmtN(releaseNeedsReviewCount)}</span></div>
           </div>
+          <label className="form-label">Logout reason</label>
+          <select className="form-input" value={logoutReason} onChange={(e) => setLogoutReason(e.target.value)}>
+            {['End of shift', 'Store handoff', 'Security review', 'Maintenance logout'].map((item) => <option key={item}>{item}</option>)}
+          </select>
+          <label className="form-label">After logout</label>
+          <select className="form-input" value={logoutDestination} onChange={(e) => setLogoutDestination(e.target.value)}>
+            {['Return to login', 'Open release notes', 'Send owner handoff', 'Switch store picker'].map((item) => <option key={item}>{item}</option>)}
+          </select>
           <div className="pricebook-actions" style={{ marginTop: 16 }}>
-            <button className="pricebook-btn" onClick={() => openSettingsPacket({
-              title: 'Session Logout Review',
-              subtitle: `${currentLocation.name} · ${currentLocation.manager}`,
-              headers: ['Store', 'Manager', 'Register Status', 'Agreement', 'Temp Session'],
-              rows: [[currentLocation.name, currentLocation.manager, registerStatus, agreementAccepted ? 'Accepted' : 'Pending', tempSessionOpen ? 'Open' : 'Closed']],
-            })}>
+            <button className="pricebook-btn" onClick={() => previewLogoutHandoff()}>
               <Icon name="report" size={15} /> Preview handoff
             </button>
             <button className="pricebook-btn" onClick={() => saveLogoutPacket()}>
               <Icon name="cash" size={15} /> Save packet
             </button>
           </div>
-          <button className="connect-btn" onClick={() => showSessionNotice('Demo session signed out. Real logout endpoint still pending.')}>
+          <button className="connect-btn" onClick={() => confirmLogoutHandoff()}>
             <Icon name="close" size={16} bg="rgba(255,255,255,0.12)" fg="#86EFAC" />
-            <span>Log Out</span>
+            <span>Confirm Log Out</span>
           </button>
+        </div>
+
+        <div className="settings-card">
+          <div className="settings-title">Logout Handoff Queue</div>
+          <div className="settings-sub">Track recent logout/session-close decisions before the real endpoint is wired.</div>
+          <div className="purchase-kv-list">
+            <div className="purchase-kv"><span>Queue items</span><span>{fmtN(logoutQueue.length)}</span></div>
+            <div className="purchase-kv"><span>Pending updates</span><span>{fmtN(releaseNeedsReviewCount)}</span></div>
+            <div className="purchase-kv"><span>Current next step</span><span>{logoutDestination}</span></div>
+          </div>
+          <div className="purchase-queue-list" style={{ marginTop: 16 }}>
+            {logoutQueue.map((item) => (
+              <div className="purchase-queue-row" key={item.id}>
+                <div className="purchase-queue-top">
+                  <div>
+                    <div className="purchase-queue-title">{item.reason}</div>
+                    <div className="purchase-queue-meta">{item.time} · {item.store} · {item.destination}</div>
+                  </div>
+                  <span className={`purchase-tag${item.status === 'Complete' ? ' blue' : ' amber'}`}>{item.status}</span>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
 
         <div className="settings-card">
@@ -10899,13 +10988,19 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
         <div className="settings-card">
           <div className="settings-title">Release Notes & Updates</div>
           <div className="settings-sub">Replacement shell for Mercury release notes and update visibility.</div>
-          {releaseRows.map((item) => (
+          <div className="pricebook-actions" style={{ marginBottom: 16, flexWrap: 'wrap' }}>
+            <input className="pricebook-input" value={releaseSearch} onChange={(e) => setReleaseSearch(e.target.value)} placeholder="Search updates" />
+            <select className="pricebook-select" value={releaseFilter} onChange={(e) => setReleaseFilter(e.target.value)}>
+              {['All', 'Needs review', 'Opened', 'Reviewed'].map((item) => <option key={item}>{item}</option>)}
+            </select>
+          </div>
+          {visibleReleaseRows.map((item) => (
             <div key={item.id} className="toggle-row" onClick={() => setSelectedReleaseId(item.id)} style={{ cursor: 'pointer' }}>
               <div className="toggle-label">
                 <div style={{ fontWeight: 800 }}>{item.title}</div>
-                <div style={{ color: 'var(--text-3)', fontSize: 12, marginTop: 4 }}>{item.date} · {item.note}</div>
+                <div style={{ color: 'var(--text-3)', fontSize: 12, marginTop: 4 }}>{item.date} · {item.audience} · {item.note}</div>
               </div>
-              <span className={`purchase-tag${item.status === 'Needs review' ? ' amber' : ''}`}>{item.status}</span>
+              <span className={`purchase-tag${item.status === 'Needs review' ? ' amber' : item.status === 'Reviewed' ? ' blue' : ''}`}>{item.status}</span>
             </div>
           ))}
           {selectedRelease ? (
@@ -10913,9 +11008,13 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
               <div className="purchase-kv"><span>Selected update</span><span>{selectedRelease.title}</span></div>
               <div className="purchase-kv"><span>Status</span><span>{selectedRelease.status}</span></div>
               <div className="purchase-kv"><span>Date</span><span>{selectedRelease.date}</span></div>
+              <div className="purchase-kv"><span>Audience</span><span>{selectedRelease.audience}</span></div>
             </div>
           ) : null}
           <div className="pricebook-actions" style={{ marginTop: 16 }}>
+            <button className="pricebook-btn" onClick={() => openSelectedRelease(selectedRelease)}>
+              <Icon name="report" size={15} /> Open update
+            </button>
             <button className="pricebook-btn" onClick={() => previewReleaseNotes()}>
               <Icon name="report" size={15} /> Preview notes
             </button>
@@ -10928,10 +11027,38 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
               </button>
             ) : null}
           </div>
-          <button className="connect-btn" onClick={() => showSessionNotice('Release notes opened in demo mode. Live update feed still pending.')}>
+          <button className="connect-btn" onClick={() => openSelectedRelease(selectedRelease)}>
             <Icon name="report" size={16} bg="rgba(255,255,255,0.12)" fg="#86EFAC" />
             <span>Open Release Notes</span>
           </button>
+        </div>
+
+        <div className="settings-card">
+          <div className="settings-title">Selected Update</div>
+          <div className="settings-sub">Owner-facing release visibility stays tied to the current session and logout handoff.</div>
+          {selectedRelease ? (
+            <>
+              <div className="purchase-kv-list">
+                <div className="purchase-kv"><span>Update</span><span>{selectedRelease.title}</span></div>
+                <div className="purchase-kv"><span>Status</span><span>{selectedRelease.status}</span></div>
+                <div className="purchase-kv"><span>Audience</span><span>{selectedRelease.audience}</span></div>
+                <div className="purchase-kv"><span>Route</span><span>/user/openReleasePage</span></div>
+              </div>
+              <div className="pricebook-actions" style={{ marginTop: 16 }}>
+                <button className="pricebook-btn" onClick={() => saveSelectedReleasePacket(selectedRelease)}>
+                  <Icon name="cash" size={15} /> Save selected
+                </button>
+                <button className="pricebook-btn" onClick={() => markReleaseReviewed(selectedRelease.id)}>
+                  <Icon name="sync" size={15} /> Mark reviewed
+                </button>
+                <button className="pricebook-btn primary" onClick={() => setLogoutDestination('Open release notes')}>
+                  <Icon name="connect" size={15} /> Tie to logout
+                </button>
+              </div>
+            </>
+          ) : (
+            <div className="purchase-hint">No release note is selected right now.</div>
+          )}
         </div>
       </div>
     </div>
