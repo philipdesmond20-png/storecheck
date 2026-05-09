@@ -3229,6 +3229,7 @@ const NAV = [
   { id: 'shop', icon: 'shop', label: 'Shop & Store' },
   { id: 'pricebook', icon: 'pricebook', label: 'Inventory' },
   { id: 'purchases', icon: 'payments', label: 'Purchases' },
+  { id: 'multistore', icon: 'connect', label: 'Multi-Store' },
   { id: 'reports', icon: 'calendar', label: 'Reports' },
 ];
 
@@ -3418,6 +3419,18 @@ const ACCOUNT_EMAIL_SETTINGS = {
   reports: 'accounting@mainstreetgas.com',
   alerts: 'ops@mainstreetgas.com',
 };
+
+const MULTI_STORE_OVERVIEW = [
+  { id: 'main-street', store: 'Main Street Gas & Go', manager: 'P. Desmond', fuel: 8954.26, shop: 6905.22, lottery: 623.88, total: 16483.36, gallons: 3426.44, cashDiff: -90.63, status: 'Connected' },
+  { id: 'sandy-cross', store: 'Sandy Cross Fuel Center', manager: 'L. Harper', fuel: 8128.42, shop: 5542.18, lottery: 702.41, total: 14373.01, gallons: 3184.9, cashDiff: -24.18, status: 'Connected' },
+  { id: 'north-avenue', store: 'North Avenue Market', manager: 'R. Flores', fuel: 6914.88, shop: 4876.5, lottery: 580.37, total: 12371.75, gallons: 2762.2, cashDiff: 18.45, status: 'Needs review' },
+];
+
+const MULTI_STORE_COMPARE = [
+  { store: 'Main Street Gas & Go', date: '2026-05-09', fuel: 8954.26, shop: 6905.22, lottery: 623.88, total: 16483.36, gallons: 3426.44, cashDiff: -90.63 },
+  { store: 'Sandy Cross Fuel Center', date: '2026-05-09', fuel: 8128.42, shop: 5542.18, lottery: 702.41, total: 14373.01, gallons: 3184.9, cashDiff: -24.18 },
+  { store: 'North Avenue Market', date: '2026-05-09', fuel: 6914.88, shop: 4876.5, lottery: 580.37, total: 12371.75, gallons: 2762.2, cashDiff: 18.45 },
+];
 
 const uniqueValues = (rows, key) => [...new Set(rows.map((row) => row[key]))].sort();
 const sumRows = (rows) => rows.reduce((sum, row) => sum + row.amount, 0);
@@ -6268,6 +6281,209 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
   );
 };
 
+const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
+  const [multiPage, setMultiPage] = useState('overview');
+  const [compareDate, setCompareDate] = useState('2026-05-09');
+  const [selectedStore, setSelectedStore] = useState('All');
+  const [notice, setNotice] = useState('');
+
+  const filteredCompare =
+    selectedStore === 'All' ? MULTI_STORE_COMPARE : MULTI_STORE_COMPARE.filter((row) => row.store === selectedStore);
+  const compareTotals = filteredCompare.reduce(
+    (acc, row) => ({
+      fuel: acc.fuel + row.fuel,
+      shop: acc.shop + row.shop,
+      lottery: acc.lottery + row.lottery,
+      total: acc.total + row.total,
+      gallons: acc.gallons + row.gallons,
+    }),
+    { fuel: 0, shop: 0, lottery: 0, total: 0, gallons: 0 }
+  );
+
+  const showNotice = (message) => {
+    setNotice(message);
+    window.clearTimeout(window.__storecheckMultiStoreNotice);
+    window.__storecheckMultiStoreNotice = window.setTimeout(() => setNotice(''), 2800);
+  };
+  const exportCompare = (format) => downloadTableData(filteredCompare, format, 'storecheck-multi-store-compare');
+  const tabs = [
+    { id: 'overview', label: 'Overview', icon: 'connect' },
+    { id: 'compare', label: 'Daily Compare', icon: 'calendar' },
+    { id: 'switcher', label: 'Store Switcher', icon: 'shop' },
+  ];
+
+  return (
+    <div className="shell">
+      <div className="section-hdr">
+        <h1>Multi-Store</h1>
+        <p>Compare stores, switch the active location, and keep a lightweight multi-dashboard shell inside the existing StoreCheck flow.</p>
+      </div>
+
+      <div className="pricebook-tabs" role="tablist" aria-label="Multi-store sections">
+        {tabs.map((tab) => (
+          <button key={tab.id} className={`pricebook-tab ${multiPage === tab.id ? 'active' : ''}`} onClick={() => setMultiPage(tab.id)}>
+            <Icon name={tab.icon} size={17} /> {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {notice ? <div className="pricebook-notice"><Icon name="connect" size={16} /> {notice}</div> : null}
+
+      <div className="pricebook-kpis">
+        <div className="pricebook-card"><div className="pricebook-card-top"><div className="pricebook-label">Tracked Stores</div><Icon name="shop" size={18} /></div><div className="pricebook-value">{fmtN(STORE_LOCATIONS.length)}</div><div className="pricebook-note">{currentLocation.name} is active now</div></div>
+        <div className="pricebook-card"><div className="pricebook-card-top"><div className="pricebook-label">Combined Sales</div><Icon name="cash" size={18} /></div><div className="pricebook-value">{fmt(MULTI_STORE_OVERVIEW.reduce((sum, row) => sum + row.total, 0))}</div><div className="pricebook-note">Across visible demo stores</div></div>
+        <div className="pricebook-card"><div className="pricebook-card-top"><div className="pricebook-label">Combined Gallons</div><Icon name="gallons" size={18} /></div><div className="pricebook-value">{fmtN(MULTI_STORE_OVERVIEW.reduce((sum, row) => sum + row.gallons, 0), 0)}</div><div className="pricebook-note">Fuel volume across all locations</div></div>
+        <div className="pricebook-card"><div className="pricebook-card-top"><div className="pricebook-label">Stores Needing Review</div><Icon name="alert" size={18} /></div><div className="pricebook-value">{fmtN(MULTI_STORE_OVERVIEW.filter((row) => row.status !== 'Connected').length)}</div><div className="pricebook-note">Cash or register follow-up flagged</div></div>
+      </div>
+
+      {multiPage === 'overview' ? (
+        <div className="purchase-grid">
+          <div className="purchase-stack">
+            <div className="purchase-summary-grid">
+              {MULTI_STORE_OVERVIEW.map((row) => (
+                <div className="purchase-note-card" key={row.id}>
+                  <div className="purchase-panel-head">
+                    <div>
+                      <h3>{row.store}</h3>
+                      <p>{row.manager} · {STORE_LOCATIONS.find((item) => item.id === row.id)?.location}</p>
+                    </div>
+                    <span className={`purchase-tag${row.status === 'Connected' ? ' blue' : ' amber'}`}>{row.status}</span>
+                  </div>
+                  <div className="purchase-kv-list">
+                    <div className="purchase-kv"><span>Total sales</span><span>{fmt(row.total)}</span></div>
+                    <div className="purchase-kv"><span>Fuel sales</span><span>{fmt(row.fuel)}</span></div>
+                    <div className="purchase-kv"><span>Shop sales</span><span>{fmt(row.shop)}</span></div>
+                    <div className="purchase-kv"><span>Cash diff</span><span>{fmt(Math.abs(row.cashDiff))}</span></div>
+                  </div>
+                  <div className="pricebook-actions" style={{ marginTop: 16 }}>
+                    <button className="pricebook-btn" onClick={() => { setLocationId(row.id); showNotice(`${row.store} set as the active store.`); }}>
+                      <Icon name="connect" size={15} /> Make active
+                    </button>
+                    <button className="pricebook-btn primary" onClick={() => { setLocationId(row.id); setView('today'); showNotice(`Opening ${row.store} dashboard in demo mode.`); }}>
+                      <Icon name="home" size={15} /> Open dashboard
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="purchase-stack">
+            <div className="purchase-note-card">
+              <h3>Multi-dashboard redirect</h3>
+              <p>Replacement shell for Mercury multi-dashboard redirect and store-picker flow.</p>
+              <div className="purchase-kv-list">
+                <div className="purchase-kv"><span>Active location</span><span>{currentLocation.name}</span></div>
+                <div className="purchase-kv"><span>Picker coverage</span><span>Sidebar + Settings + Multi-Store</span></div>
+                <div className="purchase-kv"><span>Redirect mode</span><span>Dashboard shell only</span></div>
+              </div>
+              <button className="pricebook-btn primary" style={{ marginTop: 16 }} onClick={() => { setView('today'); showNotice(`Redirected to ${currentLocation.name} in demo mode.`); }}>
+                <Icon name="home" size={15} /> Open active store
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {multiPage === 'compare' ? (
+        <div className="purchase-grid single">
+          <div className="purchase-surface">
+            <div className="pricebook-toolbar" style={{ padding: '20px 20px 0' }}>
+              <div>
+                <div className="pricebook-detail-title">Daily compare</div>
+                <div className="pricebook-detail-sub">Mercury-style multi-store comparison shell for a single selected day.</div>
+              </div>
+              <div className="pricebook-actions">
+                {['CSV', 'XLS', 'JSON'].map((format) => (
+                  <button key={format} className="pricebook-btn" onClick={() => exportCompare(format)}>
+                    <Icon name="cash" size={15} /> {format}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="pricebook-filters" style={{ padding: '0 20px 16px' }}>
+              <input className="pricebook-input" type="date" value={compareDate} onChange={(e) => setCompareDate(e.target.value)} />
+              <select className="pricebook-select" value={selectedStore} onChange={(e) => setSelectedStore(e.target.value)}>
+                {['All', ...MULTI_STORE_OVERVIEW.map((row) => row.store)].map((item) => <option key={item}>{item}</option>)}
+              </select>
+              <button className="pricebook-btn primary" onClick={() => showNotice(`Multi-store comparison refreshed for ${compareDate}.`)}>
+                <Icon name="calendar" size={15} /> Get Results
+              </button>
+            </div>
+            <div className="mobile-table-scroll">
+              <table className="purchase-table">
+                <thead><tr><th>Store</th><th>Date</th><th className="purchase-right">Fuel</th><th className="purchase-right">Shop</th><th className="purchase-right">Lottery</th><th className="purchase-right">Total</th><th className="purchase-right">Gallons</th><th className="purchase-right">Cash Diff</th></tr></thead>
+                <tbody>
+                  {filteredCompare.map((row) => (
+                    <tr key={row.store}>
+                      <td>{row.store}</td>
+                      <td>{compareDate}</td>
+                      <td className="purchase-right">{fmt(row.fuel)}</td>
+                      <td className="purchase-right">{fmt(row.shop)}</td>
+                      <td className="purchase-right">{fmt(row.lottery)}</td>
+                      <td className="purchase-right"><strong>{fmt(row.total)}</strong></td>
+                      <td className="purchase-right">{fmtN(row.gallons, 0)}</td>
+                      <td className="purchase-right">{fmt(Math.abs(row.cashDiff))}</td>
+                    </tr>
+                  ))}
+                  <tr>
+                    <td><strong>Total</strong></td>
+                    <td>{compareDate}</td>
+                    <td className="purchase-right"><strong>{fmt(compareTotals.fuel)}</strong></td>
+                    <td className="purchase-right"><strong>{fmt(compareTotals.shop)}</strong></td>
+                    <td className="purchase-right"><strong>{fmt(compareTotals.lottery)}</strong></td>
+                    <td className="purchase-right"><strong>{fmt(compareTotals.total)}</strong></td>
+                    <td className="purchase-right"><strong>{fmtN(compareTotals.gallons, 0)}</strong></td>
+                    <td></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {multiPage === 'switcher' ? (
+        <div className="purchase-grid">
+          <div className="purchase-stack">
+            {STORE_LOCATIONS.map((item) => (
+              <div className="purchase-note-card" key={item.id}>
+                <div className="purchase-panel-head">
+                  <div>
+                    <h3>{item.name}</h3>
+                    <p>{item.location} · {item.manager}</p>
+                  </div>
+                  <span className={`purchase-tag${currentLocation.id === item.id ? ' blue' : ''}`}>{currentLocation.id === item.id ? 'Active' : item.status}</span>
+                </div>
+                <div className="pricebook-actions">
+                  <button className="pricebook-btn" onClick={() => { setLocationId(item.id); showNotice(`${item.name} selected from the store switcher.`); }}>
+                    <Icon name="connect" size={15} /> Switch store
+                  </button>
+                  <button className="pricebook-btn primary" onClick={() => { setLocationId(item.id); setView('today'); showNotice(`${item.name} opened from the multi-store switcher.`); }}>
+                    <Icon name="home" size={15} /> Open store
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="purchase-stack">
+            <div className="purchase-note-card">
+              <h3>Store switcher rail</h3>
+              <p>This closes the Mercury location picker gap with an owner-facing switcher that is visible in three places.</p>
+              <div className="purchase-kv-list">
+                <div className="purchase-kv"><span>Sidebar picker</span><span>Ready</span></div>
+                <div className="purchase-kv"><span>Settings picker</span><span>Ready</span></div>
+                <div className="purchase-kv"><span>Multi-store switcher</span><span>Ready</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+};
+
 const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
   const [deliveryNotice, setDeliveryNotice] = useState('');
   const [deliveryEmail, setDeliveryEmail] = useState('owner@mainstreetgas.com');
@@ -7074,6 +7290,7 @@ const App = () => {
           {view === 'shop' ? <ShopView viewMode={viewMode} shopCategory={shopCategory} setShopCategory={setShopCategory} /> : null}
           {view === 'pricebook' ? <PricebookView pricebookPage={pricebookPage} setPricebookPage={setPricebookPage} /> : null}
           {view === 'purchases' ? <PurchasesView purchasePage={purchasePage} setPurchasePage={setPurchasePage} /> : null}
+          {view === 'multistore' ? <MultiStoreView currentLocation={currentLocation} setLocationId={setLocationId} setView={setView} /> : null}
           {view === 'reports' ? <ReportsView currentLocation={currentLocation} reportPage={reportPage} setReportPage={setReportPage} /> : null}
           {view === 'settings' ? <SettingsView agreementAccepted={agreementAccepted} currentLocation={currentLocation} registerStatus={registerStatus} setAgreementAccepted={setAgreementAccepted} setLocationId={setLocationId} setRegisterStatus={setRegisterStatus} /> : null}
         </div>
