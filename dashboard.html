@@ -5771,15 +5771,20 @@ const PricebookView = ({ pricebookPage, setPricebookPage }) => {
 const PurchasesView = ({ purchasePage, setPurchasePage }) => {
   const [notice, setNotice] = useState('');
   const [vendorFilter, setVendorFilter] = useState('All');
+  const [orderVendorFilter, setOrderVendorFilter] = useState('All');
   const [costCategory, setCostCategory] = useState('All');
   const [costView, setCostView] = useState('Latest Updates');
   const [deadDept, setDeadDept] = useState('All');
   const [deadWindow, setDeadWindow] = useState('12 Months');
   const [deadCriteria, setDeadCriteria] = useState('All flagged items');
+  const [vendorOrderRows, setVendorOrderRows] = useState(PURCHASE_VENDOR_ORDERS);
+  const [invoiceReviewRows, setInvoiceReviewRows] = useState(PURCHASE_REVIEW_QUEUE.map((row) => ({ ...row, stage: 'Queued' })));
   const [purchaseLedgerRows, setPurchaseLedgerRows] = useState(PURCHASE_LEDGER);
   const [costUpdateRows, setCostUpdateRows] = useState(COST_UPDATE_ROWS);
   const [deadInventoryRows, setDeadInventoryRows] = useState(DEAD_INVENTORY_ROWS.map((row) => ({ ...row, stage: 'Review' })));
   const [deadSelected, setDeadSelected] = useState(DEAD_INVENTORY_ROWS.slice(0, 2).map((row) => row.id));
+  const [selectedOrderId, setSelectedOrderId] = useState(PURCHASE_VENDOR_ORDERS[0].id);
+  const [selectedReviewId, setSelectedReviewId] = useState(PURCHASE_REVIEW_QUEUE[0].id);
   const [selectedLedgerId, setSelectedLedgerId] = useState(PURCHASE_LEDGER.find((row) => row.status !== 'Cleared')?.id || PURCHASE_LEDGER[0].id);
   const [attachments, setAttachments] = useState(ATTACHMENT_LIBRARY);
   const [purchaseDraft, setPurchaseDraft] = useState({
@@ -5806,6 +5811,7 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
   const paymentTotal = PURCHASE_PAYMENT_METHODS.reduce((sum, row) => sum + row.amount, 0);
   const cashPurchaseTotal = purchaseLedgerRows.filter((row) => row.paymentType === 'Cash').reduce((sum, row) => sum + row.storeExpense, 0);
   const cashExpenseTotal = OPERATING_EXPENSES.filter((row) => row.paymentType === 'Cash').reduce((sum, row) => sum + row.amount, 0);
+  const filteredVendorOrders = orderVendorFilter === 'All' ? vendorOrderRows : vendorOrderRows.filter((row) => row.vendor === orderVendorFilter);
   const filteredPurchaseLedger = vendorFilter === 'All' ? purchaseLedgerRows : purchaseLedgerRows.filter((row) => row.vendor === vendorFilter);
   const filteredExpenses = vendorFilter === 'All' ? OPERATING_EXPENSES : OPERATING_EXPENSES.filter((row) => row.vendor === vendorFilter);
   const costFilteredRows = costUpdateRows.filter((row) => costCategory === 'All' || row.category === costCategory);
@@ -5819,13 +5825,16 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
     return deptMatch && windowMatch && criteriaMatch;
   });
   const activeVendors = VENDOR_MASTER.filter((row) => row.active).length;
-  const pendingReviews = PURCHASE_REVIEW_QUEUE.filter((row) => row.status !== 'Ready to post').length;
+  const pendingReviews = invoiceReviewRows.filter((row) => row.status !== 'Ready to post').length;
   const unclearedLedger = purchaseLedgerRows.filter((row) => row.status !== 'Cleared').length;
   const expenseMonthTotal = OPERATING_EXPENSES.reduce((sum, row) => sum + row.amount, 0);
   const pendingCostConfirms = costUpdateRows.filter((row) => row.status !== 'Ready').length;
   const deadInventoryUnits = deadInventoryRows.reduce((sum, row) => sum + row.inventory, 0);
   const deadInventoryCost = deadInventoryRows.reduce((sum, row) => sum + row.totalCost, 0);
   const vendorOptions = ['All', ...uniqueValues([...purchaseLedgerRows, ...OPERATING_EXPENSES], 'vendor')];
+  const orderVendorOptions = ['All', ...uniqueValues(vendorOrderRows, 'vendor')];
+  const selectedVendorOrder = filteredVendorOrders.find((row) => row.id === selectedOrderId) || filteredVendorOrders[0] || vendorOrderRows[0];
+  const selectedInvoiceReview = invoiceReviewRows.find((row) => row.id === selectedReviewId) || invoiceReviewRows[0];
   const selectedLedger = filteredPurchaseLedger.find((row) => row.id === selectedLedgerId) || filteredPurchaseLedger[0] || purchaseLedgerRows[0];
   const selectedDeadRows = deadInventoryRows.filter((row) => deadSelected.includes(row.id));
   const stagedInactiveCount = deadInventoryRows.filter((row) => row.stage === 'Staged InActive').length;
@@ -6038,6 +6047,97 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
     });
     showNotice('Dead inventory inactivation packet saved in demo mode.');
   };
+  const printPurchaseSummaryPacket = () =>
+    openPacketPreview({
+      title: 'Purchases Summary',
+      subtitle: 'StoreCheck demo grocery purchase summary',
+      headers: ['Category', 'Expenses', 'Retail', 'Mix'],
+      rows: PURCHASE_CATEGORY_SUMMARY.map((row) => [row.category, fmt(row.expenses), row.retail ? fmt(row.retail) : '-', row.mix]),
+    });
+  const savePurchaseSummaryPacket = () => {
+    savePacket({
+      title: 'Purchases Summary Packet',
+      subtitle: `${PURCHASE_CATEGORY_SUMMARY.length} summary categories`,
+      route: '/storeExpenses/index',
+      note: 'Purchases Summary print replacement shell',
+      headers: ['Category', 'Expenses', 'Retail', 'Mix'],
+      rows: PURCHASE_CATEGORY_SUMMARY.map((row) => [row.category, fmt(row.expenses), row.retail ? fmt(row.retail) : '-', row.mix]),
+      filename: 'storecheck-purchases-summary-packet',
+    });
+    showNotice('Purchases summary packet saved in demo mode.');
+  };
+  const printPaymentMethodPacket = () =>
+    openPacketPreview({
+      title: 'Payment Methods',
+      subtitle: 'StoreCheck demo purchase payment summary',
+      headers: ['Method', 'Amount', 'Notes'],
+      rows: PURCHASE_PAYMENT_METHODS.map((row) => [row.method, fmt(row.amount), row.note]),
+    });
+  const updateVendorOrderStatus = (id, status) => {
+    setVendorOrderRows((current) => current.map((row) => (row.id === id ? { ...row, status } : row)));
+    setSelectedOrderId(id);
+    showNotice(`${id} status changed to ${status} in demo mode.`);
+  };
+  const reviewOrderDelivery = (row = selectedVendorOrder) => {
+    if (!row) return;
+    setSelectedOrderId(row.id);
+    openPacketPreview({
+      title: `Order / Delivery - ${row.id}`,
+      subtitle: `${row.vendor} · delivery ${row.deliveryDate}`,
+      headers: ['Order Date', 'Delivery Date', 'Vendor', 'Total', 'Grocery', 'Operating', 'Retail', 'Status'],
+      rows: [[row.orderDate, row.deliveryDate, row.vendor, fmt(row.total), fmt(row.grocery), fmt(row.operating), row.retail ? fmt(row.retail) : '-', row.status]],
+    });
+    showNotice(`${row.id} opened in the demo order/delivery review flow.`);
+  };
+  const saveVendorOrderPacket = (row = selectedVendorOrder) => {
+    if (!row) return;
+    savePacket({
+      title: `Vendor Order Packet - ${row.id}`,
+      subtitle: `${row.vendor} · delivery ${row.deliveryDate}`,
+      route: '/storeExpenses/index',
+      note: 'Vendor Orders order/delivery replacement shell',
+      headers: ['Order Date', 'Delivery Date', 'Vendor', 'Total', 'Margin', 'Rebate Margin', 'Updates', 'Status'],
+      rows: [[row.orderDate, row.deliveryDate, row.vendor, fmt(row.total), row.margin ? `${row.margin}%` : '-', row.rebateMargin ? `${row.rebateMargin}%` : '-', fmtN(row.updates), row.status]],
+      filename: `storecheck-vendor-order-${row.id.toLowerCase()}`,
+    });
+    showNotice(`Vendor order packet prepared for ${row.vendor}.`);
+  };
+  const deleteVendorOrderRow = (id) => {
+    setVendorOrderRows((current) => {
+      const next = current.filter((row) => row.id !== id);
+      if (selectedOrderId === id && next.length) setSelectedOrderId(next[0].id);
+      return next;
+    });
+    showNotice(`${id} removed from the demo vendor-order queue.`);
+  };
+  const openInvoiceReviewItem = (id) => {
+    setSelectedReviewId(id);
+    showNotice(`${id} opened in the invoice review queue.`);
+  };
+  const saveInvoiceReviewPacket = (row = selectedInvoiceReview) => {
+    if (!row) return;
+    savePacket({
+      title: `Invoice Review Packet - ${row.id}`,
+      subtitle: `${row.vendor} · ${row.invoice}`,
+      route: '/storeExpenses/index',
+      note: 'Invoice review follow-through shell',
+      headers: ['Vendor', 'Invoice', 'Amount', 'Status', 'Issue', 'Stage'],
+      rows: [[row.vendor, row.invoice, fmt(row.amount), row.status, row.issue, row.stage]],
+      filename: `storecheck-invoice-review-${row.id.toLowerCase()}`,
+    });
+    showNotice(`Invoice review packet prepared for ${row.vendor}.`);
+  };
+  const moveInvoiceToCostUpdates = (id) => {
+    setInvoiceReviewRows((current) => current.map((row) => (row.id === id ? { ...row, stage: 'Sent to cost updates' } : row)));
+    setSelectedReviewId(id);
+    setPurchasePage('cost');
+    showNotice(`${id} routed to Cost Updates in demo mode.`);
+  };
+  const markInvoiceReady = (id) => {
+    setInvoiceReviewRows((current) => current.map((row) => (row.id === id ? { ...row, status: 'Ready to post', stage: 'Ready' } : row)));
+    setSelectedReviewId(id);
+    showNotice(`${id} marked ready to post in demo mode.`);
+  };
   const exportRows = (rows, format, filename) => downloadTableData(rows, format, filename);
 
   const renderExportButtons = (rows, filename) => (
@@ -6084,6 +6184,19 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
                     <div className="pricebook-detail-title">Purchases summary</div>
                     <div className="pricebook-detail-sub">Mercury-style category and retail rollup, adapted into the StoreCheck card layout.</div>
                   </div>
+                  <div className="pricebook-actions">
+                    <button className="pricebook-btn" onClick={() => printPurchaseSummaryPacket()}>
+                      <Icon name="report" size={15} /> Print
+                    </button>
+                    <button className="pricebook-btn" onClick={() => savePurchaseSummaryPacket()}>
+                      <Icon name="cash" size={15} /> Save packet
+                    </button>
+                    <button className="pricebook-btn primary" onClick={() => setPurchasePage('purchase')}>
+                      <Icon name="pricebook" size={15} /> Add Purchase
+                    </button>
+                  </div>
+                </div>
+                <div className="pricebook-filters" style={{ padding: '0 20px 16px' }}>
                   {renderExportButtons(PURCHASE_CATEGORY_SUMMARY, 'storecheck-purchases-summary')}
                 </div>
                 <div className="mobile-table-scroll">
@@ -6108,6 +6221,24 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
                     <div className="pricebook-detail-title">Payment methods</div>
                     <div className="pricebook-detail-sub">Track how purchase and expense dollars are leaving the store.</div>
                   </div>
+                  <div className="pricebook-actions">
+                    <button className="pricebook-btn" onClick={() => printPaymentMethodPacket()}>
+                      <Icon name="report" size={15} /> Print
+                    </button>
+                    <button className="pricebook-btn" onClick={() => savePacket({
+                      title: 'Payment Methods Packet',
+                      subtitle: `${PURCHASE_PAYMENT_METHODS.length} visible methods`,
+                      route: '/storeExpenses/index',
+                      note: 'Payment Method summary print replacement shell',
+                      headers: ['Method', 'Amount', 'Notes'],
+                      rows: PURCHASE_PAYMENT_METHODS.map((row) => [row.method, fmt(row.amount), row.note]),
+                      filename: 'storecheck-payment-method-packet',
+                    })}>
+                      <Icon name="cash" size={15} /> Save packet
+                    </button>
+                  </div>
+                </div>
+                <div className="pricebook-filters" style={{ padding: '0 20px 16px' }}>
                   {renderExportButtons(PURCHASE_PAYMENT_METHODS, 'storecheck-purchases-payment-methods')}
                 </div>
                 <div className="mobile-table-scroll">
@@ -6138,14 +6269,30 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
                   <div className="pricebook-detail-title">Vendor orders</div>
                   <div className="pricebook-detail-sub">Order and delivery history, margins, and cost updates that still need follow-through.</div>
                 </div>
-                {renderExportButtons(PURCHASE_VENDOR_ORDERS, 'storecheck-vendor-orders')}
+                <div className="pricebook-actions">
+                  <button className="pricebook-btn" onClick={() => reviewOrderDelivery()}>
+                    <Icon name="report" size={15} /> Order / Delivery
+                  </button>
+                  <button className="pricebook-btn" onClick={() => saveVendorOrderPacket()}>
+                    <Icon name="cash" size={15} /> Save packet
+                  </button>
+                  <button className="pricebook-btn primary" onClick={() => setPurchasePage('purchase')}>
+                    <Icon name="pricebook" size={15} /> Add Purchase
+                  </button>
+                </div>
+              </div>
+              <div className="pricebook-filters" style={{ padding: '0 20px 16px' }}>
+                <select className="pricebook-select" value={orderVendorFilter} onChange={(e) => setOrderVendorFilter(e.target.value)}>
+                  {orderVendorOptions.map((item) => <option key={item}>{item}</option>)}
+                </select>
+                {renderExportButtons(filteredVendorOrders, 'storecheck-vendor-orders')}
               </div>
               <div className="mobile-table-scroll">
                 <table className="purchase-table">
-                  <thead><tr><th>Order</th><th>Vendor</th><th className="purchase-right">Total</th><th className="purchase-right">Grocery</th><th className="purchase-right">Operating</th><th className="purchase-right">Retail</th><th className="purchase-right">Margin</th><th className="purchase-right">Margin + Rebate</th><th className="purchase-right">Updates</th><th>Status</th></tr></thead>
+                  <thead><tr><th>Order</th><th>Vendor</th><th className="purchase-right">Total</th><th className="purchase-right">Grocery</th><th className="purchase-right">Operating</th><th className="purchase-right">Retail</th><th className="purchase-right">Margin</th><th className="purchase-right">Margin + Rebate</th><th className="purchase-right">Updates</th><th>Status</th><th>Delete</th></tr></thead>
                   <tbody>
-                    {PURCHASE_VENDOR_ORDERS.map((row) => (
-                      <tr key={row.id}>
+                    {filteredVendorOrders.map((row) => (
+                      <tr key={row.id} onClick={() => setSelectedOrderId(row.id)} style={{ cursor: 'pointer' }}>
                         <td><strong>{row.orderDate}</strong><small>Delivery {row.deliveryDate} · {row.id}</small></td>
                         <td>{row.vendor}</td>
                         <td className="purchase-right">{fmt(row.total)}</td>
@@ -6155,7 +6302,16 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
                         <td className="purchase-right">{row.margin ? `${row.margin}%` : '-'}</td>
                         <td className="purchase-right">{row.rebateMargin ? `${row.rebateMargin}%` : '-'}</td>
                         <td className="purchase-right">{fmtN(row.updates)}</td>
-                        <td><span className={`purchase-tag${toneClass(row.status)}`}>{row.status}</span></td>
+                        <td>
+                          <select className="pricebook-select" value={row.status} onChange={(e) => updateVendorOrderStatus(row.id, e.target.value)} onClick={(e) => e.stopPropagation()}>
+                            {['Ordered', 'Delivered', 'Needs review'].map((item) => <option key={item}>{item}</option>)}
+                          </select>
+                        </td>
+                        <td>
+                          <button className="pricebook-btn" onClick={(e) => { e.stopPropagation(); deleteVendorOrderRow(row.id); }}>
+                            <Icon name="close" size={15} /> Delete
+                          </button>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -6181,17 +6337,45 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
                 </div>
               </div>
               <div className="purchase-kv-list">
-                <div className="purchase-kv"><span>Invoices pending</span><span>{fmtN(PURCHASE_REVIEW_QUEUE.length)}</span></div>
-                <div className="purchase-kv"><span>Ready to export</span><span>{fmtN(PURCHASE_LEDGER.length + OPERATING_EXPENSES.length)} rows</span></div>
+                <div className="purchase-kv"><span>Invoices pending</span><span>{fmtN(invoiceReviewRows.length)}</span></div>
+                <div className="purchase-kv"><span>Ready to export</span><span>{fmtN(purchaseLedgerRows.length + OPERATING_EXPENSES.length)} rows</span></div>
                 <div className="purchase-kv"><span>Owner action needed</span><span>{pendingReviews} reviews</span></div>
               </div>
+            </div>
+
+            <div className="purchase-note-card">
+              <h3>Selected vendor order</h3>
+              <p>Keep the active order visible while working follow-through actions.</p>
+              {selectedVendorOrder ? (
+                <>
+                  <div className="purchase-kv-list">
+                    <div className="purchase-kv"><span>Vendor</span><span>{selectedVendorOrder.vendor}</span></div>
+                    <div className="purchase-kv"><span>Status</span><span>{selectedVendorOrder.status}</span></div>
+                    <div className="purchase-kv"><span>Delivery</span><span>{selectedVendorOrder.deliveryDate}</span></div>
+                    <div className="purchase-kv"><span>Updates</span><span>{fmtN(selectedVendorOrder.updates)}</span></div>
+                  </div>
+                  <div className="pricebook-actions" style={{ marginTop: 16 }}>
+                    <button className="pricebook-btn" onClick={() => reviewOrderDelivery(selectedVendorOrder)}>
+                      <Icon name="report" size={15} /> Open order
+                    </button>
+                    <button className="pricebook-btn" onClick={() => saveVendorOrderPacket(selectedVendorOrder)}>
+                      <Icon name="cash" size={15} /> Save packet
+                    </button>
+                    <button className="pricebook-btn primary" onClick={() => updateVendorOrderStatus(selectedVendorOrder.id, selectedVendorOrder.status === 'Delivered' ? 'Needs review' : 'Delivered')}>
+                      <Icon name="sync" size={15} /> Toggle status
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <div className="purchase-hint">No vendor order is visible for the current filter.</div>
+              )}
             </div>
 
             <div className="purchase-note-card">
               <h3>Invoice review queue</h3>
               <p>Use this before posting purchase totals into your final history and cost updates.</p>
               <div className="purchase-queue-list">
-                {PURCHASE_REVIEW_QUEUE.map((row) => (
+                {invoiceReviewRows.map((row) => (
                   <div className="purchase-queue-row" key={row.id}>
                     <div className="purchase-queue-top">
                       <div>
@@ -6200,13 +6384,49 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
                       </div>
                       <span className={`purchase-tag${toneClass(row.status)}`}>{row.status}</span>
                     </div>
-                    <div className="purchase-queue-meta">{row.issue}</div>
-                    <button className="pricebook-btn soft" onClick={() => showNotice(`${row.id} moved to invoice review. Demo data only for now.`)}>
-                      <Icon name="report" size={15} /> Review invoice
-                    </button>
+                    <div className="purchase-queue-meta">{row.issue} · {row.stage}</div>
+                    <div className="pricebook-actions" style={{ marginTop: 12 }}>
+                      <button className="pricebook-btn soft" onClick={() => openInvoiceReviewItem(row.id)}>
+                        <Icon name="report" size={15} /> Review invoice
+                      </button>
+                      <button className="pricebook-btn" onClick={() => moveInvoiceToCostUpdates(row.id)}>
+                        <Icon name="sync" size={15} /> To cost
+                      </button>
+                      <button className="pricebook-btn primary" onClick={() => markInvoiceReady(row.id)}>
+                        <Icon name="cash" size={15} /> Ready to post
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
+            </div>
+
+            <div className="purchase-note-card">
+              <h3>Selected invoice review</h3>
+              <p>Stay inside the review queue while deciding whether an invoice is ready, needs cost work, or needs a packet.</p>
+              {selectedInvoiceReview ? (
+                <>
+                  <div className="purchase-kv-list">
+                    <div className="purchase-kv"><span>Vendor</span><span>{selectedInvoiceReview.vendor}</span></div>
+                    <div className="purchase-kv"><span>Status</span><span>{selectedInvoiceReview.status}</span></div>
+                    <div className="purchase-kv"><span>Stage</span><span>{selectedInvoiceReview.stage}</span></div>
+                    <div className="purchase-kv"><span>Invoice</span><span>{selectedInvoiceReview.invoice}</span></div>
+                  </div>
+                  <div className="pricebook-actions" style={{ marginTop: 16 }}>
+                    <button className="pricebook-btn" onClick={() => openInvoiceReviewItem(selectedInvoiceReview.id)}>
+                      <Icon name="report" size={15} /> Open review
+                    </button>
+                    <button className="pricebook-btn" onClick={() => saveInvoiceReviewPacket(selectedInvoiceReview)}>
+                      <Icon name="cash" size={15} /> Save packet
+                    </button>
+                    <button className="pricebook-btn primary" onClick={() => markInvoiceReady(selectedInvoiceReview.id)}>
+                      <Icon name="sync" size={15} /> Mark ready
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <div className="purchase-hint">No invoice review row is selected right now.</div>
+              )}
             </div>
           </div>
         </div>
