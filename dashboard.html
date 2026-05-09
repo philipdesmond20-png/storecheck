@@ -1773,6 +1773,313 @@ button,input{font:inherit}
   font-size:13px;
   font-weight:700;
 }
+.purchase-grid{
+  display:grid;
+  grid-template-columns:minmax(0,1.15fr) minmax(320px,.85fr);
+  gap:18px;
+  align-items:start;
+}
+.purchase-grid.single{grid-template-columns:1fr}
+.purchase-stack{
+  display:grid;
+  gap:18px;
+}
+.purchase-summary-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:18px;
+}
+.purchase-surface,
+.purchase-note-card,
+.purchase-setup-card{
+  border:1px solid var(--line);
+  border-radius:24px;
+  background:#fff;
+  box-shadow:var(--shadow-soft);
+}
+.purchase-surface{overflow:hidden}
+.purchase-note-card,
+.purchase-setup-card{
+  padding:20px;
+}
+.purchase-panel-head{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:14px;
+  margin-bottom:14px;
+}
+.purchase-panel-head h3,
+.purchase-note-card h3,
+.purchase-setup-card h3{
+  margin:0;
+  color:var(--text-1);
+  font-size:20px;
+  font-weight:900;
+  letter-spacing:-.03em;
+}
+.purchase-panel-head p,
+.purchase-note-card p,
+.purchase-setup-card p{
+  margin:6px 0 0;
+  color:var(--text-3);
+  font-size:13px;
+  font-weight:700;
+}
+.purchase-table{
+  width:100%;
+  border-collapse:collapse;
+  font-size:13px;
+}
+.purchase-table th{
+  padding:15px 16px;
+  background:#F6F9FA;
+  color:var(--text-3);
+  font-size:11px;
+  font-weight:900;
+  letter-spacing:.14em;
+  text-align:left;
+  text-transform:uppercase;
+}
+.purchase-table td{
+  padding:15px 16px;
+  border-top:1px solid var(--line);
+  color:var(--text-1);
+  font-weight:700;
+  vertical-align:top;
+}
+.purchase-table td small{
+  display:block;
+  margin-top:4px;
+  color:var(--text-3);
+  font-size:12px;
+  font-weight:700;
+}
+.purchase-right{text-align:right}
+.purchase-tag{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  border-radius:999px;
+  padding:6px 10px;
+  background:var(--green-soft);
+  color:var(--green-dark);
+  font-size:11px;
+  font-weight:900;
+}
+.purchase-tag.blue{
+  background:rgba(59,130,246,.13);
+  color:#2563EB;
+}
+.purchase-tag.amber{
+  background:rgba(245,158,11,.14);
+  color:#9A5A00;
+}
+.purchase-tag.red{
+  background:rgba(239,68,68,.12);
+  color:#B91C1C;
+}
+.purchase-kv-list{
+  display:grid;
+  gap:10px;
+  margin-top:18px;
+}
+.purchase-kv{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding:12px 0;
+  border-bottom:1px solid var(--line);
+}
+.purchase-kv:last-child{border-bottom:0}
+.purchase-kv span:first-child{
+  color:var(--text-3);
+  font-size:12px;
+  font-weight:900;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+}
+.purchase-kv span:last-child{
+  color:var(--text-1);
+  font-size:13px;
+  font-weight:900;
+  text-align:right;
+}
+.purchase-form-grid{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:14px;
+}
+.purchase-form-field label{
+  display:block;
+  margin-bottom:7px;
+  color:var(--text-3);
+  font-size:11px;
+  font-weight:900;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+}
+.purchase-form-field textarea{
+  min-height:118px;
+  resize:vertical;
+  padding:14px;
+}
+.purchase-form-field.full{grid-column:1 / -1}
+.purchase-file{
+  width:100%;
+  min-height:44px;
+  border:1px dashed rgba(39,198,107,.28);
+  border-radius:14px;
+  padding:11px 14px;
+  background:#fff;
+  color:var(--text-2);
+  font:700 13px/1.4 "DM Sans", sans-serif;
+}
+.purchase-action-row{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  flex-wrap:wrap;
+}
+.purchase-hint{
+  color:var(--text-3);
+  font-size:13px;
+  font-weight:700;
+}
+.purchase-history-list,
+.purchase-queue-list{
+  display:grid;
+  gap:12px;
+}
+.purchase-history-row,
+.purchase-queue-row{
+  display:grid;
+  gap:10px;
+  padding:16px;
+  border:1px solid var(--line);
+  border-radius:20px;
+  background:#fff;
+}
+.purchase-history-top,
+.purchase-queue-top{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:12px;
+}
+.purchase-history-title,
+.purchase-queue-title{
+  color:var(--text-1);
+  font-size:15px;
+  font-weight:900;
+}
+.purchase-history-meta,
+.purchase-queue-meta{
+  color:var(--text-3);
+  font-size:13px;
+  font-weight:700;
+}
+.purchase-history-bottom{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  flex-wrap:wrap;
+}
+.purchase-split{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) minmax(280px,.82fr);
+  gap:18px;
+}
+.purchase-mini-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:12px;
+}
+.purchase-mini-card{
+  border:1px solid rgba(39,198,107,.16);
+  border-radius:20px;
+  padding:16px;
+  background:#F7FCF9;
+}
+.purchase-mini-card .label{
+  color:var(--text-3);
+  font-size:11px;
+  font-weight:900;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+}
+.purchase-mini-card .value{
+  margin-top:10px;
+  color:var(--text-1);
+  font-size:24px;
+  font-weight:900;
+  letter-spacing:-.04em;
+}
+.purchase-mini-card .meta{
+  margin-top:6px;
+  color:var(--text-2);
+  font-size:13px;
+  font-weight:700;
+}
+.purchase-code-list{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin-top:16px;
+}
+.purchase-code-pill{
+  display:inline-flex;
+  align-items:center;
+  min-height:34px;
+  border-radius:999px;
+  padding:0 12px;
+  background:#F4F8F5;
+  color:var(--text-2);
+  font-size:12px;
+  font-weight:800;
+}
+.purchase-setup-list{
+  display:grid;
+  gap:12px;
+  margin-top:18px;
+}
+.purchase-setup-item{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding:14px 0;
+  border-bottom:1px solid var(--line);
+}
+.purchase-setup-item:last-child{border-bottom:0}
+.purchase-setup-main{
+  display:grid;
+  gap:5px;
+}
+.purchase-setup-main strong{
+  color:var(--text-1);
+  font-size:14px;
+}
+.purchase-setup-main span{
+  color:var(--text-3);
+  font-size:12px;
+  font-weight:700;
+}
+.purchase-status-dot{
+  display:inline-flex;
+  width:9px;
+  height:9px;
+  border-radius:999px;
+  background:var(--green);
+  box-shadow:0 0 0 4px rgba(39,198,107,.12);
+}
+.purchase-status-dot.off{
+  background:#CBD5E1;
+  box-shadow:0 0 0 4px rgba(148,163,184,.14);
+}
 .shop-category-list{
   display:flex;
   flex-direction:column;
@@ -2489,13 +2796,24 @@ button,input{font:inherit}
   .pricebook-kpis,
   .pricebook-workspace,
   .pricebook-form-grid,
-  .pricebook-deal-grid{
+  .pricebook-deal-grid,
+  .purchase-grid,
+  .purchase-summary-grid,
+  .purchase-form-grid,
+  .purchase-split,
+  .purchase-mini-grid{
     grid-template-columns:1fr;
   }
   .pricebook-tabs{overflow-x:auto}
   .pricebook-tab{flex:1 0 auto}
   .pricebook-toolbar,
-  .pricebook-action-strip{
+  .pricebook-action-strip,
+  .purchase-panel-head,
+  .purchase-action-row,
+  .purchase-history-top,
+  .purchase-history-bottom,
+  .purchase-queue-top,
+  .purchase-setup-item{
     flex-direction:column;
     align-items:flex-start;
   }
@@ -2514,6 +2832,7 @@ button,input{font:inherit}
   .tx-bar-row{
     grid-template-columns:90px 1fr 78px;
   }
+  .purchase-table{min-width:860px}
 }
 </style>
 </head>
@@ -2735,6 +3054,7 @@ const NAV = [
   { id: 'fuel', icon: 'fuel', label: 'Fuel' },
   { id: 'shop', icon: 'shop', label: 'Shop & Store' },
   { id: 'pricebook', icon: 'pricebook', label: 'Inventory' },
+  { id: 'purchases', icon: 'payments', label: 'Purchases' },
   { id: 'reports', icon: 'calendar', label: 'Reports' },
 ];
 
@@ -2791,6 +3111,86 @@ const PRICEBOOK_PENDING = [
   { id: 'POS-391', change: 'Price update', item: 'Coca-Cola 20oz', from: '$2.39', to: '$2.49', requestedBy: 'A. Patel', status: 'Ready to send' },
   { id: 'POS-407', change: 'New deal', item: 'Coffee + Donut Combo', from: 'Not active', to: 'Draft deal', requestedBy: 'Manager', status: 'Needs review' },
   { id: 'POS-419', change: 'Tax map', item: 'Doritos Nacho 2.75oz', from: 'Standard', to: 'Food', requestedBy: 'M. Chen', status: 'Ready to send' },
+];
+
+const PURCHASE_CATEGORY_SUMMARY = [
+  { category: 'High Tax', expenses: 1864.43, retail: 2794.1, mix: 'Cold drinks + tobacco' },
+  { category: 'Low Tax', expenses: 1246.88, retail: 1891.5, mix: 'Snacks + packaged food' },
+  { category: 'No Tax', expenses: 438.25, retail: 617.9, mix: 'Fresh produce + exempt items' },
+  { category: 'Operating', expenses: 612.74, retail: 0, mix: 'Supplies + maintenance' },
+  { category: 'Uncategorized', expenses: 92.5, retail: 0, mix: 'Needs invoice review' },
+];
+
+const PURCHASE_PAYMENT_METHODS = [
+  { method: 'Cash', amount: 241.15, note: 'Fruit, ice, emergency buys' },
+  { method: 'Check', amount: 884.2, note: 'Lance + local services' },
+  { method: 'EFT', amount: 3129.45, note: 'Primary grocery distributors' },
+];
+
+const PURCHASE_VENDOR_ORDERS = [
+  { id: 'PO-3208', orderDate: '2026-05-08', deliveryDate: '2026-05-09', vendor: 'Metro Beverage Wholesale', total: 884.2, grocery: 812.7, operating: 71.5, retail: 1334.9, margin: 39, rebateMargin: 41, updates: 8, status: 'Delivered' },
+  { id: 'PO-3202', orderDate: '2026-05-07', deliveryDate: '2026-05-08', vendor: 'Sunrise Snacks Distributor', total: 613.42, grocery: 613.42, operating: 0, retail: 1019.8, margin: 40, rebateMargin: 43, updates: 5, status: 'Needs review' },
+  { id: 'PO-3199', orderDate: '2026-05-06', deliveryDate: '2026-05-07', vendor: 'Always Fresh Fruit', total: 141.15, grocery: 141.15, operating: 0, retail: 229.6, margin: 39, rebateMargin: 39, updates: 0, status: 'Delivered' },
+  { id: 'PO-3191', orderDate: '2026-05-05', deliveryDate: '2026-05-06', vendor: 'Quick Clean Supply', total: 198.32, grocery: 0, operating: 198.32, retail: 0, margin: 0, rebateMargin: 0, updates: 0, status: 'Ordered' },
+];
+
+const PURCHASE_LEDGER = [
+  { id: 'PL-4901', date: '2026-05-08', vendor: 'Metro Beverage Wholesale', paymentType: 'EFT', checkNo: '-', storeExpense: 884.2, storeAudit: 884.2, difference: 0, items: 48, status: 'Cleared', invoice: 'INV-88412.pdf', comments: 'Soda endcap restock', checkPrint: 'ACH' },
+  { id: 'PL-4898', date: '2026-05-08', vendor: 'Always Fresh Fruit', paymentType: 'Cash', checkNo: '-', storeExpense: 141.15, storeAudit: 138.4, difference: 2.75, items: 12, status: 'Confirm', invoice: 'FRUIT-2218.jpg', comments: 'Produce cooler fill', checkPrint: 'Cash' },
+  { id: 'PL-4891', date: '2026-05-07', vendor: 'Sunrise Snacks Distributor', paymentType: 'Check', checkNo: '1049', storeExpense: 613.42, storeAudit: 613.42, difference: 0, items: 31, status: 'Cleared', invoice: 'SNS-7821.pdf', comments: 'Snacks promo load-in', checkPrint: 'Ready' },
+  { id: 'PL-4884', date: '2026-05-06', vendor: 'Quick Clean Supply', paymentType: 'Cash', checkNo: '-', storeExpense: 198.32, storeAudit: 198.32, difference: 0, items: 6, status: 'Cleared', invoice: 'QCS-5510.pdf', comments: 'Janitorial and towels', checkPrint: 'Cash' },
+];
+
+const OPERATING_EXPENSES = [
+  { id: 'EX-710', date: '2026-05-08', shift: 'Day', vendor: 'Quick Clean Supply', paymentType: 'Cash', category: 'Janitorial And Cleaning', amount: 22.5, note: 'Floor cleaner and gloves', invoice: 'QCS-5510.pdf' },
+  { id: 'EX-708', date: '2026-05-08', shift: 'Morning', vendor: 'Township Power', paymentType: 'EFT', category: 'Power', amount: 318.76, note: 'Weekly utility draft', invoice: 'AUTO DRAFT' },
+  { id: 'EX-703', date: '2026-05-07', shift: 'Afternoon', vendor: 'Local Print & Paper', paymentType: 'Check', category: 'Office Expenses', amount: 64.18, note: 'Receipt paper + toner', invoice: 'LPP-1190.pdf' },
+  { id: 'EX-699', date: '2026-05-06', shift: 'Day', vendor: 'County Waste Services', paymentType: 'EFT', category: 'Garbage', amount: 128.0, note: 'Dumpster pickup', invoice: 'AUTO DRAFT' },
+];
+
+const PURCHASE_REVIEW_QUEUE = [
+  { id: 'RV-201', vendor: 'Sunrise Snacks Distributor', amount: 613.42, status: 'Need category review', invoice: 'SNS-7821.pdf', issue: '3 lines still uncategorized' },
+  { id: 'RV-202', vendor: 'Metro Beverage Wholesale', amount: 884.2, status: 'Cost update pending', invoice: 'INV-88412.pdf', issue: '8 item costs not confirmed' },
+  { id: 'RV-203', vendor: 'Quick Clean Supply', amount: 198.32, status: 'Ready to post', invoice: 'QCS-5510.pdf', issue: 'Operating-only invoice' },
+];
+
+const VENDOR_MASTER = [
+  { vendor: 'Metro Beverage Wholesale', agent: 'Beverage', terminal: 'Main', active: true, lastOrder: '2026-05-08', focus: 'Cold drinks and water' },
+  { vendor: 'Sunrise Snacks Distributor', agent: 'Snack', terminal: 'Main', active: true, lastOrder: '2026-05-07', focus: 'Chips and candy' },
+  { vendor: 'Always Fresh Fruit', agent: 'Produce', terminal: 'Back Office', active: true, lastOrder: '2026-05-08', focus: 'Fruit cups and bananas' },
+  { vendor: 'Quick Clean Supply', agent: 'Ops', terminal: 'Back Office', active: true, lastOrder: '2026-05-06', focus: 'Cleaning and supplies' },
+  { vendor: 'County Waste Services', agent: 'Ops', terminal: 'Back Office', active: false, lastOrder: '2026-04-29', focus: 'Garbage and hauling' },
+];
+
+const OPERATING_EXPENSE_TYPES = [
+  'Bank Charges',
+  'Credit Card Fees',
+  'Equipment Rental',
+  'Garbage',
+  'General Supplies',
+  'Insurance',
+  'Janitorial And Cleaning',
+  'Office Expenses',
+  'Power',
+  'Professional Services',
+  'Repairs & Maintenance',
+  'Taxes & Licenses',
+];
+
+const VENDOR_CODES = [
+  'coca cola',
+  'fresh fruit',
+  'ga wholesale',
+  'global dis.',
+  'home city ice',
+  'independent dis.',
+  'lance',
+  'leon farmer',
+  'matador dis.',
+  'next day wholesale',
+  'northeast sale',
+  'pepsi',
+  'store expance',
 ];
 
 const uniqueValues = (rows, key) => [...new Set(rows.map((row) => row[key]))].sort();
@@ -4754,6 +5154,527 @@ const PricebookView = ({ pricebookPage, setPricebookPage }) => {
   );
 };
 
+const PurchasesView = ({ purchasePage, setPurchasePage }) => {
+  const [notice, setNotice] = useState('');
+  const [vendorFilter, setVendorFilter] = useState('All');
+  const [purchaseDraft, setPurchaseDraft] = useState({
+    date: '2026-05-09',
+    shift: 'Day',
+    amount: '684.40',
+    paymentType: 'EFT',
+    checkNo: '',
+    vendor: 'Metro Beverage Wholesale',
+    comments: 'Weekly beverage and snack replenishment. Invoice has 8 cost changes to confirm before posting.',
+  });
+  const [expenseDraft, setExpenseDraft] = useState({
+    date: '2026-05-09',
+    shift: 'Day',
+    amount: '42.50',
+    paymentType: 'Cash',
+    vendor: 'Quick Clean Supply',
+    category: 'Janitorial And Cleaning',
+    note: 'Emergency restock for floor cleaner and gloves.',
+  });
+
+  const purchaseSpendTotal = PURCHASE_CATEGORY_SUMMARY.reduce((sum, row) => sum + row.expenses, 0);
+  const purchaseRetailTotal = PURCHASE_CATEGORY_SUMMARY.reduce((sum, row) => sum + row.retail, 0);
+  const paymentTotal = PURCHASE_PAYMENT_METHODS.reduce((sum, row) => sum + row.amount, 0);
+  const cashPurchaseTotal = PURCHASE_LEDGER.filter((row) => row.paymentType === 'Cash').reduce((sum, row) => sum + row.storeExpense, 0);
+  const cashExpenseTotal = OPERATING_EXPENSES.filter((row) => row.paymentType === 'Cash').reduce((sum, row) => sum + row.amount, 0);
+  const filteredPurchaseLedger = vendorFilter === 'All' ? PURCHASE_LEDGER : PURCHASE_LEDGER.filter((row) => row.vendor === vendorFilter);
+  const filteredExpenses = vendorFilter === 'All' ? OPERATING_EXPENSES : OPERATING_EXPENSES.filter((row) => row.vendor === vendorFilter);
+  const activeVendors = VENDOR_MASTER.filter((row) => row.active).length;
+  const pendingReviews = PURCHASE_REVIEW_QUEUE.filter((row) => row.status !== 'Ready to post').length;
+  const unclearedLedger = PURCHASE_LEDGER.filter((row) => row.status !== 'Cleared').length;
+  const expenseMonthTotal = OPERATING_EXPENSES.reduce((sum, row) => sum + row.amount, 0);
+  const vendorOptions = ['All', ...uniqueValues([...PURCHASE_LEDGER, ...OPERATING_EXPENSES], 'vendor')];
+  const tabs = [
+    { id: 'overview', label: 'Overview', icon: 'payments' },
+    { id: 'purchase', label: 'Add Purchase', icon: 'pricebook' },
+    { id: 'expense', label: 'Add Expense', icon: 'cash' },
+    { id: 'history', label: 'History', icon: 'report' },
+    { id: 'setup', label: 'Vendors & Categories', icon: 'gear' },
+  ];
+
+  const toneClass = (status) => {
+    if (String(status).includes('Need')) return ' amber';
+    if (String(status).includes('Confirm')) return ' blue';
+    if (String(status).includes('Ordered')) return ' amber';
+    return '';
+  };
+
+  const showNotice = (message) => {
+    setNotice(message);
+    window.clearTimeout(window.__storecheckPurchasesNotice);
+    window.__storecheckPurchasesNotice = window.setTimeout(() => setNotice(''), 2800);
+  };
+
+  const handlePurchaseDraft = (field, value) => setPurchaseDraft((current) => ({ ...current, [field]: value }));
+  const handleExpenseDraft = (field, value) => setExpenseDraft((current) => ({ ...current, [field]: value }));
+  const exportRows = (rows, format, filename) => downloadTableData(rows, format, filename);
+
+  const renderExportButtons = (rows, filename) => (
+    <div className="pricebook-actions">
+      {['CSV', 'XLS', 'JSON'].map((format) => (
+        <button key={format} className="pricebook-btn" onClick={() => exportRows(rows, format, filename)}>
+          <Icon name="cash" size={15} /> {format}
+        </button>
+      ))}
+    </div>
+  );
+
+  return (
+    <div className="shell">
+      <div className="section-hdr">
+        <h1>Purchases & Vendors</h1>
+        <p>Enter grocery purchases and operating expenses, review invoices, track vendor history, and keep export-ready ledgers in one owner-friendly workspace.</p>
+      </div>
+
+      <div className="pricebook-tabs" role="tablist" aria-label="Purchases and vendors sections">
+        {tabs.map((tab) => (
+          <button key={tab.id} className={`pricebook-tab ${purchasePage === tab.id ? 'active' : ''}`} onClick={() => setPurchasePage(tab.id)}>
+            <Icon name={tab.icon} size={17} /> {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {notice ? <div className="pricebook-notice"><Icon name="cash" size={16} /> {notice}</div> : null}
+
+      <div className="pricebook-kpis">
+        <div className="pricebook-card"><div className="pricebook-card-top"><div className="pricebook-label">Purchase Spend</div><Icon name="payments" size={18} /></div><div className="pricebook-value">{fmt(purchaseSpendTotal)}</div><div className="pricebook-note">{fmt(purchaseRetailTotal)} retail tied to demo invoices</div></div>
+        <div className="pricebook-card"><div className="pricebook-card-top"><div className="pricebook-label">Active Vendors</div><Icon name="connect" size={18} /></div><div className="pricebook-value">{fmtN(activeVendors)}</div><div className="pricebook-note">{pendingReviews} invoices still need review</div></div>
+        <div className="pricebook-card"><div className="pricebook-card-top"><div className="pricebook-label">Cash Visibility</div><Icon name="cash" size={18} /></div><div className="pricebook-value">{fmt(cashPurchaseTotal + cashExpenseTotal)}</div><div className="pricebook-note">{fmt(cashPurchaseTotal)} purchases and {fmt(cashExpenseTotal)} expenses</div></div>
+        <div className="pricebook-card"><div className="pricebook-card-top"><div className="pricebook-label">Ledger Exceptions</div><Icon name="alert" size={18} /></div><div className="pricebook-value">{fmtN(unclearedLedger)}</div><div className="pricebook-note">{fmt(expenseMonthTotal)} operating expenses this period</div></div>
+      </div>
+
+      {purchasePage === 'overview' ? (
+        <div className="purchase-grid">
+          <div className="purchase-stack">
+            <div className="purchase-summary-grid">
+              <div className="purchase-surface">
+                <div className="pricebook-toolbar" style={{ padding: '20px 20px 0' }}>
+                  <div>
+                    <div className="pricebook-detail-title">Purchases summary</div>
+                    <div className="pricebook-detail-sub">Mercury-style category and retail rollup, adapted into the StoreCheck card layout.</div>
+                  </div>
+                  {renderExportButtons(PURCHASE_CATEGORY_SUMMARY, 'storecheck-purchases-summary')}
+                </div>
+                <div className="mobile-table-scroll">
+                  <table className="purchase-table">
+                    <thead><tr><th>Category</th><th className="purchase-right">Expenses</th><th className="purchase-right">Retail</th></tr></thead>
+                    <tbody>
+                      {PURCHASE_CATEGORY_SUMMARY.map((row) => (
+                        <tr key={row.category}>
+                          <td><strong>{row.category}</strong><small>{row.mix}</small></td>
+                          <td className="purchase-right">{fmt(row.expenses)}</td>
+                          <td className="purchase-right">{row.retail ? fmt(row.retail) : '-'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <div className="purchase-surface">
+                <div className="pricebook-toolbar" style={{ padding: '20px 20px 0' }}>
+                  <div>
+                    <div className="pricebook-detail-title">Payment methods</div>
+                    <div className="pricebook-detail-sub">Track how purchase and expense dollars are leaving the store.</div>
+                  </div>
+                  {renderExportButtons(PURCHASE_PAYMENT_METHODS, 'storecheck-purchases-payment-methods')}
+                </div>
+                <div className="mobile-table-scroll">
+                  <table className="purchase-table">
+                    <thead><tr><th>Method</th><th>Notes</th><th className="purchase-right">Amount</th></tr></thead>
+                    <tbody>
+                      {PURCHASE_PAYMENT_METHODS.map((row) => (
+                        <tr key={row.method}>
+                          <td>{row.method}</td>
+                          <td>{row.note}</td>
+                          <td className="purchase-right">{fmt(row.amount)}</td>
+                        </tr>
+                      ))}
+                      <tr>
+                        <td><strong>Total</strong></td>
+                        <td></td>
+                        <td className="purchase-right"><strong>{fmt(paymentTotal)}</strong></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <div className="purchase-surface">
+              <div className="pricebook-toolbar" style={{ padding: '20px 20px 0' }}>
+                <div>
+                  <div className="pricebook-detail-title">Vendor orders</div>
+                  <div className="pricebook-detail-sub">Order and delivery history, margins, and cost updates that still need follow-through.</div>
+                </div>
+                {renderExportButtons(PURCHASE_VENDOR_ORDERS, 'storecheck-vendor-orders')}
+              </div>
+              <div className="mobile-table-scroll">
+                <table className="purchase-table">
+                  <thead><tr><th>Order</th><th>Vendor</th><th className="purchase-right">Total</th><th className="purchase-right">Grocery</th><th className="purchase-right">Operating</th><th className="purchase-right">Retail</th><th className="purchase-right">Margin</th><th className="purchase-right">Margin + Rebate</th><th className="purchase-right">Updates</th><th>Status</th></tr></thead>
+                  <tbody>
+                    {PURCHASE_VENDOR_ORDERS.map((row) => (
+                      <tr key={row.id}>
+                        <td><strong>{row.orderDate}</strong><small>Delivery {row.deliveryDate} · {row.id}</small></td>
+                        <td>{row.vendor}</td>
+                        <td className="purchase-right">{fmt(row.total)}</td>
+                        <td className="purchase-right">{fmt(row.grocery)}</td>
+                        <td className="purchase-right">{fmt(row.operating)}</td>
+                        <td className="purchase-right">{row.retail ? fmt(row.retail) : '-'}</td>
+                        <td className="purchase-right">{row.margin ? `${row.margin}%` : '-'}</td>
+                        <td className="purchase-right">{row.rebateMargin ? `${row.rebateMargin}%` : '-'}</td>
+                        <td className="purchase-right">{fmtN(row.updates)}</td>
+                        <td><span className={`purchase-tag${toneClass(row.status)}`}>{row.status}</span></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <div className="purchase-stack">
+            <div className="purchase-note-card">
+              <h3>Cash visibility</h3>
+              <p>Quick visibility for the cash-only transactions Mercury owners usually chase at closeout.</p>
+              <div className="purchase-mini-grid">
+                <div className="purchase-mini-card">
+                  <div className="label">Cash purchases</div>
+                  <div className="value">{fmt(cashPurchaseTotal)}</div>
+                  <div className="meta">Fruit, janitorial, and same-day fills</div>
+                </div>
+                <div className="purchase-mini-card">
+                  <div className="label">Cash expenses</div>
+                  <div className="value">{fmt(cashExpenseTotal)}</div>
+                  <div className="meta">Operating spend needing visibility</div>
+                </div>
+              </div>
+              <div className="purchase-kv-list">
+                <div className="purchase-kv"><span>Invoices pending</span><span>{fmtN(PURCHASE_REVIEW_QUEUE.length)}</span></div>
+                <div className="purchase-kv"><span>Ready to export</span><span>{fmtN(PURCHASE_LEDGER.length + OPERATING_EXPENSES.length)} rows</span></div>
+                <div className="purchase-kv"><span>Owner action needed</span><span>{pendingReviews} reviews</span></div>
+              </div>
+            </div>
+
+            <div className="purchase-note-card">
+              <h3>Invoice review queue</h3>
+              <p>Use this before posting purchase totals into your final history and cost updates.</p>
+              <div className="purchase-queue-list">
+                {PURCHASE_REVIEW_QUEUE.map((row) => (
+                  <div className="purchase-queue-row" key={row.id}>
+                    <div className="purchase-queue-top">
+                      <div>
+                        <div className="purchase-queue-title">{row.vendor}</div>
+                        <div className="purchase-queue-meta">{row.invoice} · {fmt(row.amount)}</div>
+                      </div>
+                      <span className={`purchase-tag${toneClass(row.status)}`}>{row.status}</span>
+                    </div>
+                    <div className="purchase-queue-meta">{row.issue}</div>
+                    <button className="pricebook-btn soft" onClick={() => showNotice(`${row.id} moved to invoice review. Demo data only for now.`)}>
+                      <Icon name="report" size={15} /> Review invoice
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {purchasePage === 'purchase' ? (
+        <div className="purchase-grid">
+          <div className="purchase-note-card">
+            <div className="purchase-panel-head">
+              <div>
+                <h3>Add grocery purchase</h3>
+                <p>Date, shift, amount, payment type, check number, vendor, comments, and invoice upload mirror the Mercury entry flow.</p>
+              </div>
+            </div>
+            <div className="purchase-form-grid">
+              <div className="purchase-form-field"><label>Date</label><input className="pricebook-input" type="date" value={purchaseDraft.date} onChange={(e) => handlePurchaseDraft('date', e.target.value)} /></div>
+              <div className="purchase-form-field"><label>Shift</label><select className="pricebook-select" value={purchaseDraft.shift} onChange={(e) => handlePurchaseDraft('shift', e.target.value)}><option>Morning</option><option>Day</option><option>Afternoon</option><option>Evening</option></select></div>
+              <div className="purchase-form-field"><label>Amount</label><input className="pricebook-input" value={purchaseDraft.amount} onChange={(e) => handlePurchaseDraft('amount', e.target.value)} /></div>
+              <div className="purchase-form-field"><label>Payment type</label><select className="pricebook-select" value={purchaseDraft.paymentType} onChange={(e) => handlePurchaseDraft('paymentType', e.target.value)}>{['Cash', 'Check', 'EFT'].map((item) => <option key={item}>{item}</option>)}</select></div>
+              <div className="purchase-form-field"><label>Check #</label><input className="pricebook-input" value={purchaseDraft.checkNo} onChange={(e) => handlePurchaseDraft('checkNo', e.target.value)} placeholder="Optional" /></div>
+              <div className="purchase-form-field"><label>Vendor</label><select className="pricebook-select" value={purchaseDraft.vendor} onChange={(e) => handlePurchaseDraft('vendor', e.target.value)}>{uniqueValues(PURCHASE_LEDGER, 'vendor').map((item) => <option key={item}>{item}</option>)}</select></div>
+              <div className="purchase-form-field full"><label>Comments</label><textarea className="pricebook-input" value={purchaseDraft.comments} onChange={(e) => handlePurchaseDraft('comments', e.target.value)} /></div>
+              <div className="purchase-form-field full"><label>Invoice upload</label><input className="purchase-file" type="file" /></div>
+            </div>
+            <div className="purchase-action-row" style={{ marginTop: 18 }}>
+              <span className="purchase-hint">StoreCheck will save the draft locally first, then post to real purchase endpoints in the data phase.</span>
+              <div className="pricebook-actions">
+                <button className="pricebook-btn" onClick={() => showNotice('Purchase draft saved and kept open for another invoice.')}>
+                  <Icon name="save" size={15} /> Save & add another
+                </button>
+                <button className="pricebook-btn primary" onClick={() => showNotice(`Purchase draft saved for ${purchaseDraft.vendor}. Endpoint connection is still pending.`)}>
+                  <Icon name="cash" size={15} /> Save purchase
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="purchase-stack">
+            <div className="purchase-note-card">
+              <h3>Invoice review</h3>
+              <p>Fast owner review for mismatched categories, missing cost updates, or uncategorized lines.</p>
+              <div className="purchase-queue-list">
+                {PURCHASE_REVIEW_QUEUE.map((row) => (
+                  <div className="purchase-queue-row" key={row.id}>
+                    <div className="purchase-queue-top">
+                      <div>
+                        <div className="purchase-queue-title">{row.vendor}</div>
+                        <div className="purchase-queue-meta">{row.invoice} · {fmt(row.amount)}</div>
+                      </div>
+                      <span className={`purchase-tag${toneClass(row.status)}`}>{row.status}</span>
+                    </div>
+                    <div className="purchase-queue-meta">{row.issue}</div>
+                    <button className="pricebook-btn soft" onClick={() => showNotice(`${row.invoice} opened in demo review mode.`)}>
+                      <Icon name="report" size={15} /> Open review
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="purchase-note-card">
+              <h3>Recent purchases</h3>
+              <p>Keep the last few grocery and operating buys visible while entering new invoices.</p>
+              <div className="purchase-history-list">
+                {PURCHASE_LEDGER.slice(0, 3).map((row) => (
+                  <div className="purchase-history-row" key={row.id}>
+                    <div className="purchase-history-top">
+                      <div>
+                        <div className="purchase-history-title">{row.vendor}</div>
+                        <div className="purchase-history-meta">{row.date} · {row.invoice} · {row.items} items</div>
+                      </div>
+                      <span className={`purchase-tag${toneClass(row.status)}`}>{row.status}</span>
+                    </div>
+                    <div className="purchase-history-bottom">
+                      <span className="purchase-history-meta">{row.comments}</span>
+                      <strong>{fmt(row.storeExpense)}</strong>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {purchasePage === 'expense' ? (
+        <div className="purchase-grid">
+          <div className="purchase-note-card">
+            <div className="purchase-panel-head">
+              <div>
+                <h3>Add operating expense</h3>
+                <p>Date, shift, amount, payment type, vendor, note, and invoice upload cover the Mercury expense-entry pattern.</p>
+              </div>
+            </div>
+            <div className="purchase-form-grid">
+              <div className="purchase-form-field"><label>Date</label><input className="pricebook-input" type="date" value={expenseDraft.date} onChange={(e) => handleExpenseDraft('date', e.target.value)} /></div>
+              <div className="purchase-form-field"><label>Shift</label><select className="pricebook-select" value={expenseDraft.shift} onChange={(e) => handleExpenseDraft('shift', e.target.value)}><option>Morning</option><option>Day</option><option>Afternoon</option><option>Evening</option></select></div>
+              <div className="purchase-form-field"><label>Amount</label><input className="pricebook-input" value={expenseDraft.amount} onChange={(e) => handleExpenseDraft('amount', e.target.value)} /></div>
+              <div className="purchase-form-field"><label>Payment type</label><select className="pricebook-select" value={expenseDraft.paymentType} onChange={(e) => handleExpenseDraft('paymentType', e.target.value)}>{['Cash', 'Check', 'EFT'].map((item) => <option key={item}>{item}</option>)}</select></div>
+              <div className="purchase-form-field"><label>Vendor</label><select className="pricebook-select" value={expenseDraft.vendor} onChange={(e) => handleExpenseDraft('vendor', e.target.value)}>{uniqueValues(OPERATING_EXPENSES, 'vendor').map((item) => <option key={item}>{item}</option>)}</select></div>
+              <div className="purchase-form-field"><label>Expense type</label><select className="pricebook-select" value={expenseDraft.category} onChange={(e) => handleExpenseDraft('category', e.target.value)}>{OPERATING_EXPENSE_TYPES.map((item) => <option key={item}>{item}</option>)}</select></div>
+              <div className="purchase-form-field full"><label>Note</label><textarea className="pricebook-input" value={expenseDraft.note} onChange={(e) => handleExpenseDraft('note', e.target.value)} /></div>
+              <div className="purchase-form-field full"><label>Invoice upload</label><input className="purchase-file" type="file" /></div>
+            </div>
+            <div className="purchase-action-row" style={{ marginTop: 18 }}>
+              <span className="purchase-hint">Cash expenses stay visible in the dashboard even before the accounting/export layer is connected.</span>
+              <div className="pricebook-actions">
+                <button className="pricebook-btn" onClick={() => showNotice('Expense draft saved and kept open for the next entry.')}>
+                  <Icon name="save" size={15} /> Save & add another
+                </button>
+                <button className="pricebook-btn primary" onClick={() => showNotice(`Expense draft saved for ${expenseDraft.vendor}. Live save endpoint still missing.`)}>
+                  <Icon name="cash" size={15} /> Save expense
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="purchase-stack">
+            <div className="purchase-note-card">
+              <h3>Operating expense summary</h3>
+              <p>Current demo totals for visibility while the real `/storeExpenses/purchaseindex` data still needs wiring.</p>
+              <div className="purchase-kv-list">
+                <div className="purchase-kv"><span>Month-to-date total</span><span>{fmt(expenseMonthTotal)}</span></div>
+                <div className="purchase-kv"><span>Cash expenses</span><span>{fmt(cashExpenseTotal)}</span></div>
+                <div className="purchase-kv"><span>EFT / Check</span><span>{fmt(expenseMonthTotal - cashExpenseTotal)}</span></div>
+                <div className="purchase-kv"><span>Visible expense types</span><span>{fmtN(OPERATING_EXPENSE_TYPES.length)}</span></div>
+              </div>
+            </div>
+
+            <div className="purchase-note-card">
+              <h3>Cash expense visibility</h3>
+              <p>Short list of the expense entries owners usually reconcile by hand.</p>
+              <div className="purchase-history-list">
+                {OPERATING_EXPENSES.filter((row) => row.paymentType === 'Cash').map((row) => (
+                  <div className="purchase-history-row" key={row.id}>
+                    <div className="purchase-history-top">
+                      <div>
+                        <div className="purchase-history-title">{row.vendor}</div>
+                        <div className="purchase-history-meta">{row.date} · {row.shift} shift · {row.category}</div>
+                      </div>
+                      <strong>{fmt(row.amount)}</strong>
+                    </div>
+                    <div className="purchase-history-meta">{row.note}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {purchasePage === 'history' ? (
+        <div className="purchase-grid single">
+          <div className="purchase-stack">
+            <div className="purchase-surface">
+              <div className="pricebook-toolbar" style={{ padding: '20px 20px 0' }}>
+                <div>
+                  <div className="pricebook-detail-title">Purchase ledger</div>
+                  <div className="pricebook-detail-sub">Export-ready grocery and supply history, with Mercury-style expense versus audit comparison.</div>
+                </div>
+                {renderExportButtons(filteredPurchaseLedger, 'storecheck-purchase-ledger')}
+              </div>
+              <div className="pricebook-filters" style={{ padding: '0 20px 16px' }}>
+                <select className="pricebook-select" value={vendorFilter} onChange={(e) => setVendorFilter(e.target.value)}>
+                  {vendorOptions.map((item) => <option key={item}>{item}</option>)}
+                </select>
+              </div>
+              <div className="mobile-table-scroll">
+                <table className="purchase-table">
+                  <thead><tr><th>Date</th><th>Vendor</th><th>Payment</th><th>Check #</th><th className="purchase-right">Store Expense</th><th className="purchase-right">Store Audit</th><th className="purchase-right">Difference</th><th className="purchase-right">Items</th><th>Status</th><th>Invoice</th><th>Comments</th><th>Check Print</th></tr></thead>
+                  <tbody>
+                    {filteredPurchaseLedger.map((row) => (
+                      <tr key={row.id}>
+                        <td>{row.date}</td>
+                        <td>{row.vendor}</td>
+                        <td>{row.paymentType}</td>
+                        <td>{row.checkNo}</td>
+                        <td className="purchase-right">{fmt(row.storeExpense)}</td>
+                        <td className="purchase-right">{fmt(row.storeAudit)}</td>
+                        <td className="purchase-right">{row.difference ? fmt(row.difference) : '-'}</td>
+                        <td className="purchase-right">{fmtN(row.items)}</td>
+                        <td><span className={`purchase-tag${toneClass(row.status)}`}>{row.status}</span></td>
+                        <td>{row.invoice}</td>
+                        <td>{row.comments}</td>
+                        <td>{row.checkPrint}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div className="purchase-surface">
+              <div className="pricebook-toolbar" style={{ padding: '20px 20px 0' }}>
+                <div>
+                  <div className="pricebook-detail-title">Operating expense ledger</div>
+                  <div className="pricebook-detail-sub">Expense history that can be exported now and connected to real save/report endpoints later.</div>
+                </div>
+                {renderExportButtons(filteredExpenses, 'storecheck-operating-expense-ledger')}
+              </div>
+              <div className="mobile-table-scroll">
+                <table className="purchase-table">
+                  <thead><tr><th>Date</th><th>Shift</th><th>Vendor</th><th>Category</th><th>Payment</th><th className="purchase-right">Amount</th><th>Note</th><th>Invoice</th></tr></thead>
+                  <tbody>
+                    {filteredExpenses.map((row) => (
+                      <tr key={row.id}>
+                        <td>{row.date}</td>
+                        <td>{row.shift}</td>
+                        <td>{row.vendor}</td>
+                        <td>{row.category}</td>
+                        <td>{row.paymentType}</td>
+                        <td className="purchase-right">{fmt(row.amount)}</td>
+                        <td>{row.note}</td>
+                        <td>{row.invoice}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {purchasePage === 'setup' ? (
+        <div className="purchase-grid single">
+          <div className="purchase-summary-grid">
+            <div className="purchase-setup-card">
+              <div className="purchase-panel-head">
+                <div>
+                  <h3>Vendor master</h3>
+                  <p>Owner-facing vendor setup with active visibility, terminal assignments, and last-order context.</p>
+                </div>
+                <button className="pricebook-btn primary" onClick={() => showNotice('Vendor draft opened. Live create endpoint still pending.')}>
+                  <Icon name="connect" size={15} /> Add vendor
+                </button>
+              </div>
+              <div className="purchase-setup-list">
+                {VENDOR_MASTER.map((row) => (
+                  <div className="purchase-setup-item" key={row.vendor}>
+                    <div className="purchase-setup-main">
+                      <strong>{row.vendor}</strong>
+                      <span>{row.agent} agent · {row.terminal} terminal · last order {row.lastOrder}</span>
+                      <span>{row.focus}</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <span className={`purchase-status-dot${row.active ? '' : ' off'}`}></span>
+                      <span className={`purchase-tag${row.active ? '' : ' red'}`}>{row.active ? 'Active' : 'Inactive'}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="purchase-setup-card">
+              <div className="purchase-panel-head">
+                <div>
+                  <h3>Expense type setup</h3>
+                  <p>Category setup for operating expenses so the ledger stays clean and export-ready.</p>
+                </div>
+                <button className="pricebook-btn primary" onClick={() => showNotice('Expense-type draft opened. Save endpoint still pending.')}>
+                  <Icon name="cash" size={15} /> Add expense type
+                </button>
+              </div>
+              <div className="purchase-setup-list">
+                {OPERATING_EXPENSE_TYPES.map((item) => (
+                  <div className="purchase-setup-item" key={item}>
+                    <div className="purchase-setup-main">
+                      <strong>{item}</strong>
+                      <span>Available to expense-entry forms and future report filters.</span>
+                    </div>
+                    <span className="purchase-tag">Live</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="purchase-note-card">
+            <h3>Vendor code reference</h3>
+            <p>Read-only vendor codes from Mercury kept visible until master-data sync is connected.</p>
+            <div className="purchase-code-list">
+              {VENDOR_CODES.map((item) => <span className="purchase-code-pill" key={item}>{item}</span>)}
+            </div>
+            <div className="purchase-action-row" style={{ marginTop: 18 }}>
+              <span className="purchase-hint">Phone cards, real uploads, POS cost confirmations, and live save endpoints still need the data phase.</span>
+              {renderExportButtons(VENDOR_MASTER, 'storecheck-vendor-master')}
+            </div>
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+};
+
 const ReportsView = ({ reportPage, setReportPage }) => {
   const rows = MOCK.week;
   const totals = rows.reduce(
@@ -5250,6 +6171,7 @@ const App = () => {
   const [shopExpanded, setShopExpanded] = useState(true);
   const [reportPage, setReportPage] = useState('week');
   const [pricebookPage, setPricebookPage] = useState('inventory');
+  const [purchasePage, setPurchasePage] = useState('overview');
   const [reportExpanded, setReportExpanded] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
@@ -5279,6 +6201,7 @@ const App = () => {
           {view === 'fuel' ? <FuelView /> : null}
           {view === 'shop' ? <ShopView viewMode={viewMode} shopCategory={shopCategory} setShopCategory={setShopCategory} /> : null}
           {view === 'pricebook' ? <PricebookView pricebookPage={pricebookPage} setPricebookPage={setPricebookPage} /> : null}
+          {view === 'purchases' ? <PurchasesView purchasePage={purchasePage} setPurchasePage={setPurchasePage} /> : null}
           {view === 'reports' ? <ReportsView reportPage={reportPage} setReportPage={setReportPage} /> : null}
           {view === 'settings' ? <SettingsView /> : null}
         </div>
