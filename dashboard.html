@@ -4245,6 +4245,11 @@ const FuelView = () => {
     { id: 'DLV-114', deliveryDate: '2026-05-08', shift: 'Shift 1', volume: 7410, draftDate: '2026-05-09', totalAmount: 21908.16, status: 'Drafted', invoice: 'INV-8836', draft: 'DR-224', bol: 'Attached', rackSetId: 'RACK-508-PM', freightId: 'FRT-114' },
     { id: 'DLV-109', deliveryDate: '2026-05-06', shift: 'Shift 3', volume: 6880, draftDate: '2026-05-07', totalAmount: 20464.92, status: 'Drafted', invoice: 'INV-8820', draft: 'DR-221', bol: 'Attached', rackSetId: 'RACK-506-AM', freightId: 'FRT-109' },
   ]);
+  const [deliverySaveEvents, setDeliverySaveEvents] = useState([
+    { id: 'DSE-1', deliveryId: 'DLV-118', time: '07:52', action: 'Add Delivery opened', actor: 'A. Patel', status: 'Awaiting draft', route: '/jobberBatches/index' },
+    { id: 'DSE-2', deliveryId: 'DLV-118', time: '07:55', action: 'Rack snapshot applied', actor: 'StoreCheck owner', status: 'RACK-509-AM', route: '/jobberBatches/index' },
+    { id: 'DSE-3', deliveryId: 'DLV-114', time: '11:38', action: 'Delivery save packet prepared', actor: 'J. Lopez', status: 'Drafted', route: '/jobberBatches/index' },
+  ]);
   const rackPriceRows = [
     { id: 'RACK-509-AM', effective: '2026-05-09 05:45', terminal: 'Atlanta South', supplier: 'PetroLink', regular: 2.708, premium: 3.041, diesel: 2.882, freightBase: 0.041, surchargeBase: 0.012, status: 'Current' },
     { id: 'RACK-508-PM', effective: '2026-05-08 17:20', terminal: 'Atlanta South', supplier: 'PetroLink', regular: 2.694, premium: 3.026, diesel: 2.871, freightBase: 0.039, surchargeBase: 0.01, status: 'Used on delivery' },
@@ -4317,6 +4322,7 @@ const FuelView = () => {
   const countDeliveryAttachments = (deliveryId) => fuelAttachments.filter((row) => row.deliveryId === deliveryId).length;
   const countDraftAttachments = (draftId) => fuelAttachments.filter((row) => row.draftId === draftId).length;
   const deliveryAttachmentRows = selectedDelivery ? fuelAttachments.filter((row) => row.deliveryId === selectedDelivery.id) : [];
+  const selectedDeliverySaveEvents = selectedDelivery ? deliverySaveEvents.filter((row) => row.deliveryId === selectedDelivery.id) : [];
   const draftAttachmentRows = selectedDraft ? fuelAttachments.filter((row) => row.draftId === selectedDraft.id) : [];
   const selectedDraftBatchRows = selectedDraft ? networkBatchRows.filter((row) => (selectedDraft.linkedBatches || []).includes(row.id)) : [];
   const selectedDraftDetailEvents = selectedDraft ? draftDetailEvents.filter((row) => row.draftId === selectedDraft.id) : [];
@@ -4426,6 +4432,21 @@ const FuelView = () => {
     );
   };
 
+  const exportDeliverySaveEvents = (format) => {
+    downloadTableData(
+      selectedDeliverySaveEvents.map((row) => ({
+        DeliveryId: row.deliveryId,
+        Time: row.time,
+        Action: row.action,
+        Actor: row.actor,
+        Status: row.status,
+        Route: row.route,
+      })),
+      format,
+      `storecheck-fuel-delivery-save-events-${String(selectedDelivery?.id || 'all').toLowerCase()}`
+    );
+  };
+
   const exportDrafts = (format) => {
     downloadTableData(
       draftRows.map((row) => ({
@@ -4499,10 +4520,82 @@ const FuelView = () => {
     showNotice(`Draft detail opened for ${draftId} in demo mode. Real \`/jobberBatches/getDraftDetails/{draftId}\` wiring is still pending.`);
   };
 
+  const pushDeliverySaveEvent = (deliveryId, action, actor, status) => {
+    setDeliverySaveEvents((current) => [
+      {
+        id: `DSE-${Date.now()}`,
+        deliveryId,
+        time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+        action,
+        actor,
+        status,
+        route: '/jobberBatches/index',
+      },
+      ...current,
+    ].slice(0, 20));
+  };
+
+  const previewAddDeliveryPacket = () => {
+    openFuelPacket({
+      title: 'Fuel Add Delivery Save Packet',
+      subtitle: `${deliveryDraft.date} · ${deliveryDraft.shift}`,
+      headers: ['Field', 'Value'],
+      rows: [
+        ['Route', '/jobberBatches/index'],
+        ['Delivery Date', deliveryDraft.date],
+        ['Shift', deliveryDraft.shift],
+        ['Regular', fmtN(Number(deliveryDraft.regular || 0), 0)],
+        ['Premium', fmtN(Number(deliveryDraft.premium || 0), 0)],
+        ['Diesel', fmtN(Number(deliveryDraft.diesel || 0), 0)],
+        ['Invoice Ref', deliveryDraft.invoiceRef],
+        ['BOL Ref', deliveryDraft.bolRef],
+        ['Rack Snapshot', deliveryDraft.rackSetId],
+        ['Freight / gal', deliveryDraft.freightRate],
+        ['Fuel surcharge / gal', deliveryDraft.surchargeRate],
+        ['Landed Cost', fmt(deliveryDraftLandedCost)],
+      ],
+    });
+    pushDeliverySaveEvent(selectedDelivery?.id || 'Draft Save', 'Add Delivery packet previewed', 'StoreCheck owner', 'Preview');
+    showNotice('Add Delivery save packet opened in demo mode.');
+  };
+
+  const saveAddDeliveryPacket = () => {
+    saveFuelPacket({
+      title: 'Fuel Add Delivery Save Packet',
+      subtitle: `${deliveryDraft.date} · ${deliveryDraft.shift}`,
+      route: '/jobberBatches/index',
+      note: 'Fuel Add Delivery save replacement shell',
+      headers: ['Field', 'Value'],
+      rows: [[
+        'Delivery Date',
+        deliveryDraft.date,
+      ], [
+        'Shift',
+        deliveryDraft.shift,
+      ], [
+        'Gallons',
+        `${fmtN(Number(deliveryDraft.regular || 0), 0)} / ${fmtN(Number(deliveryDraft.premium || 0), 0)} / ${fmtN(Number(deliveryDraft.diesel || 0), 0)}`,
+      ], [
+        'Invoice / BOL',
+        `${deliveryDraft.invoiceRef} / ${deliveryDraft.bolRef}`,
+      ], [
+        'Rack / Freight',
+        `${deliveryDraft.rackSetId} / ${deliveryDraft.freightRate} + ${deliveryDraft.surchargeRate}`,
+      ], [
+        'Landed Cost',
+        fmt(deliveryDraftLandedCost),
+      ]],
+      filename: 'storecheck-fuel-add-delivery-save',
+    });
+    pushDeliverySaveEvent(selectedDelivery?.id || 'Draft Save', 'Add Delivery packet saved', 'StoreCheck owner', 'Packet saved');
+    showNotice('Add Delivery save packet prepared in demo mode.');
+  };
+
   const stageDeliveryAttachment = (file, type) => {
     if (!file) return;
     if (type === 'Invoice Attachment') setDeliveryDraftUploads((current) => ({ ...current, invoiceName: file.name }));
     if (type === 'BOL Attachment') setDeliveryDraftUploads((current) => ({ ...current, bolName: file.name }));
+    pushDeliverySaveEvent(selectedDelivery?.id || 'Draft Save', `${type} staged`, 'StoreCheck owner', file.name);
     showNotice(`${file.name} staged for the add-delivery flow in demo mode.`);
   };
 
@@ -4572,6 +4665,7 @@ const FuelView = () => {
       surchargeRate: row.surchargeBase.toFixed(3),
     }));
     setDeliveryCostMode('rack');
+    pushDeliverySaveEvent(selectedDelivery?.id || 'Draft Save', `Rack snapshot applied (${row.id})`, 'StoreCheck owner', row.id);
     showNotice(`${row.id} loaded into Add Delivery in demo mode. Real rack-price endpoint is still pending.`);
   };
 
@@ -4609,6 +4703,7 @@ const FuelView = () => {
       surchargeRate: row.surchargeRate.toFixed(3),
     }));
     setDeliveryCostMode('freight');
+    pushDeliverySaveEvent(selectedDelivery?.id || 'Draft Save', `Freight applied (${row.id})`, 'StoreCheck owner', row.id);
     showNotice(`${row.id} loaded into Add Delivery in demo mode. Real freight endpoint is still pending.`);
   };
 
@@ -4944,6 +5039,27 @@ const FuelView = () => {
       setFuelAttachments((current) => [...nextAttachments, ...current]);
       setSelectedFuelAttachmentId(nextAttachments[0].id);
     }
+    setDeliverySaveEvents((current) => [
+      {
+        id: `DSE-${Date.now()}`,
+        deliveryId: nextId,
+        time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+        action: 'Add Delivery saved',
+        actor: 'StoreCheck owner',
+        status: 'Awaiting draft',
+        route: '/jobberBatches/index',
+      },
+      {
+        id: `DSE-${Date.now()}-rack`,
+        deliveryId: nextId,
+        time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+        action: `Rack and freight snapshot captured`,
+        actor: 'StoreCheck owner',
+        status: `${deliveryDraft.rackSetId} / ${deliveryDraft.freightRate} + ${deliveryDraft.surchargeRate}`,
+        route: '/jobberBatches/index',
+      },
+      ...current,
+    ].slice(0, 20));
     setSelectedDeliveryId(nextId);
     setSelectedFreightId(freightId);
     setSelectedRackId(deliveryDraft.rackSetId);
@@ -5270,6 +5386,12 @@ const FuelView = () => {
                     <div className="purchase-kv"><span>Landed cost</span><span>{fmt(deliveryDraftLandedCost)}</span></div>
                   </div>
                   <div className="pricebook-actions" style={{ marginTop: 16 }}>
+                    <button className="pricebook-btn" onClick={() => previewAddDeliveryPacket()}>
+                      <Icon name="report" size={15} /> Preview save packet
+                    </button>
+                    <button className="pricebook-btn" onClick={() => saveAddDeliveryPacket()}>
+                      <Icon name="cash" size={15} /> Save packet
+                    </button>
                     <button className="pricebook-btn primary" onClick={() => saveDelivery()}>
                       <Icon name="cash" size={15} /> Save
                     </button>
@@ -5279,6 +5401,28 @@ const FuelView = () => {
                   </div>
                 </div>
               ) : null}
+
+              <div className="purchase-note-card">
+                <h3>Add Delivery save route</h3>
+                <p>Keep the save packet and route-specific handoff visible while the delivery modal is still demo-wired.</p>
+                <div className="purchase-kv-list">
+                  <div className="purchase-kv"><span>Route</span><span>/jobberBatches/index</span></div>
+                  <div className="purchase-kv"><span>Current shift</span><span>{deliveryDraft.shift}</span></div>
+                  <div className="purchase-kv"><span>Current gallons</span><span>{fmtN(deliveryEntryTotal, 0)}</span></div>
+                  <div className="purchase-kv"><span>Latest event</span><span>{selectedDeliverySaveEvents[0]?.action || 'No events yet'}</span></div>
+                </div>
+                <div className="pricebook-actions" style={{ marginTop: 16 }}>
+                  <button className="pricebook-btn" onClick={() => previewAddDeliveryPacket()}>
+                    <Icon name="report" size={15} /> Preview route packet
+                  </button>
+                  <button className="pricebook-btn" onClick={() => saveAddDeliveryPacket()}>
+                    <Icon name="cash" size={15} /> Save route packet
+                  </button>
+                  <button className="pricebook-btn primary" onClick={() => exportDeliverySaveEvents('CSV')}>
+                    <Icon name="save" size={15} /> Export save log
+                  </button>
+                </div>
+              </div>
 
               <div className="purchase-note-card">
                 <h3>Supporting blocks</h3>
@@ -5326,6 +5470,24 @@ const FuelView = () => {
                 ) : (
                   <div className="purchase-hint">No delivery is selected right now.</div>
                 )}
+              </div>
+
+              <div className="purchase-note-card">
+                <h3>Add Delivery save events</h3>
+                <p>Owner-facing event visibility for the save path, including rack, freight, and attachment handoff.</p>
+                <div className="purchase-queue-list">
+                  {selectedDeliverySaveEvents.length ? selectedDeliverySaveEvents.map((item) => (
+                    <div className="purchase-queue-row" key={item.id}>
+                      <div className="purchase-queue-top">
+                        <div>
+                          <div className="purchase-queue-title">{item.action}</div>
+                          <div className="purchase-queue-meta">{item.time} · {item.actor} · {item.route}</div>
+                        </div>
+                        <span className={`purchase-tag${item.status === 'Awaiting draft' || item.status === 'Preview' || item.status === 'Packet saved' ? ' blue' : ' amber'}`}>{item.status}</span>
+                      </div>
+                    </div>
+                  )) : <div className="purchase-hint">No add-delivery save events are recorded for the selected delivery yet.</div>}
+                </div>
               </div>
 
               <div className="purchase-note-card">
