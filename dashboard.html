@@ -1194,6 +1194,295 @@ button,input{font:inherit}
 .shop-drill-table th:last-child{
   text-align:right;
 }
+.tx-mode-switch{
+  display:flex;
+  gap:8px;
+  align-items:center;
+  width:max-content;
+  max-width:100%;
+  margin:0 0 20px auto;
+  padding:8px;
+  border:1px solid rgba(39,198,107,0.14);
+  border-radius:22px;
+  background:#fff;
+  box-shadow:var(--shadow-soft);
+}
+.tx-mode-btn{
+  border:0;
+  background:transparent;
+  color:var(--text-2);
+  padding:12px 16px;
+  border-radius:16px;
+  font-weight:700;
+  cursor:pointer;
+}
+.tx-mode-btn.active{
+  background:rgba(39,198,107,0.12);
+  color:#14934D;
+}
+.tx-kpi-grid,
+.tx-summary-grid{
+  display:grid;
+  grid-template-columns:repeat(4, minmax(0, 1fr));
+  gap:16px;
+  margin-bottom:20px;
+}
+.tx-summary-grid{
+  grid-template-columns:repeat(3, minmax(0, 1fr));
+}
+.tx-kpi-card,
+.tx-table-card,
+.tx-receipt-card,
+.tx-summary-card{
+  background:#fff;
+  border:1px solid rgba(39,198,107,0.1);
+  border-radius:24px;
+  box-shadow:var(--shadow-soft);
+}
+.tx-kpi-card{
+  padding:18px;
+}
+.tx-kpi-label{
+  color:var(--text-3);
+  font-size:11px;
+  font-weight:800;
+  letter-spacing:0.12em;
+  text-transform:uppercase;
+}
+.tx-kpi-value{
+  margin-top:10px;
+  color:var(--text-1);
+  font-size:30px;
+  font-weight:800;
+  letter-spacing:-0.04em;
+}
+.tx-kpi-copy{
+  margin-top:6px;
+  color:var(--text-2);
+  font-size:13px;
+  font-weight:600;
+}
+.tx-toolbar{
+  margin-bottom:20px;
+  padding:20px;
+  background:#fff;
+  border:1px solid rgba(39,198,107,0.1);
+  border-radius:24px;
+  box-shadow:var(--shadow-soft);
+}
+.tx-toolbar-head{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:16px;
+  margin-bottom:16px;
+}
+.tx-toolbar-title{
+  color:var(--text-1);
+  font-size:18px;
+  font-weight:800;
+}
+.tx-toolbar-sub{
+  margin-top:4px;
+  color:var(--text-3);
+  font-size:13px;
+  font-weight:600;
+}
+.tx-filters{
+  display:grid;
+  grid-template-columns:1.5fr repeat(5, minmax(0, 1fr));
+  gap:12px;
+}
+.tx-filter-group{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+.tx-filter-group label{
+  color:var(--text-3);
+  font-size:11px;
+  font-weight:800;
+  letter-spacing:0.12em;
+  text-transform:uppercase;
+}
+.tx-input,
+.tx-select{
+  width:100%;
+  height:44px;
+  border:1px solid rgba(39,198,107,0.16);
+  border-radius:14px;
+  background:#fff;
+  color:var(--text-1);
+  font:inherit;
+  font-weight:700;
+  padding:0 12px;
+}
+.tx-exports{
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+  margin-top:14px;
+}
+.tx-export-btn{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  min-height:40px;
+  border:1px solid rgba(39,198,107,0.18);
+  border-radius:999px;
+  background:#fff;
+  color:#176C3A;
+  padding:0 14px;
+  font-weight:800;
+  cursor:pointer;
+}
+.tx-layout{
+  display:grid;
+  grid-template-columns:minmax(0, 1fr) 320px;
+  gap:20px;
+}
+.tx-table-card,
+.tx-receipt-card,
+.tx-summary-card{
+  padding:20px;
+}
+.tx-card-title{
+  color:var(--text-1);
+  font-size:20px;
+  font-weight:800;
+}
+.tx-card-sub{
+  margin-top:4px;
+  color:var(--text-3);
+  font-size:13px;
+  font-weight:600;
+}
+.tx-table-wrap{
+  overflow-x:auto;
+  margin-top:14px;
+  border:1px solid var(--line);
+  border-radius:18px;
+}
+.tx-table{
+  width:100%;
+  border-collapse:collapse;
+}
+.tx-table th,
+.tx-table td{
+  padding:13px 14px;
+  border-bottom:1px solid var(--line);
+  font-size:13px;
+}
+.tx-table th{
+  background:#F7FAFC;
+  color:var(--text-3);
+  font-size:11px;
+  font-weight:800;
+  letter-spacing:0.1em;
+  text-align:left;
+  text-transform:uppercase;
+}
+.tx-table th + th,
+.tx-table td + td{
+  border-left:1px solid #EDF2F5;
+}
+.tx-table tr:last-child td{border-bottom:none}
+.tx-right{text-align:right}
+.tx-click-row{
+  cursor:pointer;
+}
+.tx-click-row:hover,
+.tx-row-active{
+  background:#F1FBF5;
+}
+.tx-receipt-card{
+  position:sticky;
+  top:112px;
+  align-self:start;
+}
+.tx-receipt-title{
+  color:var(--text-1);
+  font-size:18px;
+  font-weight:800;
+}
+.tx-receipt-meta{
+  margin-top:4px;
+  color:var(--text-3);
+  font-size:13px;
+  font-weight:700;
+}
+.tx-receipt-row{
+  display:flex;
+  justify-content:space-between;
+  gap:14px;
+  padding:12px 0;
+  border-bottom:1px solid var(--line);
+  font-size:13px;
+}
+.tx-receipt-row span:first-child{
+  color:var(--text-3);
+  font-weight:800;
+}
+.tx-receipt-total{
+  margin-top:16px;
+  padding:16px;
+  border-radius:18px;
+  background:#F1FBF5;
+  color:#14934D;
+  font-size:24px;
+  font-weight:800;
+  text-align:right;
+}
+.tx-list-row{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding:12px 0;
+  border-bottom:1px solid var(--line);
+  font-size:13px;
+}
+.tx-list-row:last-child{border-bottom:0}
+.tx-list-label{font-weight:800;color:var(--text-1)}
+.tx-list-meta{color:var(--text-3);font-weight:700}
+.tx-bars{
+  display:flex;
+  flex-direction:column;
+  gap:14px;
+  margin-top:16px;
+}
+.tx-bar-row{
+  display:grid;
+  grid-template-columns:120px 1fr 90px;
+  gap:12px;
+  align-items:center;
+  font-size:13px;
+}
+.tx-bar-label{font-weight:800;color:var(--text-1)}
+.tx-bar-track{
+  height:12px;
+  overflow:hidden;
+  border-radius:999px;
+  background:#E8EEF3;
+}
+.tx-bar-fill{
+  height:100%;
+  border-radius:999px;
+  background:linear-gradient(90deg,#159947,#27C66B);
+}
+.tx-bar-value{
+  color:var(--text-1);
+  font-weight:800;
+  text-align:right;
+  font-variant-numeric:tabular-nums;
+}
+.tx-empty{
+  padding:30px;
+  color:var(--text-3);
+  font-weight:800;
+  text-align:center;
+}
 .shop-category-list{
   display:flex;
   flex-direction:column;
@@ -1890,8 +2179,32 @@ button,input{font:inherit}
   }
   .ops-table,
   .week-table,
-  .shop-drill-table{
+  .shop-drill-table,
+  .tx-table{
     min-width:720px;
+  }
+  .tx-mode-switch{
+    width:100%;
+    margin-left:0;
+    overflow-x:auto;
+  }
+  .tx-mode-btn{
+    flex:1 0 auto;
+  }
+  .tx-kpi-grid,
+  .tx-summary-grid,
+  .tx-layout,
+  .tx-filters{
+    grid-template-columns:1fr;
+  }
+  .tx-toolbar-head{
+    flex-direction:column;
+  }
+  .tx-receipt-card{
+    position:static;
+  }
+  .tx-bar-row{
+    grid-template-columns:90px 1fr 78px;
   }
 }
 </style>
@@ -2006,6 +2319,7 @@ const ICON_PATHS = {
   back: 'M19 11H7.83l4.58-4.59L11 5l-7 7 7 7 1.41-1.41L7.83 13H19z',
   connect: 'M10.59 13.41 9.17 12l2.83-2.83 1.41 1.41L10.59 13.41zM7 17a4 4 0 0 1 0-8h3v2H7a2 2 0 0 0 0 4h3v2H7zm10-8a4 4 0 1 1 0 8h-3v-2h3a2 2 0 1 0 0-4h-3V9h3z',
   save: 'M17 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V7l-4-4zM7 5h8v4H7V5zm5 14a3 3 0 1 1 0-6 3 3 0 0 1 0 6z',
+  transactions: 'M4 5h16v3H4V5zm0 5h16v3H4v-3zm0 5h10v3H4v-3zm13 0h3v3h-3v-3z',
   menu: 'M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z',
   close: 'M18.3 5.71 12 12l6.3 6.29-1.41 1.42L10.59 13.4 4.29 19.71 2.88 18.3 9.17 12 2.88 5.71 4.29 4.29l6.3 6.3 6.3-6.3z',
 };
@@ -2105,6 +2419,7 @@ const BarChart = ({ data, labels, height = 220 }) => {
 
 const NAV = [
   { id: 'today', icon: 'home', label: "Today's Summary" },
+  { id: 'transactions', icon: 'transactions', label: 'Transactions' },
   { id: 'fuel', icon: 'fuel', label: 'Fuel' },
   { id: 'shop', icon: 'shop', label: 'Shop & Store' },
   { id: 'reports', icon: 'calendar', label: 'Reports' },
@@ -2128,6 +2443,66 @@ const reportNavItems = [
   { id: 'monthly', label: 'Monthly' },
   { id: 'custom', label: 'Custom' },
 ];
+
+const TRANSACTION_ROWS = [
+  { id: 'TX-10482', receipt: 'R-10482', date: '2026-05-07', time: '07:12', shift: 'Morning', cashier: 'A. Patel', department: 'Grocery', item: 'Grocery Item A', qty: 2, priceLevel: 'Standard', tender: 'Card', amount: 14.99, register: 'Register 1' },
+  { id: 'TX-10491', receipt: 'R-10491', date: '2026-05-07', time: '08:26', shift: 'Morning', cashier: 'M. Chen', department: 'Beverages', item: 'Beverages Item A', qty: 1, priceLevel: 'Promo', tender: 'Card', amount: 6.49, register: 'Register 2' },
+  { id: 'TX-10518', receipt: 'R-10518', date: '2026-05-07', time: '09:41', shift: 'Morning', cashier: 'J. Lopez', department: 'Tobacco', item: 'Tobacco Item B', qty: 1, priceLevel: 'Standard', tender: 'Cash', amount: 21.98, register: 'Register 1' },
+  { id: 'TX-10546', receipt: 'R-10546', date: '2026-05-07', time: '11:03', shift: 'Day', cashier: 'A. Patel', department: 'Car Care', item: 'Car Care Item A', qty: 1, priceLevel: 'Standard', tender: 'Card', amount: 18.79, register: 'Register 3' },
+  { id: 'TX-10577', receipt: 'R-10577', date: '2026-05-07', time: '12:18', shift: 'Day', cashier: 'M. Chen', department: 'Snacks', item: 'Snacks Item C', qty: 3, priceLevel: 'Pack', tender: 'EBT', amount: 9.99, register: 'Register 2' },
+  { id: 'TX-10610', receipt: 'R-10610', date: '2026-05-07', time: '13:24', shift: 'Day', cashier: 'A. Patel', department: 'Grocery', item: 'Grocery Item D', qty: 4, priceLevel: 'Standard', tender: 'Cash', amount: 12.45, register: 'Register 1' },
+  { id: 'TX-10658', receipt: 'R-10658', date: '2026-05-07', time: '15:22', shift: 'Afternoon', cashier: 'J. Lopez', department: 'Beverages', item: 'Beverages Item B', qty: 2, priceLevel: 'Promo', tender: 'Card', amount: 7.49, register: 'Register 2' },
+  { id: 'TX-10704', receipt: 'R-10704', date: '2026-05-07', time: '16:47', shift: 'Afternoon', cashier: 'M. Chen', department: 'Tobacco', item: 'Tobacco Item D', qty: 1, priceLevel: 'Pack', tender: 'Card', amount: 9.99, register: 'Register 1' },
+  { id: 'TX-10762', receipt: 'R-10762', date: '2026-05-07', time: '18:03', shift: 'Evening', cashier: 'A. Patel', department: 'Snacks', item: 'Snacks Item A', qty: 1, priceLevel: 'Standard', tender: 'Mobile', amount: 3.49, register: 'Register 3' },
+  { id: 'TX-10801', receipt: 'R-10801', date: '2026-05-07', time: '19:14', shift: 'Evening', cashier: 'J. Lopez', department: 'Grocery', item: 'Grocery Item B', qty: 2, priceLevel: 'Standard', tender: 'Card', amount: 22.18, register: 'Register 2' },
+  { id: 'TX-10837', receipt: 'R-10837', date: '2026-05-07', time: '20:08', shift: 'Evening', cashier: 'M. Chen', department: 'Lottery', item: 'Instant Lottery Pack', qty: 1, priceLevel: 'Standard', tender: 'Cash', amount: 20.00, register: 'Register 1' },
+  { id: 'TX-10859', receipt: 'R-10859', date: '2026-05-07', time: '21:16', shift: 'Closeout', cashier: 'A. Patel', department: 'Fuel', item: 'Regular Fuel', qty: 8.7, priceLevel: 'Pump', tender: 'Card', amount: 30.44, register: 'Pump 4' },
+];
+
+const uniqueValues = (rows, key) => [...new Set(rows.map((row) => row[key]))].sort();
+const sumRows = (rows) => rows.reduce((sum, row) => sum + row.amount, 0);
+const groupRows = (rows, key) =>
+  rows.reduce((acc, row) => {
+    const group = row[key];
+    if (!acc[group]) acc[group] = { label: group, rows: 0, amount: 0, qty: 0 };
+    acc[group].rows += 1;
+    acc[group].amount += row.amount;
+    acc[group].qty += Number(row.qty) || 0;
+    return acc;
+  }, {});
+
+const downloadData = (rows, format, filename) => {
+  const normalized = rows.map((row) => ({
+    Date: row.date,
+    Time: row.time,
+    Receipt: row.receipt,
+    Shift: row.shift,
+    Cashier: row.cashier,
+    Department: row.department,
+    Item: row.item,
+    Qty: row.qty,
+    PriceLevel: row.priceLevel,
+    Tender: row.tender,
+    Amount: row.amount.toFixed(2),
+    Register: row.register,
+  }));
+  const headers = Object.keys(normalized[0] || {});
+  const body =
+    format === 'JSON'
+      ? JSON.stringify(normalized, null, 2)
+      : [headers.join(','), ...normalized.map((row) => headers.map((header) => `"${String(row[header]).replaceAll('"', '""')}"`).join(','))].join('\n');
+  const mime = format === 'JSON' ? 'application/json' : 'text/csv';
+  const extension = format === 'JSON' ? 'json' : format === 'XLS' ? 'xls' : 'csv';
+  const blob = new Blob([body], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `${filename}.${extension}`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+};
 
 const Sidebar = ({
   active,
@@ -3566,6 +3941,214 @@ const ShopView = ({ viewMode, shopCategory, setShopCategory }) => {
   );
 };
 
+const TransactionsView = () => {
+  const [mode, setMode] = useState('detail');
+  const [scope, setScope] = useState('Today');
+  const [shift, setShift] = useState('All');
+  const [department, setDepartment] = useState('All');
+  const [cashier, setCashier] = useState('All');
+  const [tender, setTender] = useState('All');
+  const [priceLevel, setPriceLevel] = useState('All');
+  const [sort, setSort] = useState('Newest first');
+  const [search, setSearch] = useState('');
+  const [selectedId, setSelectedId] = useState(TRANSACTION_ROWS[0].id);
+
+  const searchText = search.trim().toLowerCase();
+  const filteredRows = TRANSACTION_ROWS.filter((row) => {
+    const textMatch =
+      !searchText ||
+      [row.id, row.receipt, row.shift, row.cashier, row.department, row.item, row.priceLevel, row.tender, row.register]
+        .some((value) => String(value).toLowerCase().includes(searchText));
+    return (
+      textMatch &&
+      (shift === 'All' || row.shift === shift) &&
+      (department === 'All' || row.department === department) &&
+      (cashier === 'All' || row.cashier === cashier) &&
+      (tender === 'All' || row.tender === tender) &&
+      (priceLevel === 'All' || row.priceLevel === priceLevel)
+    );
+  });
+
+  const sortedRows = [...filteredRows].sort((a, b) => {
+    if (sort === 'Oldest first') return a.time.localeCompare(b.time);
+    if (sort === 'Amount high') return b.amount - a.amount;
+    if (sort === 'Amount low') return a.amount - b.amount;
+    return b.time.localeCompare(a.time);
+  });
+
+  const selected = sortedRows.find((row) => row.id === selectedId) || sortedRows[0] || null;
+  const total = sumRows(sortedRows);
+  const avgTicket = sortedRows.length ? total / sortedRows.length : 0;
+  const cardMix = sortedRows.length ? Math.round((sortedRows.filter((row) => row.tender === 'Card').length / sortedRows.length) * 100) : 0;
+  const departmentRows = Object.values(groupRows(sortedRows, 'department')).sort((a, b) => b.amount - a.amount);
+  const tenderRows = Object.values(groupRows(sortedRows, 'tender')).sort((a, b) => b.amount - a.amount);
+  const cashierRows = Object.values(groupRows(sortedRows, 'cashier')).sort((a, b) => b.amount - a.amount);
+  const hourlyRows = Object.values(sortedRows.reduce((acc, row) => {
+    const hour = `${row.time.slice(0, 2)}:00`;
+    if (!acc[hour]) acc[hour] = { label: hour, rows: 0, amount: 0, qty: 0 };
+    acc[hour].rows += 1;
+    acc[hour].amount += row.amount;
+    acc[hour].qty += Number(row.qty) || 0;
+    return acc;
+  }, {})).sort((a, b) => a.label.localeCompare(b.label));
+  const maxAmount = Math.max(1, ...departmentRows.map((row) => row.amount), ...tenderRows.map((row) => row.amount), ...cashierRows.map((row) => row.amount), ...hourlyRows.map((row) => row.amount));
+
+  const exportRows = (format) => downloadData(sortedRows, format, `storecheck-transactions-${scope.toLowerCase().replaceAll(' ', '-')}`);
+  const options = (items) => ['All', ...items];
+  const renderSelect = (label, value, setter, items) => (
+    <div className="tx-filter-group">
+      <label>{label}</label>
+      <select className="tx-select" value={value} onChange={(e) => setter(e.target.value)}>
+        {items.map((item) => <option key={item}>{item}</option>)}
+      </select>
+    </div>
+  );
+  const renderBars = (rows) => (
+    <div className="tx-bars">
+      {rows.map((row) => (
+        <div className="tx-bar-row" key={row.label}>
+          <div className="tx-bar-label">{row.label}</div>
+          <div className="tx-bar-track"><div className="tx-bar-fill" style={{ width: `${Math.max(5, (row.amount / maxAmount) * 100)}%` }}></div></div>
+          <div className="tx-bar-value">{fmt(row.amount)}</div>
+        </div>
+      ))}
+    </div>
+  );
+  const renderList = (rows, secondary = 'rows') => rows.map((row) => (
+    <div className="tx-list-row" key={row.label}>
+      <div>
+        <div className="tx-list-label">{row.label}</div>
+        <div className="tx-list-meta">{row.rows} {secondary} · {fmtN(row.qty)} units</div>
+      </div>
+      <strong>{fmt(row.amount)}</strong>
+    </div>
+  ));
+
+  const tableRows = sortedRows.length ? sortedRows.map((row) => (
+    <tr
+      key={row.id}
+      className={`tx-click-row ${selected?.id === row.id ? 'tx-row-active' : ''}`}
+      onClick={() => setSelectedId(row.id)}
+    >
+      <td>{fmtTime12(row.time)}</td>
+      <td>{row.receipt}</td>
+      <td>{row.cashier}</td>
+      <td>{row.department}</td>
+      <td>{row.item}</td>
+      <td>{row.tender}</td>
+      <td className="tx-right">{fmt(row.amount)}</td>
+    </tr>
+  )) : (
+    <tr><td colSpan="7"><div className="tx-empty">No transactions match these filters.</div></td></tr>
+  );
+
+  return (
+    <div className="shell">
+      <div className="section-hdr">
+        <h1>Transactions Explorer</h1>
+        <p>Search POS transactions, filter by cashier, department, tender, item, or price level, and open the receipt behind each number.</p>
+      </div>
+
+      <div className="tx-mode-switch" role="tablist" aria-label="Transactions Explorer views">
+        {['detail', 'summary', 'hourly', 'graphical'].map((item) => (
+          <button key={item} className={`tx-mode-btn ${mode === item ? 'active' : ''}`} onClick={() => setMode(item)}>
+            {item === 'detail' ? 'Detail View' : item === 'summary' ? 'Summary View' : item === 'hourly' ? 'Hourly View' : 'Graphical View'}
+          </button>
+        ))}
+      </div>
+
+      <div className="tx-kpi-grid">
+        <div className="tx-kpi-card"><div className="tx-kpi-label">Transaction Sales</div><div className="tx-kpi-value">{fmt(total)}</div><div className="tx-kpi-copy">{scope} source rows</div></div>
+        <div className="tx-kpi-card"><div className="tx-kpi-label">Transactions</div><div className="tx-kpi-value">{fmtN(sortedRows.length)}</div><div className="tx-kpi-copy">Filtered receipt count</div></div>
+        <div className="tx-kpi-card"><div className="tx-kpi-label">Avg Ticket</div><div className="tx-kpi-value">{fmt(avgTicket)}</div><div className="tx-kpi-copy">Average receipt value</div></div>
+        <div className="tx-kpi-card"><div className="tx-kpi-label">Card Mix</div><div className="tx-kpi-value">{cardMix}%</div><div className="tx-kpi-copy">Card transactions</div></div>
+      </div>
+
+      <div className="tx-toolbar">
+        <div className="tx-toolbar-head">
+          <div>
+            <div className="tx-toolbar-title">Filters and exports</div>
+            <div className="tx-toolbar-sub">Use multiple filters together, then export exactly the rows on screen.</div>
+          </div>
+          <div className="tx-exports">
+            <button className="tx-export-btn" onClick={() => exportRows('CSV')}><Icon name="cash" size={16} /> CSV</button>
+            <button className="tx-export-btn" onClick={() => exportRows('XLS')}><Icon name="cash" size={16} /> Excel</button>
+            <button className="tx-export-btn" onClick={() => exportRows('JSON')}><Icon name="cash" size={16} /> JSON</button>
+          </div>
+        </div>
+        <div className="tx-filters">
+          <div className="tx-filter-group">
+            <label>Search</label>
+            <input className="tx-input" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Receipt, cashier, item, department" />
+          </div>
+          {renderSelect('Scope', scope, setScope, ['Today', 'Current Shift', 'This Week'])}
+          {renderSelect('Shift', shift, setShift, options(uniqueValues(TRANSACTION_ROWS, 'shift')))}
+          {renderSelect('Department', department, setDepartment, options(uniqueValues(TRANSACTION_ROWS, 'department')))}
+          {renderSelect('Cashier', cashier, setCashier, options(uniqueValues(TRANSACTION_ROWS, 'cashier')))}
+          {renderSelect('Tender', tender, setTender, options(uniqueValues(TRANSACTION_ROWS, 'tender')))}
+          {renderSelect('Price Level', priceLevel, setPriceLevel, options(uniqueValues(TRANSACTION_ROWS, 'priceLevel')))}
+          {renderSelect('Sort', sort, setSort, ['Newest first', 'Oldest first', 'Amount high', 'Amount low'])}
+        </div>
+      </div>
+
+      {mode === 'detail' ? (
+        <div className="tx-layout">
+          <div className="tx-table-card">
+            <div className="tx-card-title">Transaction Detail</div>
+            <div className="tx-card-sub">Click a row to inspect receipt, cashier, tender, register, and item information.</div>
+            <div className="tx-table-wrap">
+              <table className="tx-table">
+                <thead><tr><th>Time</th><th>Receipt</th><th>Cashier</th><th>Department</th><th>Item</th><th>Tender</th><th className="tx-right">Amount</th></tr></thead>
+                <tbody>{tableRows}</tbody>
+              </table>
+            </div>
+          </div>
+          <div className="tx-receipt-card">
+            <div className="tx-receipt-title">Receipt Inspector</div>
+            <div className="tx-receipt-meta">{selected ? `${selected.receipt} · ${fmtTime12(selected.time)}` : 'Select a transaction'}</div>
+            {selected ? (
+              <>
+                <div className="tx-receipt-row"><span>Cashier</span><strong>{selected.cashier}</strong></div>
+                <div className="tx-receipt-row"><span>Department</span><strong>{selected.department}</strong></div>
+                <div className="tx-receipt-row"><span>Item</span><strong>{selected.item}</strong></div>
+                <div className="tx-receipt-row"><span>Qty</span><strong>{selected.qty}</strong></div>
+                <div className="tx-receipt-row"><span>Price level</span><strong>{selected.priceLevel}</strong></div>
+                <div className="tx-receipt-row"><span>Tender</span><strong>{selected.tender}</strong></div>
+                <div className="tx-receipt-row"><span>Register</span><strong>{selected.register}</strong></div>
+                <div className="tx-receipt-total">{fmt(selected.amount)}</div>
+              </>
+            ) : <div className="tx-empty">No receipt selected.</div>}
+          </div>
+        </div>
+      ) : null}
+
+      {mode === 'summary' ? (
+        <div className="tx-summary-grid">
+          <div className="tx-summary-card"><div className="tx-card-title">By Department</div><div className="tx-card-sub">Where the money came from.</div>{renderList(departmentRows)}</div>
+          <div className="tx-summary-card"><div className="tx-card-title">By Tender</div><div className="tx-card-sub">How customers paid.</div>{renderList(tenderRows)}</div>
+          <div className="tx-summary-card"><div className="tx-card-title">By Cashier</div><div className="tx-card-sub">Who handled the transactions.</div>{renderList(cashierRows)}</div>
+        </div>
+      ) : null}
+
+      {mode === 'hourly' ? (
+        <div className="tx-table-card">
+          <div className="tx-card-title">Hourly Transaction View</div>
+          <div className="tx-card-sub">See traffic and sales by time window so busy periods are easier to explain.</div>
+          {renderBars(hourlyRows)}
+        </div>
+      ) : null}
+
+      {mode === 'graphical' ? (
+        <div className="tx-summary-grid">
+          <div className="tx-summary-card"><div className="tx-card-title">Department Sales</div>{renderBars(departmentRows)}</div>
+          <div className="tx-summary-card"><div className="tx-card-title">Tender Mix</div>{renderBars(tenderRows)}</div>
+          <div className="tx-summary-card"><div className="tx-card-title">Cashier Activity</div>{renderBars(cashierRows)}</div>
+        </div>
+      ) : null}
+    </div>
+  );
+};
+
 const ReportsView = ({ reportPage, setReportPage }) => {
   const rows = MOCK.week;
   const totals = rows.reduce(
@@ -4086,6 +4669,7 @@ const App = () => {
         <TopBar view={view} setMobileNavOpen={setMobileNavOpen} />
         <div className="content">
           {view === 'today' ? <TodayView viewMode={viewMode} setViewMode={setViewMode} /> : null}
+          {view === 'transactions' ? <TransactionsView /> : null}
           {view === 'fuel' ? <FuelView /> : null}
           {view === 'shop' ? <ShopView viewMode={viewMode} shopCategory={shopCategory} setShopCategory={setShopCategory} /> : null}
           {view === 'reports' ? <ReportsView reportPage={reportPage} setReportPage={setReportPage} /> : null}
