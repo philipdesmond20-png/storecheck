@@ -2163,6 +2163,53 @@ button,input{font:inherit}
   gap:14px;
 }
 .report-delivery-form .full{grid-column:1 / -1}
+.attachment-grid{
+  display:grid;
+  grid-template-columns:minmax(0,1.05fr) minmax(320px,.95fr);
+  gap:18px;
+  align-items:start;
+}
+.attachment-card{
+  border:1px solid var(--line);
+  border-radius:24px;
+  padding:20px;
+  background:#fff;
+  box-shadow:var(--shadow-soft);
+}
+.attachment-list{
+  display:grid;
+  gap:12px;
+  margin-top:16px;
+}
+.attachment-row{
+  display:grid;
+  gap:10px;
+  padding:16px;
+  border:1px solid var(--line);
+  border-radius:20px;
+  background:#fff;
+}
+.attachment-head{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:12px;
+}
+.attachment-title{
+  color:var(--text-1);
+  font-size:15px;
+  font-weight:900;
+}
+.attachment-meta{
+  color:var(--text-3);
+  font-size:13px;
+  font-weight:700;
+}
+.attachment-actions{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+}
 .purchase-status-dot{
   display:inline-flex;
   width:9px;
@@ -2898,7 +2945,8 @@ button,input{font:inherit}
   .purchase-split,
   .purchase-mini-grid,
   .report-delivery-grid,
-  .report-delivery-form{
+  .report-delivery-form,
+  .attachment-grid{
     grid-template-columns:1fr;
   }
   .pricebook-tabs{overflow-x:auto}
@@ -2911,7 +2959,8 @@ button,input{font:inherit}
   .purchase-history-bottom,
   .purchase-queue-top,
   .purchase-setup-item,
-  .report-delivery-head{
+  .report-delivery-head,
+  .attachment-head{
     flex-direction:column;
     align-items:flex-start;
   }
@@ -3317,6 +3366,12 @@ const REPORT_PRINT_LIBRARY = [
   { name: 'Days PDF', reportName: 'daysPdf', surface: 'This Week', format: 'PDF Preview', note: 'Mercury `createDaysPdf` replacement shell' },
   { name: 'Daily PDF', reportName: 'dailyPdf', surface: 'Custom / Daily', format: 'PDF Preview', note: 'Mercury `createDailyPdf` replacement shell' },
   { name: 'Printable Report Window', reportName: 'openReport', surface: 'Shared report renderer', format: 'HTML Print View', note: 'Mercury `openReport?reportName=` replacement shell' },
+];
+
+const ATTACHMENT_LIBRARY = [
+  { id: 'ATT-401', fileName: 'INV-88412.pdf', module: 'Purchases', record: 'Metro Beverage Wholesale', type: 'Invoice', added: '2026-05-09 08:12', note: 'Weekly beverage replenishment packet' },
+  { id: 'ATT-398', fileName: 'QCS-5510.pdf', module: 'Operating Expenses', record: 'Quick Clean Supply', type: 'Invoice', added: '2026-05-08 15:10', note: 'Janitorial supply receipt' },
+  { id: 'ATT-392', fileName: 'weekly-summary-demo.pdf', module: 'Reports', record: 'Weekly Summary PDF', type: 'Report Package', added: '2026-05-08 08:05', note: 'Owner-facing weekly report bundle' },
 ];
 
 const uniqueValues = (rows, key) => [...new Set(rows.map((row) => row[key]))].sort();
@@ -5335,6 +5390,7 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
   const [deadWindow, setDeadWindow] = useState('12 Months');
   const [deadCriteria, setDeadCriteria] = useState('All flagged items');
   const [deadSelected, setDeadSelected] = useState(DEAD_INVENTORY_ROWS.slice(0, 2).map((row) => row.id));
+  const [attachments, setAttachments] = useState(ATTACHMENT_LIBRARY);
   const [purchaseDraft, setPurchaseDraft] = useState({
     date: '2026-05-09',
     shift: 'Day',
@@ -5385,6 +5441,7 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
     { id: 'history', label: 'History', icon: 'report' },
     { id: 'cost', label: 'Cost Updates', icon: 'sync' },
     { id: 'dead', label: 'Dead Inventory', icon: 'alert' },
+    { id: 'attachments', label: 'Attachments', icon: 'item' },
     { id: 'setup', label: 'Vendors & Categories', icon: 'gear' },
   ];
 
@@ -5410,6 +5467,27 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
     setDeadDept('All');
     setDeadCriteria('All flagged items');
     setDeadSelected(DEAD_INVENTORY_ROWS.slice(0, 2).map((row) => row.id));
+  };
+  const addAttachment = (file, module, record, type) => {
+    if (!file) return;
+    const stamp = new Date().toLocaleString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+    setAttachments((current) => [
+      {
+        id: `ATT-${current.length + 410}`,
+        fileName: file.name,
+        module,
+        record,
+        type,
+        added: stamp,
+        note: 'Uploaded in demo mode. File metadata only until endpoint wiring is added.',
+      },
+      ...current,
+    ]);
+    showNotice(`${file.name} added to the attachment library in demo mode.`);
+  };
+  const downloadAttachment = (item) => {
+    const body = JSON.stringify(item, null, 2);
+    downloadTextData(body, 'application/json', item.fileName.replace(/\.[^.]+$/, '') + '-reference', 'json');
   };
   const exportRows = (rows, format, filename) => downloadTableData(rows, format, filename);
 
@@ -5602,7 +5680,7 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
               <div className="purchase-form-field"><label>Check #</label><input className="pricebook-input" value={purchaseDraft.checkNo} onChange={(e) => handlePurchaseDraft('checkNo', e.target.value)} placeholder="Optional" /></div>
               <div className="purchase-form-field"><label>Vendor</label><select className="pricebook-select" value={purchaseDraft.vendor} onChange={(e) => handlePurchaseDraft('vendor', e.target.value)}>{uniqueValues(PURCHASE_LEDGER, 'vendor').map((item) => <option key={item}>{item}</option>)}</select></div>
               <div className="purchase-form-field full"><label>Comments</label><textarea className="pricebook-input" value={purchaseDraft.comments} onChange={(e) => handlePurchaseDraft('comments', e.target.value)} /></div>
-              <div className="purchase-form-field full"><label>Invoice upload</label><input className="purchase-file" type="file" /></div>
+              <div className="purchase-form-field full"><label>Invoice upload</label><input className="purchase-file" type="file" onChange={(e) => addAttachment(e.target.files?.[0], 'Purchases', purchaseDraft.vendor, 'Invoice')} /></div>
             </div>
             <div className="purchase-action-row" style={{ marginTop: 18 }}>
               <span className="purchase-hint">StoreCheck will save the draft locally first, then post to real purchase endpoints in the data phase.</span>
@@ -5682,7 +5760,7 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
               <div className="purchase-form-field"><label>Vendor</label><select className="pricebook-select" value={expenseDraft.vendor} onChange={(e) => handleExpenseDraft('vendor', e.target.value)}>{uniqueValues(OPERATING_EXPENSES, 'vendor').map((item) => <option key={item}>{item}</option>)}</select></div>
               <div className="purchase-form-field"><label>Expense type</label><select className="pricebook-select" value={expenseDraft.category} onChange={(e) => handleExpenseDraft('category', e.target.value)}>{OPERATING_EXPENSE_TYPES.map((item) => <option key={item}>{item}</option>)}</select></div>
               <div className="purchase-form-field full"><label>Note</label><textarea className="pricebook-input" value={expenseDraft.note} onChange={(e) => handleExpenseDraft('note', e.target.value)} /></div>
-              <div className="purchase-form-field full"><label>Invoice upload</label><input className="purchase-file" type="file" /></div>
+              <div className="purchase-form-field full"><label>Invoice upload</label><input className="purchase-file" type="file" onChange={(e) => addAttachment(e.target.files?.[0], 'Operating Expenses', expenseDraft.vendor, 'Invoice')} /></div>
             </div>
             <div className="purchase-action-row" style={{ marginTop: 18 }}>
               <span className="purchase-hint">Cash expenses stay visible in the dashboard even before the accounting/export layer is connected.</span>
@@ -5984,6 +6062,75 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
                 <div className="purchase-kv"><span>Markdown list</span><span>Bundle to clear cash</span></div>
                 <div className="purchase-kv"><span>Inactivate list</span><span>Protect register mix</span></div>
                 <div className="purchase-kv"><span>Export CSV</span><span>Share with ops/accounting</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {purchasePage === 'attachments' ? (
+        <div className="attachment-grid">
+          <div className="attachment-card">
+            <div className="purchase-panel-head">
+              <div>
+                <h3>Attachment library</h3>
+                <p>Shared document visibility for invoices, report packages, and module-level files before real upload/download endpoints are connected.</p>
+              </div>
+              {renderExportButtons(attachments, 'storecheck-attachment-library')}
+            </div>
+            <div className="attachment-list">
+              {attachments.map((item) => (
+                <div className="attachment-row" key={item.id}>
+                  <div className="attachment-head">
+                    <div>
+                      <div className="attachment-title">{item.fileName}</div>
+                      <div className="attachment-meta">{item.module} · {item.record} · {item.type}</div>
+                    </div>
+                    <span className="purchase-tag blue">{item.type}</span>
+                  </div>
+                  <div className="attachment-meta">{item.added} · {item.note}</div>
+                  <div className="attachment-actions">
+                    <button className="pricebook-btn" onClick={() => downloadAttachment(item)}>
+                      <Icon name="report" size={15} /> Download reference
+                    </button>
+                    <button className="pricebook-btn" onClick={() => showNotice(`${item.fileName} opened in demo attachment review.`)}>
+                      <Icon name="item" size={15} /> Review
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="report-delivery-stack">
+            <div className="attachment-card">
+              <div className="purchase-panel-head">
+                <div>
+                  <h3>Quick upload</h3>
+                  <p>Add a module-level file even when you are not inside a purchase or expense form.</p>
+                </div>
+              </div>
+              <div className="report-delivery-form">
+                <div className="full">
+                  <label className="form-label">Document upload</label>
+                  <input className="purchase-file" type="file" onChange={(e) => addAttachment(e.target.files?.[0], 'Module Attachments', 'General Library', 'Document')} />
+                </div>
+              </div>
+              <div className="purchase-callout">This is a demo-safe attachment handoff. Real binary upload and server-backed download still need endpoint wiring.</div>
+            </div>
+
+            <div className="attachment-card">
+              <div className="purchase-panel-head">
+                <div>
+                  <h3>Owner view</h3>
+                  <p>Keep document handling visible across modules instead of hiding files inside individual records.</p>
+                </div>
+              </div>
+              <div className="purchase-kv-list">
+                <div className="purchase-kv"><span>Total attachments</span><span>{fmtN(attachments.length)}</span></div>
+                <div className="purchase-kv"><span>Purchase invoices</span><span>{fmtN(attachments.filter((item) => item.module === 'Purchases').length)}</span></div>
+                <div className="purchase-kv"><span>Expense invoices</span><span>{fmtN(attachments.filter((item) => item.module === 'Operating Expenses').length)}</span></div>
+                <div className="purchase-kv"><span>Report packages</span><span>{fmtN(attachments.filter((item) => item.module === 'Reports').length)}</span></div>
               </div>
             </div>
           </div>
