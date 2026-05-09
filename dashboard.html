@@ -1483,6 +1483,296 @@ button,input{font:inherit}
   font-weight:800;
   text-align:center;
 }
+.pricebook-tabs{
+  display:flex;
+  gap:8px;
+  padding:8px;
+  margin:18px 0 24px;
+  border:1px solid var(--line);
+  border-radius:22px;
+  background:#fff;
+  box-shadow:var(--shadow-soft);
+}
+.pricebook-tab{
+  border:0;
+  border-radius:16px;
+  padding:12px 18px;
+  background:transparent;
+  color:var(--text-2);
+  font:800 13px/1 "DM Sans", sans-serif;
+  cursor:pointer;
+}
+.pricebook-tab.active{
+  background:var(--green-soft);
+  color:var(--green-dark);
+}
+.pricebook-kpis{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:16px;
+  margin-bottom:22px;
+}
+.pricebook-card{
+  border:1px solid var(--line);
+  border-radius:24px;
+  padding:20px;
+  background:#fff;
+  box-shadow:var(--shadow-soft);
+}
+.pricebook-card-top{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+}
+.pricebook-label{
+  color:var(--text-3);
+  font-size:12px;
+  font-weight:800;
+  letter-spacing:.14em;
+  text-transform:uppercase;
+}
+.pricebook-value{
+  margin-top:14px;
+  color:var(--text-1);
+  font-size:28px;
+  font-weight:900;
+  letter-spacing:-.04em;
+}
+.pricebook-note{
+  margin-top:8px;
+  color:var(--text-2);
+  font-size:13px;
+  font-weight:700;
+}
+.pricebook-workspace{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) 360px;
+  gap:18px;
+  align-items:start;
+}
+.pricebook-workspace.single{grid-template-columns:1fr}
+.pricebook-toolbar,
+.pricebook-action-strip{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  flex-wrap:wrap;
+  margin-bottom:14px;
+}
+.pricebook-filters{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+  flex:1;
+}
+.pricebook-search,
+.pricebook-select,
+.pricebook-input{
+  min-height:44px;
+  border:1px solid var(--line);
+  border-radius:14px;
+  padding:0 14px;
+  background:#fff;
+  color:var(--text-1);
+  font:800 13px/1 "DM Sans", sans-serif;
+  outline:none;
+}
+.pricebook-search{min-width:280px;flex:1}
+.pricebook-actions{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+}
+.pricebook-btn{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  min-height:44px;
+  border:1px solid rgba(39,198,107,.24);
+  border-radius:999px;
+  padding:0 16px;
+  background:#fff;
+  color:var(--green-dark);
+  font:900 13px/1 "DM Sans", sans-serif;
+  cursor:pointer;
+}
+.pricebook-btn.primary{
+  background:var(--green);
+  color:#fff;
+  box-shadow:0 12px 24px rgba(39,198,107,.18);
+}
+.pricebook-btn.soft{background:var(--green-soft)}
+.pricebook-notice{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  margin-bottom:14px;
+  padding:12px 14px;
+  border:1px solid rgba(39,198,107,.24);
+  border-radius:16px;
+  background:var(--green-soft);
+  color:var(--green-dark);
+  font-size:13px;
+  font-weight:800;
+}
+.pricebook-table-card,
+.pricebook-detail-card{
+  overflow:hidden;
+  border:1px solid var(--line);
+  border-radius:24px;
+  background:#fff;
+  box-shadow:var(--shadow-soft);
+}
+.pricebook-table{
+  width:100%;
+  border-collapse:collapse;
+  font-size:13px;
+}
+.pricebook-table th{
+  padding:15px 16px;
+  background:#F6F9FA;
+  color:var(--text-3);
+  font-size:11px;
+  font-weight:900;
+  letter-spacing:.14em;
+  text-align:left;
+  text-transform:uppercase;
+}
+.pricebook-table td{
+  padding:15px 16px;
+  border-top:1px solid var(--line);
+  color:var(--text-1);
+  font-weight:700;
+  vertical-align:middle;
+}
+.pricebook-table tr{cursor:pointer}
+.pricebook-table tr.active,
+.pricebook-table tr:hover{background:#F7FCF9}
+.pricebook-right{text-align:right}
+.pricebook-status{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  border-radius:999px;
+  padding:6px 10px;
+  background:var(--green-soft);
+  color:var(--green-dark);
+  font-size:11px;
+  font-weight:900;
+}
+.pricebook-status.warn{
+  background:rgba(245,158,11,.14);
+  color:#9A5A00;
+}
+.pricebook-status.pending{
+  background:rgba(59,130,246,.13);
+  color:#2563EB;
+}
+.pricebook-detail-card{
+  position:sticky;
+  top:120px;
+  padding:20px;
+}
+.pricebook-detail-title{
+  margin:10px 0 4px;
+  font-size:20px;
+  font-weight:900;
+  letter-spacing:-.03em;
+}
+.pricebook-detail-sub{
+  color:var(--text-3);
+  font-size:13px;
+  font-weight:700;
+}
+.pricebook-metric-list{
+  display:grid;
+  gap:10px;
+  margin-top:18px;
+}
+.pricebook-metric{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:14px;
+  padding:12px 0;
+  border-bottom:1px solid var(--line);
+}
+.pricebook-metric:last-child{border-bottom:0}
+.pricebook-metric span:first-child{
+  color:var(--text-3);
+  font-size:12px;
+  font-weight:900;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+}
+.pricebook-metric span:last-child{
+  color:var(--text-1);
+  font-size:13px;
+  font-weight:900;
+  text-align:right;
+}
+.pricebook-form-grid{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:14px;
+}
+.pricebook-form-field label{
+  display:block;
+  margin-bottom:7px;
+  color:var(--text-3);
+  font-size:11px;
+  font-weight:900;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+}
+.pricebook-input{width:100%}
+.pricebook-editor{
+  display:grid;
+  gap:18px;
+}
+.pricebook-deal-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:18px;
+}
+.pricebook-draft{
+  border:1px solid rgba(39,198,107,.22);
+  border-radius:22px;
+  padding:18px;
+  background:#F7FCF9;
+}
+.pricebook-draft h3{
+  margin:0 0 10px;
+  font-size:18px;
+}
+.pricebook-pending-list{
+  display:grid;
+  gap:12px;
+}
+.pricebook-pending-row{
+  display:grid;
+  grid-template-columns:1fr auto auto;
+  gap:14px;
+  align-items:center;
+  padding:16px;
+  border:1px solid var(--line);
+  border-radius:20px;
+  background:#fff;
+  box-shadow:var(--shadow-soft);
+}
+.pricebook-pending-title{
+  font-weight:900;
+  color:var(--text-1);
+}
+.pricebook-pending-meta{
+  margin-top:4px;
+  color:var(--text-3);
+  font-size:13px;
+  font-weight:700;
+}
 .shop-category-list{
   display:flex;
   flex-direction:column;
@@ -2180,7 +2470,8 @@ button,input{font:inherit}
   .ops-table,
   .week-table,
   .shop-drill-table,
-  .tx-table{
+  .tx-table,
+  .pricebook-table{
     min-width:720px;
   }
   .tx-mode-switch{
@@ -2194,8 +2485,25 @@ button,input{font:inherit}
   .tx-kpi-grid,
   .tx-summary-grid,
   .tx-layout,
-  .tx-filters{
+  .tx-filters,
+  .pricebook-kpis,
+  .pricebook-workspace,
+  .pricebook-form-grid,
+  .pricebook-deal-grid{
     grid-template-columns:1fr;
+  }
+  .pricebook-tabs{overflow-x:auto}
+  .pricebook-tab{flex:1 0 auto}
+  .pricebook-toolbar,
+  .pricebook-action-strip{
+    flex-direction:column;
+    align-items:flex-start;
+  }
+  .pricebook-detail-card{position:static}
+  .pricebook-pending-row{grid-template-columns:1fr}
+  .pricebook-search{
+    min-width:0;
+    width:100%;
   }
   .tx-toolbar-head{
     flex-direction:column;
@@ -2320,6 +2628,10 @@ const ICON_PATHS = {
   connect: 'M10.59 13.41 9.17 12l2.83-2.83 1.41 1.41L10.59 13.41zM7 17a4 4 0 0 1 0-8h3v2H7a2 2 0 0 0 0 4h3v2H7zm10-8a4 4 0 1 1 0 8h-3v-2h3a2 2 0 1 0 0-4h-3V9h3z',
   save: 'M17 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V7l-4-4zM7 5h8v4H7V5zm5 14a3 3 0 1 1 0-6 3 3 0 0 1 0 6z',
   transactions: 'M4 5h16v3H4V5zm0 5h16v3H4v-3zm0 5h10v3H4v-3zm13 0h3v3h-3v-3z',
+  pricebook: 'M5 4h14v16H5V4zm3 3h8v2H8V7zm0 4h8v2H8v-2zm0 4h5v2H8v-2z',
+  item: 'M7 3h8l4 4v14H7V3zm7 1.5V8h3.5L14 4.5zM9 11h6v2H9v-2zm0 4h8v2H9v-2z',
+  deal: 'M20 12l-8 8-8-8V4h8l8 8zm-12-4.5A1.5 1.5 0 1 0 8 10.5 1.5 1.5 0 0 0 8 7.5z',
+  sync: 'M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.96-.7 2.8l1.46 1.46A7.93 7.93 0 0 0 20 12c0-4.42-3.58-8-8-8zm-6.76 3.74A7.93 7.93 0 0 0 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3c-3.31 0-6-2.69-6-6 0-1.01.25-1.96.7-2.8L5.24 7.74z',
   menu: 'M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z',
   close: 'M18.3 5.71 12 12l6.3 6.29-1.41 1.42L10.59 13.4 4.29 19.71 2.88 18.3 9.17 12 2.88 5.71 4.29 4.29l6.3 6.3 6.3-6.3z',
 };
@@ -2422,6 +2734,7 @@ const NAV = [
   { id: 'transactions', icon: 'transactions', label: 'Transactions' },
   { id: 'fuel', icon: 'fuel', label: 'Fuel' },
   { id: 'shop', icon: 'shop', label: 'Shop & Store' },
+  { id: 'pricebook', icon: 'pricebook', label: 'Inventory' },
   { id: 'reports', icon: 'calendar', label: 'Reports' },
 ];
 
@@ -2459,6 +2772,27 @@ const TRANSACTION_ROWS = [
   { id: 'TX-10859', receipt: 'R-10859', date: '2026-05-07', time: '21:16', shift: 'Closeout', cashier: 'A. Patel', department: 'Fuel', item: 'Regular Fuel', qty: 8.7, priceLevel: 'Pump', tender: 'Card', amount: 30.44, register: 'Pump 4' },
 ];
 
+const PRICEBOOK_ITEMS = [
+  { sku: 'PB-1001', upc: '049000028911', name: 'Coca-Cola 20oz', department: 'Beverages', category: 'Cold Drinks', cost: 1.12, price: 2.49, margin: 55, qty: 42, tax: 'Standard', pos: 'Synced', vendor: 'Core-Mark', updated: '2026-05-07', status: 'Active' },
+  { sku: 'PB-1002', upc: '012000171171', name: 'Pepsi 20oz', department: 'Beverages', category: 'Cold Drinks', cost: 1.08, price: 2.39, margin: 55, qty: 36, tax: 'Standard', pos: 'Synced', vendor: 'Core-Mark', updated: '2026-05-07', status: 'Active' },
+  { sku: 'PB-2201', upc: '028400589317', name: 'Doritos Nacho 2.75oz', department: 'Snacks', category: 'Chips', cost: 0.91, price: 1.99, margin: 54, qty: 28, tax: 'Food', pos: 'Pending', vendor: 'Sunrise Snacks', updated: '2026-05-06', status: 'Active' },
+  { sku: 'PB-3104', upc: '020525100001', name: 'Marlboro Gold Pack', department: 'Tobacco', category: 'Cigarettes', cost: 7.05, price: 9.99, margin: 29, qty: 18, tax: 'Tobacco', pos: 'Synced', vendor: 'Tobacco Hub', updated: '2026-05-05', status: 'Restricted' },
+  { sku: 'PB-4106', upc: '071235004221', name: 'Motor Oil 1 qt', department: 'Car Care', category: 'Automotive', cost: 3.1, price: 5.99, margin: 48, qty: 14, tax: 'Standard', pos: 'Synced', vendor: 'Metro Auto Supply', updated: '2026-05-04', status: 'Active' },
+  { sku: 'PB-5108', upc: '000000LOTTO', name: 'Instant Lottery Pack', department: 'Lottery', category: 'Lottery', cost: 0, price: 20, margin: 0, qty: 12, tax: 'Exempt', pos: 'Manual', vendor: 'State Lottery', updated: '2026-05-07', status: 'Controlled' },
+];
+
+const PRICEBOOK_DEALS = [
+  { id: 'DL-104', name: '2 for $4 Fountain Drinks', items: 'Fountain Drink 32oz', type: 'Multi-buy', start: '2026-05-01', end: '2026-05-31', status: 'Active', lift: '18%' },
+  { id: 'DL-118', name: 'Coffee + Donut Combo', items: 'Coffee, Bakery', type: 'Combo', start: '2026-05-06', end: '2026-05-20', status: 'Draft', lift: 'New' },
+  { id: 'DL-126', name: 'Buy 2 Chips Save $1', items: 'Doritos, Lays', type: 'Basket', start: '2026-05-03', end: '2026-05-17', status: 'Active', lift: '11%' },
+];
+
+const PRICEBOOK_PENDING = [
+  { id: 'POS-391', change: 'Price update', item: 'Coca-Cola 20oz', from: '$2.39', to: '$2.49', requestedBy: 'A. Patel', status: 'Ready to send' },
+  { id: 'POS-407', change: 'New deal', item: 'Coffee + Donut Combo', from: 'Not active', to: 'Draft deal', requestedBy: 'Manager', status: 'Needs review' },
+  { id: 'POS-419', change: 'Tax map', item: 'Doritos Nacho 2.75oz', from: 'Standard', to: 'Food', requestedBy: 'M. Chen', status: 'Ready to send' },
+];
+
 const uniqueValues = (rows, key) => [...new Set(rows.map((row) => row[key]))].sort();
 const sumRows = (rows) => rows.reduce((sum, row) => sum + row.amount, 0);
 const groupRows = (rows, key) =>
@@ -2491,6 +2825,25 @@ const downloadData = (rows, format, filename) => {
     format === 'JSON'
       ? JSON.stringify(normalized, null, 2)
       : [headers.join(','), ...normalized.map((row) => headers.map((header) => `"${String(row[header]).replaceAll('"', '""')}"`).join(','))].join('\n');
+  const mime = format === 'JSON' ? 'application/json' : 'text/csv';
+  const extension = format === 'JSON' ? 'json' : format === 'XLS' ? 'xls' : 'csv';
+  const blob = new Blob([body], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `${filename}.${extension}`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+};
+
+const downloadTableData = (rows, format, filename) => {
+  const headers = Object.keys(rows[0] || {});
+  const body =
+    format === 'JSON'
+      ? JSON.stringify(rows, null, 2)
+      : [headers.join(','), ...rows.map((row) => headers.map((header) => `"${String(row[header] ?? '').replaceAll('"', '""')}"`).join(','))].join('\n');
   const mime = format === 'JSON' ? 'application/json' : 'text/csv';
   const extension = format === 'JSON' ? 'json' : format === 'XLS' ? 'xls' : 'csv';
   const blob = new Blob([body], { type: mime });
@@ -4149,6 +4502,258 @@ const TransactionsView = () => {
   );
 };
 
+const PricebookView = ({ pricebookPage, setPricebookPage }) => {
+  const [search, setSearch] = useState('');
+  const [department, setDepartment] = useState('All');
+  const [selectedSku, setSelectedSku] = useState(PRICEBOOK_ITEMS[0].sku);
+  const [notice, setNotice] = useState('');
+  const [draftOpen, setDraftOpen] = useState(false);
+  const [pendingReviewed, setPendingReviewed] = useState([]);
+
+  const selectedItem = PRICEBOOK_ITEMS.find((item) => item.sku === selectedSku) || PRICEBOOK_ITEMS[0];
+  const searchText = search.trim().toLowerCase();
+  const filteredItems = PRICEBOOK_ITEMS.filter((item) => {
+    const searchable = [item.sku, item.upc, item.name, item.department, item.category, item.vendor, item.tax, item.pos];
+    const textMatch = !searchText || searchable.some((value) => String(value).toLowerCase().includes(searchText));
+    return textMatch && (department === 'All' || item.department === department);
+  });
+  const activeDeals = PRICEBOOK_DEALS.filter((deal) => deal.status === 'Active').length;
+  const pendingCount = PRICEBOOK_PENDING.filter((item) => !pendingReviewed.includes(item.id)).length;
+  const lowStock = PRICEBOOK_ITEMS.filter((item) => item.qty <= 18).length;
+  const avgMargin = Math.round(PRICEBOOK_ITEMS.reduce((sum, item) => sum + item.margin, 0) / PRICEBOOK_ITEMS.length);
+
+  const showNotice = (message) => {
+    setNotice(message);
+    window.clearTimeout(window.__storecheckPricebookNotice);
+    window.__storecheckPricebookNotice = window.setTimeout(() => setNotice(''), 2800);
+  };
+  const exportItems = (format) => downloadTableData(filteredItems, format, `storecheck-pricebook-items-${department.toLowerCase().replaceAll(' ', '-')}`);
+  const exportDeals = (format) => downloadTableData(PRICEBOOK_DEALS, format, 'storecheck-pricebook-deals');
+  const exportPending = (format) => downloadTableData(PRICEBOOK_PENDING, format, 'storecheck-pending-pos-changes');
+  const tabs = [
+    { id: 'inventory', label: 'Inventory', icon: 'pricebook' },
+    { id: 'item', label: 'Item Setup', icon: 'item' },
+    { id: 'deals', label: 'Deals', icon: 'deal' },
+    { id: 'pending', label: 'Pending POS', icon: 'sync' },
+  ];
+
+  const renderExportButtons = (handler) => (
+    <div className="pricebook-actions">
+      {['CSV', 'XLS', 'JSON'].map((format) => (
+        <button key={format} className="pricebook-btn" onClick={() => handler(format)}>
+          <Icon name="cash" size={15} /> {format}
+        </button>
+      ))}
+    </div>
+  );
+
+  const itemRows = filteredItems.length ? filteredItems.map((item) => (
+    <tr key={item.sku} className={item.sku === selectedSku ? 'active' : ''} onClick={() => setSelectedSku(item.sku)}>
+      <td><strong>{item.name}</strong><div className="pricebook-note">{item.sku} · UPC {item.upc}</div></td>
+      <td>{item.department}</td>
+      <td>{item.category}</td>
+      <td className="pricebook-right">{fmt(item.price)}</td>
+      <td className="pricebook-right">{fmt(item.cost)}</td>
+      <td className="pricebook-right">{item.margin}%</td>
+      <td className="pricebook-right">{item.qty}</td>
+      <td><span className={`pricebook-status ${item.pos === 'Pending' ? 'pending' : item.pos === 'Manual' ? 'warn' : ''}`}>{item.pos}</span></td>
+    </tr>
+  )) : (
+    <tr><td colSpan="8">No inventory items match these filters.</td></tr>
+  );
+
+  return (
+    <div className="shell">
+      <div className="section-hdr">
+        <h1>Inventory & Pricebook</h1>
+        <p>Manage item prices, departments, deals, and the queue of changes that need to sync back to the POS.</p>
+      </div>
+
+      <div className="pricebook-tabs" role="tablist" aria-label="Inventory and pricebook sections">
+        {tabs.map((tab) => (
+          <button key={tab.id} className={`pricebook-tab ${pricebookPage === tab.id ? 'active' : ''}`} onClick={() => setPricebookPage(tab.id)}>
+            <Icon name={tab.icon} size={17} /> {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {notice ? <div className="pricebook-notice"><Icon name="cash" size={16} /> {notice}</div> : null}
+
+      <div className="pricebook-kpis">
+        <div className="pricebook-card"><div className="pricebook-card-top"><div className="pricebook-label">Tracked Items</div><Icon name="item" size={18} /></div><div className="pricebook-value">{fmtN(PRICEBOOK_ITEMS.length)}</div><div className="pricebook-note">Items with pricebook data</div></div>
+        <div className="pricebook-card"><div className="pricebook-card-top"><div className="pricebook-label">Avg Margin</div><Icon name="cash" size={18} /></div><div className="pricebook-value">{avgMargin}%</div><div className="pricebook-note">Across visible demo items</div></div>
+        <div className="pricebook-card"><div className="pricebook-card-top"><div className="pricebook-label">Active Deals</div><Icon name="deal" size={18} /></div><div className="pricebook-value">{fmtN(activeDeals)}</div><div className="pricebook-note">Promotions running now</div></div>
+        <div className="pricebook-card"><div className="pricebook-card-top"><div className="pricebook-label">POS Queue</div><Icon name="sync" size={18} /></div><div className="pricebook-value">{fmtN(pendingCount)}</div><div className="pricebook-note">{lowStock} low-stock items flagged</div></div>
+      </div>
+
+      {pricebookPage === 'inventory' ? (
+        <div className="pricebook-workspace">
+          <div className="pricebook-table-card">
+            <div className="pricebook-toolbar">
+              <div>
+                <div className="pricebook-detail-title">Inventory list</div>
+                <div className="pricebook-detail-sub">Search by item, UPC, department, vendor, tax setup, or POS status.</div>
+              </div>
+              {renderExportButtons(exportItems)}
+            </div>
+            <div className="pricebook-filters">
+              <input className="pricebook-search" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search item, UPC, vendor, tax, POS status" />
+              <select className="pricebook-select" value={department} onChange={(e) => setDepartment(e.target.value)}>
+                {['All', ...uniqueValues(PRICEBOOK_ITEMS, 'department')].map((item) => <option key={item}>{item}</option>)}
+              </select>
+              <button className="pricebook-btn primary" onClick={() => { setPricebookPage('item'); showNotice('Opening item setup for the selected item.'); }}>
+                <Icon name="item" size={15} /> Edit selected item
+              </button>
+            </div>
+            <div className="mobile-table-scroll">
+              <table className="pricebook-table">
+                <thead><tr><th>Item</th><th>Department</th><th>Category</th><th className="pricebook-right">Price</th><th className="pricebook-right">Cost</th><th className="pricebook-right">Margin</th><th className="pricebook-right">Qty</th><th>POS</th></tr></thead>
+                <tbody>{itemRows}</tbody>
+              </table>
+            </div>
+          </div>
+          <div className="pricebook-detail-card">
+            <div className="pricebook-detail-title">{selectedItem.name}</div>
+            <div className="pricebook-detail-sub">{selectedItem.department} · {selectedItem.category} · {selectedItem.vendor}</div>
+            <div className="pricebook-metric-list">
+              <div className="pricebook-metric"><span>Current price</span><span>{fmt(selectedItem.price)}</span></div>
+              <div className="pricebook-metric"><span>Cost</span><span>{fmt(selectedItem.cost)}</span></div>
+              <div className="pricebook-metric"><span>Margin</span><span>{selectedItem.margin}%</span></div>
+              <div className="pricebook-metric"><span>Tax mapping</span><span>{selectedItem.tax}</span></div>
+              <div className="pricebook-metric"><span>POS status</span><span>{selectedItem.pos}</span></div>
+              <div className="pricebook-metric"><span>Last updated</span><span>{selectedItem.updated}</span></div>
+            </div>
+            <button className="pricebook-btn soft" onClick={() => showNotice(`${selectedItem.name} queued for POS review.`)}>
+              <Icon name="sync" size={15} /> Queue POS review
+            </button>
+          </div>
+        </div>
+      ) : null}
+
+      {pricebookPage === 'item' ? (
+        <div className="pricebook-workspace single">
+          <div className="pricebook-editor">
+            <div className="pricebook-toolbar">
+              <div>
+                <div className="pricebook-detail-title">Item setup</div>
+                <div className="pricebook-detail-sub">Edit the fields that explain how an item is priced, taxed, grouped, and sent to the POS.</div>
+              </div>
+              <button className="pricebook-btn" onClick={() => setPricebookPage('inventory')}><Icon name="pricebook" size={15} /> Back to inventory</button>
+            </div>
+            <div className="pricebook-form-grid">
+              {[
+                ['Item name', selectedItem.name],
+                ['SKU', selectedItem.sku],
+                ['UPC', selectedItem.upc],
+                ['Department', selectedItem.department],
+                ['Category', selectedItem.category],
+                ['Vendor', selectedItem.vendor],
+                ['Tax mapping', selectedItem.tax],
+                ['Retail price', fmt(selectedItem.price)],
+                ['Cost', fmt(selectedItem.cost)],
+                ['Quantity on hand', selectedItem.qty],
+                ['POS status', selectedItem.pos],
+                ['Item status', selectedItem.status],
+              ].map(([label, value]) => (
+                <div className="pricebook-form-field" key={label}>
+                  <label>{label}</label>
+                  <input className="pricebook-input" value={value} readOnly />
+                </div>
+              ))}
+            </div>
+            <div className="pricebook-action-strip">
+              <span>This saves a StoreCheck draft first, then sends approved changes to the POS queue once data sync is connected.</span>
+              <button className="pricebook-btn primary" onClick={() => showNotice('Item draft saved. POS sync will be connected in the data phase.')}><Icon name="cash" size={15} /> Save item draft</button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {pricebookPage === 'deals' ? (
+        <div className="pricebook-workspace single">
+          <div className="pricebook-editor">
+            <div className="pricebook-toolbar">
+              <div>
+                <div className="pricebook-detail-title">Deals and promotions</div>
+                <div className="pricebook-detail-sub">Review active offers, draft new promotions, and prepare deal changes for POS approval.</div>
+              </div>
+              {renderExportButtons(exportDeals)}
+            </div>
+            <div className="pricebook-deal-grid">
+              {PRICEBOOK_DEALS.map((deal) => (
+                <div className="pricebook-draft" key={deal.id}>
+                  <div className="pricebook-card-top">
+                    <span className={`pricebook-status ${deal.status === 'Draft' ? 'pending' : ''}`}>{deal.status}</span>
+                    <Icon name="deal" size={18} />
+                  </div>
+                  <h3>{deal.name}</h3>
+                  <div className="pricebook-note">{deal.type} · {deal.items}</div>
+                  <div className="pricebook-metric"><span>Dates</span><span>{deal.start} to {deal.end}</span></div>
+                  <div className="pricebook-metric"><span>Lift</span><span>{deal.lift}</span></div>
+                  <button className="pricebook-btn soft" onClick={() => showNotice(`${deal.name} opened for edit.`)}>Edit deal</button>
+                </div>
+              ))}
+            </div>
+            <div className="pricebook-action-strip">
+              <span>Add a new promotion draft before it is approved for POS sync.</span>
+              <button className="pricebook-btn primary" onClick={() => setDraftOpen(!draftOpen)}><Icon name="deal" size={15} /> {draftOpen ? 'Hide draft' : 'Add deal draft'}</button>
+            </div>
+            {draftOpen ? (
+              <div className="pricebook-draft">
+                <h3>New deal draft</h3>
+                <div className="pricebook-form-grid">
+                  {['Deal name', 'Linked items', 'Promotion type', 'Start date', 'End date', 'Discount / bundle rule'].map((label) => (
+                    <div className="pricebook-form-field" key={label}><label>{label}</label><input className="pricebook-input" placeholder={label} /></div>
+                  ))}
+                </div>
+                <button className="pricebook-btn primary" onClick={() => showNotice('Deal draft saved. Exact Mercury modal fields still need final capture.')}><Icon name="cash" size={15} /> Save deal draft</button>
+              </div>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
+
+      {pricebookPage === 'pending' ? (
+        <div className="pricebook-workspace single">
+          <div className="pricebook-editor">
+            <div className="pricebook-toolbar">
+              <div>
+                <div className="pricebook-detail-title">Pending POS changes</div>
+                <div className="pricebook-detail-sub">Review price, tax, item, and promotion changes before sending them to the POS.</div>
+              </div>
+              {renderExportButtons(exportPending)}
+            </div>
+            <div className="pricebook-pending-list">
+              {PRICEBOOK_PENDING.map((item) => {
+                const reviewed = pendingReviewed.includes(item.id);
+                return (
+                  <div className="pricebook-pending-row" key={item.id}>
+                    <div>
+                      <div className="pricebook-pending-title">{item.change}: {item.item}</div>
+                      <div className="pricebook-pending-meta">{item.id} · {item.from} to {item.to} · requested by {item.requestedBy}</div>
+                    </div>
+                    <span className={`pricebook-status ${reviewed ? '' : item.status === 'Needs review' ? 'warn' : 'pending'}`}>{reviewed ? 'Reviewed' : item.status}</span>
+                    <button className="pricebook-btn" onClick={() => {
+                      setPendingReviewed((current) => current.includes(item.id) ? current : [...current, item.id]);
+                      showNotice(`${item.id} marked reviewed.`);
+                    }}>
+                      <Icon name="sync" size={15} /> Mark reviewed
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="pricebook-action-strip">
+              <span>Once connected, reviewed changes can be sent to the live POS from this queue.</span>
+              <button className="pricebook-btn primary" onClick={() => showNotice('Ready-to-send changes staged for POS sync.')}><Icon name="sync" size={15} /> Stage POS sync</button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+};
+
 const ReportsView = ({ reportPage, setReportPage }) => {
   const rows = MOCK.week;
   const totals = rows.reduce(
@@ -4644,6 +5249,7 @@ const App = () => {
   const [shopCategory, setShopCategory] = useState('overview');
   const [shopExpanded, setShopExpanded] = useState(true);
   const [reportPage, setReportPage] = useState('week');
+  const [pricebookPage, setPricebookPage] = useState('inventory');
   const [reportExpanded, setReportExpanded] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
@@ -4672,6 +5278,7 @@ const App = () => {
           {view === 'transactions' ? <TransactionsView /> : null}
           {view === 'fuel' ? <FuelView /> : null}
           {view === 'shop' ? <ShopView viewMode={viewMode} shopCategory={shopCategory} setShopCategory={setShopCategory} /> : null}
+          {view === 'pricebook' ? <PricebookView pricebookPage={pricebookPage} setPricebookPage={setPricebookPage} /> : null}
           {view === 'reports' ? <ReportsView reportPage={reportPage} setReportPage={setReportPage} /> : null}
           {view === 'settings' ? <SettingsView /> : null}
         </div>
