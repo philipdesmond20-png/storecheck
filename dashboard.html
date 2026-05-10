@@ -3777,6 +3777,16 @@ const LOTTERY_DAILY_SALES_ROWS = [
   { id: 'LDS-919', date: '2026-05-09', scratchSales: 414.12, onlineSales: 166.25, posTotal: 580.37, m1Total: 575.12, difference: 5.25, tickets: 92, topGame: 'Fast Cash 500', status: 'Needs review', note: 'Friday lottery recap is ready for owner review with a small remaining difference.' },
 ];
 
+const LOTTERY_PAYOUT_ROWS = [
+  { id: 'LDP-951', date: '2026-05-03', scratchPayouts: 261.0, onlinePayouts: 118.0, totalPayout: 379.0, claimCount: 22, cashClaims: 16, voucherClaims: 6, variance: 2.14, topClaim: 'Mega Bucks 300x', status: 'Ready', note: 'Weekend payout recap balanced cleanly after the final cash count.' },
+  { id: 'LDP-954', date: '2026-05-04', scratchPayouts: 289.0, onlinePayouts: 124.0, totalPayout: 413.0, claimCount: 25, cashClaims: 18, voucherClaims: 7, variance: 4.28, topClaim: 'Cash Spectacular', status: 'Needs review', note: 'Sunday payout volume is healthy, but one drawer spread still needs owner review.' },
+  { id: 'LDP-957', date: '2026-05-05', scratchPayouts: 244.0, onlinePayouts: 113.0, totalPayout: 357.0, claimCount: 21, cashClaims: 15, voucherClaims: 6, variance: 1.82, topClaim: 'Jumbo Bucks', status: 'Ready', note: 'Monday payout movement matched the lower ticket volume for the day.' },
+  { id: 'LDP-960', date: '2026-05-06', scratchPayouts: 301.0, onlinePayouts: 131.0, totalPayout: 432.0, claimCount: 27, cashClaims: 19, voucherClaims: 8, variance: -3.12, topClaim: 'Power 20X', status: 'Logged', note: 'Midweek draw payout remained visible without blocking the day close.' },
+  { id: 'LDP-963', date: '2026-05-07', scratchPayouts: 276.0, onlinePayouts: 119.0, totalPayout: 395.0, claimCount: 24, cashClaims: 17, voucherClaims: 7, variance: 2.66, topClaim: 'Lucky Millions', status: 'Ready', note: 'Wednesday payout recap tied out after the last ticket validation pass.' },
+  { id: 'LDP-966', date: '2026-05-08', scratchPayouts: 318.0, onlinePayouts: 136.0, totalPayout: 454.0, claimCount: 29, cashClaims: 20, voucherClaims: 9, variance: 6.44, topClaim: 'Cash Frenzy', status: 'Needs review', note: 'Thursday payout traffic is elevated and still needs owner sign-off on the spread.' },
+  { id: 'LDP-969', date: '2026-05-09', scratchPayouts: 307.0, onlinePayouts: 147.0, totalPayout: 454.0, claimCount: 28, cashClaims: 19, voucherClaims: 9, variance: 5.08, topClaim: 'Fast Cash 500', status: 'Needs review', note: 'Friday payout packet is ready for review with a small remaining reconciliation difference.' },
+];
+
 const uniqueValues = (rows, key) => [...new Set(rows.map((row) => row[key]))].sort();
 const sumRows = (rows) => rows.reduce((sum, row) => sum + row.amount, 0);
 const groupRows = (rows, key) =>
@@ -4116,6 +4126,10 @@ const TodayView = ({ viewMode, setViewMode }) => {
   const [lotterySalesTo, setLotterySalesTo] = useState('2026-05-09');
   const [selectedLotterySalesId, setSelectedLotterySalesId] = useState(LOTTERY_DAILY_SALES_ROWS[0].id);
   const [lotterySalesNotice, setLotterySalesNotice] = useState('');
+  const [lotteryPayoutFrom, setLotteryPayoutFrom] = useState('2026-05-03');
+  const [lotteryPayoutTo, setLotteryPayoutTo] = useState('2026-05-09');
+  const [selectedLotteryPayoutId, setSelectedLotteryPayoutId] = useState(LOTTERY_PAYOUT_ROWS[0].id);
+  const [lotteryPayoutNotice, setLotteryPayoutNotice] = useState('');
   const [wastageEvents, setWastageEvents] = useState([
     { id: 'WGE-1601', rowId: 'DWS-214', time: '2026-05-01 06:42', actor: 'Store manager', route: '/shifts/getDailyWastageSummary', action: 'Previewed wastage drilldown packet', status: 'Opened', note: 'Owner reviewed the wastage packet before live Mercury drilldown wiring.' },
     { id: 'WGE-1602', rowId: 'DWS-214', time: '2026-05-01 06:44', actor: 'Store manager', route: '/shifts/getDailyWastageSummary', action: 'Saved wastage drilldown packet', status: 'Ready', note: 'Wastage packet exported while the live Mercury drilldown endpoint remained demo-only.' },
@@ -4150,6 +4164,11 @@ const TodayView = ({ viewMode, setViewMode }) => {
     { id: 'LSE-2201', rowId: 'LDS-919', time: '2026-05-09 19:18', actor: 'Store manager', route: '/shifts/getLottoSalesDailySummary', action: 'Previewed lottery sales packet', status: 'Opened', note: 'Owner reviewed the Friday lottery packet before the live daily-sales route was connected.' },
     { id: 'LSE-2202', rowId: 'LDS-919', time: '2026-05-09 19:21', actor: 'Store manager', route: '/shifts/getLottoSalesDailySummary', action: 'Saved lottery sales packet', status: 'Ready', note: 'Lottery day packet exported while the live daily-sales route remained demo-only.' },
     { id: 'LSE-2203', rowId: 'LDS-916', time: '2026-05-08 10:12', actor: 'StoreCheck demo', route: '/shifts/getLottoSalesDailySummary', action: 'Refreshed lottery sales review', status: 'Updated', note: 'Lottery day review refreshed with the current StoreCheck date-range context.' },
+  ]);
+  const [lotteryPayoutEvents, setLotteryPayoutEvents] = useState([
+    { id: 'LPE-2301', rowId: 'LDP-969', time: '2026-05-09 19:33', actor: 'Store manager', route: '/shifts/getLottoPayoutSummary', action: 'Previewed lottery payout packet', status: 'Opened', note: 'Owner reviewed the Friday payout packet before the live payout route was connected.' },
+    { id: 'LPE-2302', rowId: 'LDP-969', time: '2026-05-09 19:36', actor: 'Store manager', route: '/shifts/getLottoPayoutSummary', action: 'Saved lottery payout packet', status: 'Ready', note: 'Lottery payout packet exported while the live payout route remained demo-only.' },
+    { id: 'LPE-2303', rowId: 'LDP-966', time: '2026-05-08 10:28', actor: 'StoreCheck demo', route: '/shifts/getLottoPayoutSummary', action: 'Refreshed lottery payout review', status: 'Updated', note: 'Lottery payout review refreshed with the current StoreCheck date-range context.' },
   ]);
   const diff = d.totalSales - d.prevDayTotal;
   const isUp = diff > 0;
@@ -4224,6 +4243,11 @@ const TodayView = ({ viewMode, setViewMode }) => {
     setLotterySalesNotice(message);
     window.clearTimeout(window.__storecheckLotterySalesNotice);
     window.__storecheckLotterySalesNotice = window.setTimeout(() => setLotterySalesNotice(''), 2800);
+  };
+  const showLotteryPayoutNotice = (message) => {
+    setLotteryPayoutNotice(message);
+    window.clearTimeout(window.__storecheckLotteryPayoutNotice);
+    window.__storecheckLotteryPayoutNotice = window.setTimeout(() => setLotteryPayoutNotice(''), 2800);
   };
   const visibleWastageRows = DAILY_WASTAGE_ROWS.filter((row) => {
     if (row.date < wastageFrom || row.date > wastageTo) return false;
@@ -5256,6 +5280,154 @@ const TodayView = ({ viewMode, setViewMode }) => {
   const exportLotterySalesEvents = (format) => {
     if (!selectedLotterySalesEvents.length) return;
     downloadTableData(selectedLotterySalesEvents, format, `storecheck-lottery-sales-events-${slugify(selectedLotterySales?.id || 'all')}`);
+  };
+  const visibleLotteryPayoutRows = LOTTERY_PAYOUT_ROWS.filter((row) => {
+    if (row.date < lotteryPayoutFrom || row.date > lotteryPayoutTo) return false;
+    return true;
+  });
+  const selectedLotteryPayout =
+    visibleLotteryPayoutRows.find((row) => row.id === selectedLotteryPayoutId) ||
+    LOTTERY_PAYOUT_ROWS.find((row) => row.id === selectedLotteryPayoutId) ||
+    visibleLotteryPayoutRows[0] ||
+    LOTTERY_PAYOUT_ROWS[0] ||
+    null;
+  const selectedLotteryPayoutEvents = selectedLotteryPayout ? lotteryPayoutEvents.filter((row) => row.rowId === selectedLotteryPayout.id) : [];
+  const lotteryPayoutTotals = visibleLotteryPayoutRows.reduce((acc, row) => ({
+    scratchPayouts: acc.scratchPayouts + row.scratchPayouts,
+    onlinePayouts: acc.onlinePayouts + row.onlinePayouts,
+    totalPayout: acc.totalPayout + row.totalPayout,
+    claimCount: acc.claimCount + row.claimCount,
+    variance: acc.variance + Math.abs(row.variance),
+  }), { scratchPayouts: 0, onlinePayouts: 0, totalPayout: 0, claimCount: 0, variance: 0 });
+  const lotteryPayoutContextLabel = `${lotteryPayoutFrom} to ${lotteryPayoutTo} · ${fmtN(visibleLotteryPayoutRows.length)} lottery payout days`;
+  const lotteryPayoutExportRows = visibleLotteryPayoutRows.map((row) => ({
+    Date: row.date,
+    ScratchPayouts: row.scratchPayouts.toFixed(2),
+    OnlinePayouts: row.onlinePayouts.toFixed(2),
+    TotalPayout: row.totalPayout.toFixed(2),
+    ClaimCount: row.claimCount,
+    CashClaims: row.cashClaims,
+    VoucherClaims: row.voucherClaims,
+    Variance: row.variance.toFixed(2),
+    TopClaim: row.topClaim,
+    Status: row.status,
+  }));
+  const pushLotteryPayoutEvent = ({ rowId, action, status, note }) => {
+    setLotteryPayoutEvents((current) => [
+      {
+        id: `LPE-${Date.now()}`,
+        rowId,
+        time: buildFuelDiscountStamp(),
+        actor: 'Store manager',
+        route: '/shifts/getLottoPayoutSummary',
+        action,
+        status,
+        note,
+      },
+      ...current,
+    ].slice(0, 24));
+  };
+  const previewLotteryPayoutPacket = () => {
+    const item = selectedLotteryPayout || visibleLotteryPayoutRows[0];
+    if (!item || !visibleLotteryPayoutRows.length) return;
+    const rows = visibleLotteryPayoutRows.map((row) => [
+      row.date,
+      fmt(row.scratchPayouts),
+      fmt(row.onlinePayouts),
+      fmt(row.totalPayout),
+      fmtN(row.claimCount, 0),
+      fmt(row.variance),
+      row.status,
+    ]);
+    openPrintPreview({
+      title: 'Lottery payout summary drilldown',
+      subtitle: `${lotteryPayoutContextLabel} · /shifts/getLottoPayoutSummary`,
+      rows: [['Date', 'Scratch Payouts', 'Online Payouts', 'Total Payout', 'Claims', 'Variance', 'Status'], ...rows],
+    });
+    pushLotteryPayoutEvent({
+      rowId: item.id,
+      action: 'Previewed lottery payout packet',
+      status: 'Opened',
+      note: `Owner reviewed the ${item.date} payout packet before the live payout route was connected.`,
+    });
+    showLotteryPayoutNotice('Lottery payout packet preview opened in demo mode.');
+  };
+  const saveLotteryPayoutPacket = () => {
+    const item = selectedLotteryPayout || visibleLotteryPayoutRows[0];
+    if (!item || !visibleLotteryPayoutRows.length) return;
+    const rows = visibleLotteryPayoutRows.map((row) => [
+      row.date,
+      fmt(row.scratchPayouts),
+      fmt(row.onlinePayouts),
+      fmt(row.totalPayout),
+      fmtN(row.claimCount, 0),
+      fmt(row.variance),
+      row.status,
+    ]);
+    const html = `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Lottery payout summary drilldown</title>
+  <style>
+    body{font-family:"DM Sans",Arial,sans-serif;background:#F8FAFC;color:#0F172A;padding:28px}
+    .wrap{max-width:980px;margin:0 auto;background:#fff;border:1px solid #E2E8F0;border-radius:18px;padding:28px;box-shadow:0 12px 40px rgba(15,23,42,.08)}
+    h1{margin:0 0 8px;font-size:28px}
+    p{margin:0;color:#475569}
+    .meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin:20px 0}
+    .meta div{background:#F8FAFC;border:1px solid #E2E8F0;border-radius:12px;padding:12px 14px}
+    .meta strong{display:block;font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:#64748B;margin-bottom:6px}
+    table{width:100%;border-collapse:collapse;margin-top:16px}
+    th,td{padding:12px 14px;border-top:1px solid #E2E8F0;text-align:left}
+    th{background:#F8FAFC;font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:#64748B}
+    td{font-weight:600}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Lottery payout summary drilldown</h1>
+    <p>${lotteryPayoutContextLabel}</p>
+    <div class="meta">
+      <div><strong>Mercury Route</strong>/shifts/getLottoPayoutSummary</div>
+      <div><strong>Selected Day</strong>${item.date}</div>
+      <div><strong>Visible Payout</strong>${fmt(lotteryPayoutTotals.totalPayout)}</div>
+      <div><strong>Visible Variance</strong>${fmt(lotteryPayoutTotals.variance)}</div>
+    </div>
+    <table>
+      <thead><tr><th>Date</th><th>Scratch Payouts</th><th>Online Payouts</th><th>Total Payout</th><th>Claims</th><th>Variance</th><th>Status</th></tr></thead>
+      <tbody>${rows.map((row) => `<tr>${row.map((cell) => `<td>${cell}</td>`).join('')}</tr>`).join('')}</tbody>
+    </table>
+  </div>
+</body>
+</html>`;
+    downloadTextData(html, 'text/html', `storecheck-lottery-payout-summary-${slugify(lotteryPayoutContextLabel)}`, 'html');
+    pushLotteryPayoutEvent({
+      rowId: item.id,
+      action: 'Saved lottery payout packet',
+      status: 'Ready',
+      note: 'Lottery payout packet exported while the live payout route remained demo-only.',
+    });
+    showLotteryPayoutNotice('Lottery payout packet saved in demo mode.');
+  };
+  const refreshLotteryPayoutReview = () => {
+    const item = visibleLotteryPayoutRows[0] || selectedLotteryPayout;
+    if (!item) return;
+    setSelectedLotteryPayoutId(item.id);
+    pushLotteryPayoutEvent({
+      rowId: item.id,
+      action: 'Refreshed lottery payout review',
+      status: 'Updated',
+      note: 'Lottery payout review refreshed with the current StoreCheck date-range context.',
+    });
+    showLotteryPayoutNotice('Lottery payout summary refreshed in demo mode.');
+  };
+  const exportLotteryPayoutRows = (format) => {
+    if (!lotteryPayoutExportRows.length) return;
+    downloadTableData(lotteryPayoutExportRows, format, `storecheck-lottery-payout-summary-${slugify(lotteryPayoutContextLabel)}`);
+  };
+  const exportLotteryPayoutEvents = (format) => {
+    if (!selectedLotteryPayoutEvents.length) return;
+    downloadTableData(selectedLotteryPayoutEvents, format, `storecheck-lottery-payout-events-${slugify(selectedLotteryPayout?.id || 'all')}`);
   };
 
   if (viewMode === 'default') {
@@ -6826,6 +6998,180 @@ const TodayView = ({ viewMode, setViewMode }) => {
                 </div>
               )) : (
                 <div className="pricebook-detail-sub">No event history is visible for this selected lottery row yet.</div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {lotteryPayoutNotice ? <div className="pricebook-notice" style={{ marginTop: 18 }}><Icon name="lottery" size={16} /> {lotteryPayoutNotice}</div> : null}
+
+      <div className="ops-kpis" style={{ marginTop: 18 }}>
+        <div className="ops-kpi">
+          <div className="ops-kpi-label">Payout Days</div>
+          <div className="ops-kpi-value">{fmtN(visibleLotteryPayoutRows.length)}</div>
+          <div className="ops-kpi-sub">{lotteryPayoutContextLabel}</div>
+        </div>
+        <div className="ops-kpi">
+          <div className="ops-kpi-label">Total Payout</div>
+          <div className="ops-kpi-value">{fmt(lotteryPayoutTotals.totalPayout)}</div>
+          <div className="ops-kpi-sub">{fmt(lotteryPayoutTotals.onlinePayouts)} in online payouts across the visible handoff</div>
+        </div>
+        <div className="ops-kpi">
+          <div className="ops-kpi-label">Claim Volume</div>
+          <div className="ops-kpi-value">{fmtN(lotteryPayoutTotals.claimCount, 0)}</div>
+          <div className="ops-kpi-sub">{fmt(lotteryPayoutTotals.scratchPayouts)} in scratch payouts before live endpoint wiring</div>
+        </div>
+        <div className="ops-kpi">
+          <div className="ops-kpi-label">Variance</div>
+          <div className="ops-kpi-value">{fmt(lotteryPayoutTotals.variance)}</div>
+          <div className="ops-kpi-sub">Visible payout spread still needing owner follow-through</div>
+        </div>
+      </div>
+
+      <div className="bottom-row" style={{ marginTop: 18, alignItems: 'stretch' }}>
+        <div className="week-card">
+          <div className="chart-header">
+            <div>
+              <div className="chart-title">Lottery payout summary drilldown</div>
+              <div className="chart-sub">Mercury route: <strong>/shifts/getLottoPayoutSummary</strong></div>
+            </div>
+            <span className="purchase-tag amber">Partial</span>
+          </div>
+
+          <div className="shop-tx-toolbar">
+            <div className="shop-tx-filters">
+              <div className="shop-filter-group">
+                <label className="shop-filter-label">From</label>
+                <input className="shop-tx-input" type="date" value={lotteryPayoutFrom} onChange={(e) => setLotteryPayoutFrom(e.target.value)} />
+              </div>
+              <div className="shop-filter-group">
+                <label className="shop-filter-label">To</label>
+                <input className="shop-tx-input" type="date" value={lotteryPayoutTo} onChange={(e) => setLotteryPayoutTo(e.target.value)} />
+              </div>
+              <button className="pricebook-btn primary" onClick={() => refreshLotteryPayoutReview()}>
+                <Icon name="calendar" size={15} /> Get Results
+              </button>
+            </div>
+            <div className="shop-tx-exports">
+              <button className="pricebook-btn" onClick={() => previewLotteryPayoutPacket()}>
+                <Icon name="report" size={15} /> Preview route packet
+              </button>
+              <button className="pricebook-btn" onClick={() => saveLotteryPayoutPacket()}>
+                <Icon name="cash" size={15} /> Save route packet
+              </button>
+              {['CSV', 'XLS', 'JSON'].map((format) => (
+                <button key={format} className="pricebook-btn" onClick={() => exportLotteryPayoutRows(format)}>
+                  <Icon name="cash" size={15} /> {format}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="mobile-table-scroll">
+            <table className="purchase-table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th className="purchase-right">Scratch Payouts</th>
+                  <th className="purchase-right">Online Payouts</th>
+                  <th className="purchase-right">Total Payout</th>
+                  <th className="purchase-right">Claims</th>
+                  <th className="purchase-right">Variance</th>
+                  <th>Status</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {visibleLotteryPayoutRows.length ? visibleLotteryPayoutRows.map((row) => (
+                  <tr key={row.id} style={row.id === selectedLotteryPayout?.id ? { background: '#F0FDF4' } : undefined}>
+                    <td>{row.date}<br /><small>{row.topClaim}</small></td>
+                    <td className="purchase-right">{fmt(row.scratchPayouts)}</td>
+                    <td className="purchase-right">{fmt(row.onlinePayouts)}</td>
+                    <td className="purchase-right">{fmt(row.totalPayout)}</td>
+                    <td className="purchase-right">{fmtN(row.claimCount, 0)}</td>
+                    <td className="purchase-right">{fmt(row.variance)}</td>
+                    <td><span className={`purchase-tag${row.status === 'Ready' ? ' blue' : row.status === 'Needs review' ? ' amber' : ''}`}>{row.status}</span></td>
+                    <td><button className="pricebook-btn soft" onClick={() => setSelectedLotteryPayoutId(row.id)}>Review</button></td>
+                  </tr>
+                )) : (
+                  <tr>
+                    <td colSpan="8">No lottery payout rows matched this date range.</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+          <div className="settings-card">
+            <div className="chart-header">
+              <div>
+                <div className="chart-title">Selected lottery payout row</div>
+                <div className="chart-sub">{selectedLotteryPayout ? `${selectedLotteryPayout.date} · ${selectedLotteryPayout.topClaim}` : 'No payout row selected'}</div>
+              </div>
+              {selectedLotteryPayout ? <span className={`purchase-tag${selectedLotteryPayout.status === 'Ready' ? ' blue' : selectedLotteryPayout.status === 'Needs review' ? ' amber' : ''}`}>{selectedLotteryPayout.status}</span> : null}
+            </div>
+
+            {selectedLotteryPayout ? (
+              <>
+                <div className="purchase-kv-list">
+                  <div className="purchase-kv"><span>Current filter</span><span>{lotteryPayoutContextLabel}</span></div>
+                  <div className="purchase-kv"><span>Scratch payouts</span><span>{fmt(selectedLotteryPayout.scratchPayouts)}</span></div>
+                  <div className="purchase-kv"><span>Online payouts</span><span>{fmt(selectedLotteryPayout.onlinePayouts)}</span></div>
+                  <div className="purchase-kv"><span>Total payout</span><span>{fmt(selectedLotteryPayout.totalPayout)}</span></div>
+                  <div className="purchase-kv"><span>Claim count</span><span>{fmtN(selectedLotteryPayout.claimCount, 0)}</span></div>
+                  <div className="purchase-kv"><span>Cash claims</span><span>{fmtN(selectedLotteryPayout.cashClaims, 0)}</span></div>
+                  <div className="purchase-kv"><span>Voucher claims</span><span>{fmtN(selectedLotteryPayout.voucherClaims, 0)}</span></div>
+                  <div className="purchase-kv"><span>Variance</span><span>{fmt(selectedLotteryPayout.variance)}</span></div>
+                  <div className="purchase-kv"><span>Top claim</span><span>{selectedLotteryPayout.topClaim}</span></div>
+                  <div className="purchase-kv"><span>Summary</span><span>{selectedLotteryPayout.note}</span></div>
+                </div>
+                <div className="pricebook-actions" style={{ marginTop: 16, flexWrap: 'wrap' }}>
+                  <button className="pricebook-btn" onClick={() => previewLotteryPayoutPacket()}>
+                    <Icon name="report" size={15} /> Preview route packet
+                  </button>
+                  <button className="pricebook-btn" onClick={() => saveLotteryPayoutPacket()}>
+                    <Icon name="cash" size={15} /> Save route packet
+                  </button>
+                  <button className="pricebook-btn primary" onClick={() => refreshLotteryPayoutReview()}>
+                    <Icon name="calendar" size={15} /> Refresh review
+                  </button>
+                </div>
+              </>
+            ) : (
+              <div className="chart-sub">No selected lottery payout row is available for this filter.</div>
+            )}
+          </div>
+
+          <div className="alerts-card">
+            <div className="alerts-title">Lottery payout events</div>
+            <div className="alerts-sub">{selectedLotteryPayout ? `${selectedLotteryPayout.date} · /shifts/getLottoPayoutSummary` : '/shifts/getLottoPayoutSummary'}</div>
+            <div className="pricebook-actions" style={{ margin: '16px 0', flexWrap: 'wrap' }}>
+              {['CSV', 'XLS', 'JSON'].map((format) => (
+                <button key={format} className="pricebook-btn" onClick={() => exportLotteryPayoutEvents(format)}>
+                  <Icon name="cash" size={15} /> {format}
+                </button>
+              ))}
+            </div>
+            <div className="alerts-list">
+              {selectedLotteryPayoutEvents.length ? selectedLotteryPayoutEvents.map((row) => (
+                <div key={row.id} className="alert-item" style={{ alignItems: 'flex-start' }}>
+                  <Icon
+                    name={row.action.includes('Saved') ? 'cash' : row.action.includes('Previewed') ? 'report' : 'calendar'}
+                    size={18}
+                    bg={row.action.includes('Saved') ? iconDefaults.green.bg : row.action.includes('Previewed') ? iconDefaults.blue.bg : iconDefaults.purple.bg}
+                    fg={row.action.includes('Saved') ? '#15803D' : row.action.includes('Previewed') ? '#3B82F6' : '#8B5CF6'}
+                  />
+                  <div className="alert-copy">
+                    <div className="alert-text">{row.action}</div>
+                    <div className="pricebook-detail-sub">{row.time} · {row.actor} · {row.status}</div>
+                    <div className="pricebook-detail-sub">{row.note}</div>
+                  </div>
+                </div>
+              )) : (
+                <div className="pricebook-detail-sub">No event history is visible for this selected lottery payout row yet.</div>
               )}
             </div>
           </div>
