@@ -12846,6 +12846,7 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
   const [selectedLedgerId, setSelectedLedgerId] = useState(PURCHASE_LEDGER.find((row) => row.status !== 'Cleared')?.id || PURCHASE_LEDGER[0].id);
   const [selectedExpenseId, setSelectedExpenseId] = useState(OPERATING_EXPENSES.find((row) => row.paymentType === 'Cash')?.id || OPERATING_EXPENSES[0].id);
   const [selectedCostUpdateId, setSelectedCostUpdateId] = useState(COST_UPDATE_ROWS.find((row) => row.status === 'Needs confirm')?.id || COST_UPDATE_ROWS[0].id);
+  const [selectedDeadItemId, setSelectedDeadItemId] = useState(DEAD_INVENTORY_ROWS[0].id);
   const [purchaseSummaryPacketRows, setPurchaseSummaryPacketRows] = useState([
     { id: 'PS-1', packet: 'Month-to-date grocery summary', window: '2026-05-01 to 2026-05-09', focus: 'Category and retail mix', source: 'Purchases Summary', status: 'Queued', note: 'Primary grocery purchases summary is staged for owner review before live Mercury wiring.' },
     { id: 'PS-2', packet: 'Payment method purchases recap', window: '2026-05-01 to 2026-05-09', focus: 'Cash / Check / EFT split', source: 'Payment Methods', status: 'Needs review', note: 'Payment-method rollup still needs final owner review before the live route is connected.' },
@@ -12866,6 +12867,11 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
     { id: 'CUP-2', packet: 'Needs confirm review', window: 'Visible confirm queue', focus: 'Confirm-all follow-through', source: 'Confirm Queue', status: 'Needs review', note: 'Rows still needing confirm must stay visible before the live route is connected.' },
   ]);
   const [selectedCostUpdatePacketId, setSelectedCostUpdatePacketId] = useState('CUP-1');
+  const [deadInventoryPacketRows, setDeadInventoryPacketRows] = useState([
+    { id: 'DIP-1', packet: 'Primary dead inventory handoff', window: 'Current dead inventory filters', focus: 'Department and aging review', source: 'Dead Inventory', status: 'Queued', note: 'Primary dead-inventory handoff is staged for owner review before live Mercury wiring.' },
+    { id: 'DIP-2', packet: 'Inactivate candidate review', window: 'Selected / inactivate candidates', focus: 'InActive follow-through', source: 'Inactivate Queue', status: 'Needs review', note: 'Selected inactivation candidates still need final owner review before the live route is connected.' },
+  ]);
+  const [selectedDeadInventoryPacketId, setSelectedDeadInventoryPacketId] = useState('DIP-1');
   const [expenseSummaryPacketRows, setExpenseSummaryPacketRows] = useState([
     { id: 'OES-1', packet: 'Month-to-date operating summary', window: '2026-05-01 to 2026-05-09', focus: 'Current category mix', source: 'Summary tab', status: 'Queued', note: 'Primary operating-expense summary is staged for owner review before live Mercury wiring.' },
     { id: 'OES-2', packet: 'Cash expense recap', window: '2026-05-09 only', focus: 'Cash expenses only', source: 'Cash visibility', status: 'Needs review', note: 'Cash-only summary needs final reconciliation before the live route is connected.' },
@@ -12897,6 +12903,11 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
     { id: 'CUE-101', packetId: 'CUP-1', time: '2026-05-10 12:05', actor: 'Store manager', route: '/storeExpenses/index', action: 'Previewed cost update packet', status: 'Opened', note: 'Owner reviewed the primary cost-update packet before the live Mercury route was connected.' },
     { id: 'CUE-102', packetId: 'CUP-1', time: '2026-05-10 12:06', actor: 'Store manager', route: '/storeExpenses/index', action: 'E-mailed cost update packet', status: 'Ready', note: 'Cost-update packet was exported for e-mail follow-through while the live Mercury route remained demo-only.' },
     { id: 'CUE-103', packetId: 'CUP-2', time: '2026-05-09 18:34', actor: 'StoreCheck demo', route: '/storeExpenses/index', action: 'Queued cost update handoff', status: 'Queued', note: 'Confirm-queue handoff remained visible in demo mode.' },
+  ]);
+  const [deadInventoryEvents, setDeadInventoryEvents] = useState([
+    { id: 'DIE-101', packetId: 'DIP-1', time: '2026-05-10 12:24', actor: 'Store manager', route: '/storeExpenses/index', action: 'Previewed dead inventory packet', status: 'Opened', note: 'Owner reviewed the primary dead-inventory packet before the live Mercury route was connected.' },
+    { id: 'DIE-102', packetId: 'DIP-1', time: '2026-05-10 12:25', actor: 'Store manager', route: '/storeExpenses/index', action: 'Saved dead inventory packet', status: 'Ready', note: 'Dead-inventory packet was exported while the live Mercury route remained demo-only.' },
+    { id: 'DIE-103', packetId: 'DIP-2', time: '2026-05-09 18:46', actor: 'StoreCheck demo', route: '/storeExpenses/index', action: 'Queued dead inventory handoff', status: 'Queued', note: 'Inactivate-candidate handoff remained visible in demo mode.' },
   ]);
   const [expenseSummaryEvents, setExpenseSummaryEvents] = useState([
     { id: 'OES-101', packetId: 'OES-1', time: '2026-05-10 10:31', actor: 'Store manager', route: '/storeExpenses/purchaseindex', action: 'Previewed operating expense summary packet', status: 'Opened', note: 'Owner reviewed the month-to-date operating summary before the live Mercury route was connected.' },
@@ -12996,10 +13007,12 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
   const selectedLedger = filteredPurchaseLedger.find((row) => row.id === selectedLedgerId) || filteredPurchaseLedger[0] || purchaseLedgerRows[0];
   const selectedExpense = filteredExpenses.find((row) => row.id === selectedExpenseId) || filteredExpenses[0] || expenseRows[0];
   const selectedCostUpdate = visibleCostUpdates.find((row) => row.id === selectedCostUpdateId) || visibleCostUpdates[0] || costUpdateRows[0];
+  const selectedDeadItem = filteredDeadInventory.find((row) => row.id === selectedDeadItemId) || deadInventoryRows.find((row) => row.id === selectedDeadItemId) || deadInventoryRows.find((row) => deadSelected.includes(row.id)) || filteredDeadInventory[0] || deadInventoryRows[0];
   const selectedPurchaseSummaryPacket = purchaseSummaryPacketRows.find((row) => row.id === selectedPurchaseSummaryPacketId) || purchaseSummaryPacketRows[0];
   const selectedVendorOrderPacket = vendorOrderPacketRows.find((row) => row.id === selectedVendorOrderPacketId) || vendorOrderPacketRows[0];
   const selectedPurchaseLedgerPacket = purchaseLedgerPacketRows.find((row) => row.id === selectedPurchaseLedgerPacketId) || purchaseLedgerPacketRows[0];
   const selectedCostUpdatePacket = costUpdatePacketRows.find((row) => row.id === selectedCostUpdatePacketId) || costUpdatePacketRows[0];
+  const selectedDeadInventoryPacket = deadInventoryPacketRows.find((row) => row.id === selectedDeadInventoryPacketId) || deadInventoryPacketRows[0];
   const selectedExpenseSummaryPacket = expenseSummaryPacketRows.find((row) => row.id === selectedExpenseSummaryPacketId) || expenseSummaryPacketRows[0];
   const selectedExpenseLedgerPacket = expenseLedgerPacketRows.find((row) => row.id === selectedExpenseLedgerPacketId) || expenseLedgerPacketRows[0];
   const selectedSetupVendor =
@@ -13012,6 +13025,7 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
   const selectedVendorOrderEvents = selectedVendorOrderPacket ? vendorOrderEvents.filter((row) => row.packetId === selectedVendorOrderPacket.id) : vendorOrderEvents;
   const selectedPurchaseLedgerEvents = selectedPurchaseLedgerPacket ? purchaseLedgerEvents.filter((row) => row.packetId === selectedPurchaseLedgerPacket.id) : purchaseLedgerEvents;
   const selectedCostUpdateEvents = selectedCostUpdatePacket ? costUpdateEvents.filter((row) => row.packetId === selectedCostUpdatePacket.id) : costUpdateEvents;
+  const selectedDeadInventoryEvents = selectedDeadInventoryPacket ? deadInventoryEvents.filter((row) => row.packetId === selectedDeadInventoryPacket.id) : deadInventoryEvents;
   const selectedExpenseSummaryEvents = selectedExpenseSummaryPacket ? expenseSummaryEvents.filter((row) => row.packetId === selectedExpenseSummaryPacket.id) : expenseSummaryEvents;
   const selectedExpenseLedgerEvents = selectedExpenseLedgerPacket ? expenseLedgerEvents.filter((row) => row.packetId === selectedExpenseLedgerPacket.id) : expenseLedgerEvents;
   const selectedDeadRows = deadInventoryRows.filter((row) => deadSelected.includes(row.id));
@@ -13438,45 +13452,150 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
     });
     showNotice(`${visibleCostUpdates.length} visible cost updates marked confirmed in demo mode.`);
   };
-  const reviewDeadSelection = () => {
-    if (!selectedDeadRows.length) {
+  const buildDeadInventoryPacketRows = (packet = selectedDeadInventoryPacket) => {
+    const deadRows = packet?.id === 'DIP-2'
+      ? deadInventoryRows.filter((row) => deadSelected.includes(row.id) || row.action.toLowerCase().includes('inactivate'))
+      : filteredDeadInventory;
+    const safeRows = deadRows.length ? deadRows : filteredDeadInventory;
+    return safeRows.map((row) => [
+      row.upc,
+      row.department,
+      row.itemName,
+      fmt(row.retail),
+      fmt(row.cost),
+      fmtN(row.inventory),
+      fmt(row.totalCost),
+      fmt(row.totalRetail),
+      row.criteria,
+      row.stage,
+    ]);
+  };
+  const pushDeadInventoryEvent = ({ packetId = selectedDeadInventoryPacket?.id, action, status, note }) => {
+    setDeadInventoryEvents((current) => [
+      {
+        id: `DIE-${current.length + 101}`,
+        packetId,
+        time: todayStr(),
+        actor: 'StoreCheck demo',
+        route: '/storeExpenses/index',
+        action,
+        status,
+        note,
+      },
+      ...current,
+    ]);
+  };
+  const previewDeadInventoryDepth = (packet = selectedDeadInventoryPacket) => {
+    if (!packet) return;
+    setSelectedDeadInventoryPacketId(packet.id);
+    openPacketPreview({
+      title: 'Dead Inventory Endpoint Depth',
+      subtitle: `${packet.window} · ${packet.focus} · /storeExpenses/index`,
+      headers: ['UPC', 'Department', 'Item', 'Retail', 'Cost', 'Inventory', 'Total Cost', 'Total Retail', 'Criteria', 'Stage'],
+      rows: buildDeadInventoryPacketRows(packet),
+    });
+    pushDeadInventoryEvent({
+      packetId: packet.id,
+      action: 'Previewed dead inventory packet',
+      status: 'Opened',
+      note: `${packet.packet} preview opened before the live Mercury route was connected.`,
+    });
+  };
+  const saveDeadInventoryDepth = (packet = selectedDeadInventoryPacket) => {
+    if (!packet) return;
+    setSelectedDeadInventoryPacketId(packet.id);
+    savePacket({
+      title: `Dead Inventory Packet - ${packet.id}`,
+      subtitle: `${packet.window} · ${packet.focus}`,
+      route: '/storeExpenses/index',
+      note: 'Dead Inventory InActive replacement shell',
+      headers: ['UPC', 'Department', 'Item', 'Retail', 'Cost', 'Inventory', 'Total Cost', 'Total Retail', 'Criteria', 'Stage'],
+      rows: buildDeadInventoryPacketRows(packet),
+      filename: `storecheck-dead-inventory-${packet.id.toLowerCase()}`,
+    });
+    pushDeadInventoryEvent({
+      packetId: packet.id,
+      action: 'Saved dead inventory packet',
+      status: 'Ready',
+      note: 'Dead-inventory packet was exported while the live Mercury route remained demo-only.',
+    });
+    showNotice('Dead inventory route packet saved in demo mode.');
+  };
+  const stageDeadInventoryHandoff = (packet = selectedDeadInventoryPacket) => {
+    if (!packet) return;
+    setSelectedDeadInventoryPacketId(packet.id);
+    setDeadInventoryPacketRows((current) => current.map((row) => (
+      row.id === packet.id ? { ...row, status: 'Queued', note: `Dead-inventory handoff is staged for ${packet.window}.` } : row
+    )));
+    pushDeadInventoryEvent({
+      packetId: packet.id,
+      action: 'Queued dead inventory handoff',
+      status: 'Queued',
+      note: `Mercury-style dead-inventory handoff accepted for ${packet.window}.`,
+    });
+    showNotice(`Dead inventory for ${packet.window} staged in demo mode. Live \`/storeExpenses/index\` endpoint still pending.`);
+  };
+  const reviewDeadSelection = (rows = selectedDeadRows) => {
+    if (!rows.length) {
       showNotice('Select at least one dead inventory row first.');
       return;
     }
+    setSelectedDeadInventoryPacketId('DIP-2');
     openPacketPreview({
       title: 'Dead Inventory Inactivation Review',
-      subtitle: `${selectedDeadRows.length} selected items`,
+      subtitle: `${rows.length} selected items`,
       headers: ['UPC', 'Department', 'Item', 'Inventory', 'Total Cost', 'Recommendation', 'Stage'],
-      rows: selectedDeadRows.map((row) => [row.upc, row.department, row.itemName, fmtN(row.inventory), fmt(row.totalCost), row.action, row.stage]),
+      rows: rows.map((row) => [row.upc, row.department, row.itemName, fmtN(row.inventory), fmt(row.totalCost), row.action, row.stage]),
+    });
+    pushDeadInventoryEvent({
+      packetId: 'DIP-2',
+      action: 'Reviewed selected dead inventory rows',
+      status: 'Opened',
+      note: `${rows.length} selected rows were reviewed before the live inactivate route was connected.`,
     });
   };
-  const stageInactiveItems = () => {
-    if (!deadSelected.length) {
+  const stageInactiveItems = (ids = deadSelected) => {
+    if (!ids.length) {
       showNotice('Select at least one item before staging an inactivation pass.');
       return;
     }
+    setDeadSelected((current) => Array.from(new Set([...current, ...ids])));
+    setSelectedDeadInventoryPacketId('DIP-2');
     setDeadInventoryRows((current) =>
       current.map((row) =>
-        deadSelected.includes(row.id)
+        ids.includes(row.id)
           ? { ...row, stage: 'Staged InActive' }
           : row
       )
     );
-    showNotice(`${deadSelected.length} items staged for inactivation review. Real inactivation endpoint is still pending.`);
+    pushDeadInventoryEvent({
+      packetId: 'DIP-2',
+      action: 'Staged selected dead inventory rows',
+      status: 'Queued',
+      note: `${ids.length} selected rows were staged for inactivation review in demo mode.`,
+    });
+    showNotice(`${ids.length} items staged for inactivation review. Real inactivation endpoint is still pending.`);
   };
-  const saveDeadPacket = () => {
-    if (!selectedDeadRows.length) {
+  const saveDeadPacket = (rows = selectedDeadRows) => {
+    if (!rows.length) {
       showNotice('Select at least one dead inventory row first.');
       return;
     }
+    setSelectedDeadInventoryPacketId('DIP-2');
     savePacket({
       title: 'Dead Inventory Inactivation Packet',
-      subtitle: `${selectedDeadRows.length} selected items`,
+      subtitle: `${rows.length} selected items`,
       route: '/storeExpenses/index',
       note: 'Dead Inventory InActive replacement shell',
       headers: ['UPC', 'Department', 'Item', 'Inventory', 'Total Cost', 'Criteria', 'Stage'],
-      rows: selectedDeadRows.map((row) => [row.upc, row.department, row.itemName, fmtN(row.inventory), fmt(row.totalCost), row.criteria, row.stage]),
+      rows: rows.map((row) => [row.upc, row.department, row.itemName, fmtN(row.inventory), fmt(row.totalCost), row.criteria, row.stage]),
       filename: 'storecheck-dead-inventory-inactive-packet',
+    });
+    pushDeadInventoryEvent({
+      packetId: 'DIP-2',
+      action: 'Saved selected dead inventory packet',
+      status: 'Ready',
+      note: 'Selected dead-inventory rows were exported while the live Mercury route remained demo-only.',
     });
     showNotice('Dead inventory inactivation packet saved in demo mode.');
   };
@@ -14095,6 +14214,10 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
   const exportCostUpdateEvents = (format) => {
     downloadTableData(selectedCostUpdateEvents, format, 'storecheck-cost-update-events');
     showNotice(`${fmtN(selectedCostUpdateEvents.length)} cost-update events exported in ${format} format.`);
+  };
+  const exportDeadInventoryEvents = (format) => {
+    downloadTableData(selectedDeadInventoryEvents, format, 'storecheck-dead-inventory-events');
+    showNotice(`${fmtN(selectedDeadInventoryEvents.length)} dead-inventory events exported in ${format} format.`);
   };
   const exportExpenseSummaryEvents = (format) => {
     downloadTableData(selectedExpenseSummaryEvents, format, 'storecheck-operating-expense-summary-events');
@@ -15370,10 +15493,30 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
             <div className="purchase-surface">
               <div className="pricebook-toolbar" style={{ padding: '20px 20px 0' }}>
                 <div>
-                  <div className="pricebook-detail-title">Dead inventory</div>
-                  <div className="pricebook-detail-sub">Surface stale items early so owners can markdown, relocate, or inactivate them before they quietly tie up cash.</div>
+                  <div className="pricebook-detail-title">Dead Inventory Endpoint Depth</div>
+                  <div className="pricebook-detail-sub">Keep the `/storeExpenses/index` dead-inventory handoff visible with selected packet context before the live Mercury route is connected.</div>
                 </div>
-                {renderExportButtons(filteredDeadInventory, 'storecheck-dead-inventory')}
+                <div className="pricebook-actions">
+                  <button className="pricebook-btn" onClick={() => previewDeadInventoryDepth(selectedDeadInventoryPacket)}>
+                    <Icon name="report" size={15} /> Preview route packet
+                  </button>
+                  <button className="pricebook-btn" onClick={() => stageDeadInventoryHandoff(selectedDeadInventoryPacket)}>
+                    <Icon name="sync" size={15} /> Stage handoff
+                  </button>
+                  <button className="pricebook-btn" onClick={() => saveDeadInventoryDepth(selectedDeadInventoryPacket)}>
+                    <Icon name="cash" size={15} /> Save route packet
+                  </button>
+                  <button className="pricebook-btn primary" onClick={() => exportDeadInventoryEvents('CSV')}>
+                    <Icon name="save" size={15} /> Export route log
+                  </button>
+                </div>
+              </div>
+              <div className="purchase-kv-list" style={{ padding: '0 20px 16px' }}>
+                <div className="purchase-kv"><span>Selected packet</span><span>{selectedDeadInventoryPacket ? `${selectedDeadInventoryPacket.packet} · ${selectedDeadInventoryPacket.status}` : 'Pending'}</span></div>
+                <div className="purchase-kv"><span>Route</span><span>/storeExpenses/index</span></div>
+                <div className="purchase-kv"><span>Focus</span><span>{selectedDeadInventoryPacket?.focus || 'Department and aging review'}</span></div>
+                <div className="purchase-kv"><span>Current packet</span><span>{selectedDeadInventoryPacket ? `${selectedDeadInventoryPacket.window} · ${selectedDeadInventoryPacket.source}` : 'Dead Inventory'}</span></div>
+                <div className="purchase-kv"><span>Latest event</span><span>{selectedDeadInventoryEvents[0]?.action || 'No events yet'}</span></div>
               </div>
               <div className="pricebook-filters" style={{ padding: '0 20px 16px' }}>
                 <div className="purchase-inline-filters">
@@ -15400,6 +15543,11 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
                   <button className="pricebook-btn primary" onClick={() => stageInactiveItems()}>
                     <Icon name="alert" size={15} /> InActive
                   </button>
+                  {['CSV', 'XLS', 'JSON'].map((format) => (
+                    <button key={format} className="pricebook-btn" onClick={() => exportRows(filteredDeadInventory, format, 'storecheck-dead-inventory')}>
+                      <Icon name="cash" size={15} /> {format}
+                    </button>
+                  ))}
                 </div>
               </div>
               <div className="mobile-table-scroll">
@@ -15407,8 +15555,8 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
                   <thead><tr><th></th><th>UPC</th><th>Department</th><th>Item</th><th className="purchase-right">Retail</th><th className="purchase-right">Cost</th><th className="purchase-right">Inventory</th><th className="purchase-right">Total Cost</th><th className="purchase-right">Total Retail</th><th>Criteria</th><th>Stage</th></tr></thead>
                   <tbody>
                     {filteredDeadInventory.map((row) => (
-                      <tr key={row.id}>
-                        <td><input className="purchase-checkbox" type="checkbox" checked={deadSelected.includes(row.id)} onChange={() => toggleDeadSelected(row.id)} /></td>
+                      <tr key={row.id} onClick={() => setSelectedDeadItemId(row.id)} style={{ cursor: 'pointer' }}>
+                        <td><input className="purchase-checkbox" type="checkbox" checked={deadSelected.includes(row.id)} onChange={() => toggleDeadSelected(row.id)} onClick={(event) => event.stopPropagation()} /></td>
                         <td>{row.upc}</td>
                         <td>{row.department}</td>
                         <td><strong>{row.itemName}</strong><small>Last sold {row.lastSold} · {row.action}</small></td>
@@ -15423,6 +15571,28 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
                     ))}
                   </tbody>
                 </table>
+              </div>
+              <div className="purchase-queue-list" style={{ padding: '16px 20px 20px' }}>
+                {deadInventoryPacketRows.map((row) => (
+                  <div className="purchase-queue-row" key={row.id}>
+                    <div className="purchase-queue-top">
+                      <div>
+                        <div className="purchase-queue-title">{row.packet}</div>
+                        <div className="purchase-queue-meta">{row.window} · {row.focus} · {row.source}</div>
+                      </div>
+                      <span className={`purchase-tag${toneClass(row.status)}`}>{row.status}</span>
+                    </div>
+                    <div className="purchase-queue-meta">{row.note}</div>
+                    <div className="pricebook-actions" style={{ marginTop: 12 }}>
+                      <button className="pricebook-btn" onClick={() => setSelectedDeadInventoryPacketId(row.id)}>
+                        <Icon name="report" size={15} /> Review
+                      </button>
+                      <button className="pricebook-btn soft" onClick={() => previewDeadInventoryDepth(row)}>
+                        <Icon name="report" size={15} /> Preview
+                      </button>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
             <div className="purchase-callout">Inactivated items will not ring on the register. Total Items: 20,667 · Dead Inventory Items: 20,413. This tab keeps that action visible and deliberate instead of burying it in a spreadsheet export.</div>
@@ -15457,6 +15627,41 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
             </div>
 
             <div className="purchase-note-card">
+              <h3>Selected dead inventory row</h3>
+              <p>Keep the active stale item visible while deciding whether it should be reviewed, exported, or moved into the inactivate queue.</p>
+              {selectedDeadItem ? (
+                <>
+                  <div className="purchase-kv-list">
+                    <div className="purchase-kv"><span>Item</span><span>{selectedDeadItem.itemName}</span></div>
+                    <div className="purchase-kv"><span>Department</span><span>{selectedDeadItem.department}</span></div>
+                    <div className="purchase-kv"><span>Criteria</span><span>{selectedDeadItem.criteria}</span></div>
+                    <div className="purchase-kv"><span>Last sold</span><span>{selectedDeadItem.lastSold}</span></div>
+                    <div className="purchase-kv"><span>Stage</span><span>{selectedDeadItem.stage}</span></div>
+                    <div className="purchase-kv"><span>Action</span><span>{selectedDeadItem.action}</span></div>
+                  </div>
+                  <div className="pricebook-actions" style={{ marginTop: 16 }}>
+                    <button className="pricebook-btn" onClick={() => openPacketPreview({
+                      title: `Dead Inventory Row - ${selectedDeadItem.id}`,
+                      subtitle: `${selectedDeadItem.itemName} · ${selectedDeadItem.department}`,
+                      headers: ['UPC', 'Retail', 'Cost', 'Inventory', 'Total Cost', 'Total Retail', 'Criteria', 'Stage'],
+                      rows: [[selectedDeadItem.upc, fmt(selectedDeadItem.retail), fmt(selectedDeadItem.cost), fmtN(selectedDeadItem.inventory), fmt(selectedDeadItem.totalCost), fmt(selectedDeadItem.totalRetail), selectedDeadItem.criteria, selectedDeadItem.stage]],
+                    })}>
+                      <Icon name="report" size={15} /> Open row
+                    </button>
+                    <button className="pricebook-btn" onClick={() => saveDeadPacket([selectedDeadItem])}>
+                      <Icon name="cash" size={15} /> Save packet
+                    </button>
+                    <button className="pricebook-btn primary" onClick={() => stageInactiveItems([selectedDeadItem.id])}>
+                      <Icon name="alert" size={15} /> Stage InActive
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <div className="purchase-hint">No dead-inventory row is visible for the current filters.</div>
+              )}
+            </div>
+
+            <div className="purchase-note-card">
               <h3>Inactivation review</h3>
               <p>Keep the selected items visible before finalizing an inactive batch.</p>
               <div className="purchase-kv-list">
@@ -15475,6 +15680,40 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
                 <button className="pricebook-btn primary" onClick={() => stageInactiveItems()}>
                   <Icon name="alert" size={15} /> Stage InActive
                 </button>
+              </div>
+            </div>
+
+            <div className="purchase-note-card">
+              <h3>Selected Dead Inventory Review</h3>
+              <p>Owner-facing visibility for the chosen dead-inventory packet before the live Mercury route is connected.</p>
+              {selectedDeadInventoryPacket ? (
+                <div className="purchase-kv-list">
+                  <div className="purchase-kv"><span>Packet</span><span>{selectedDeadInventoryPacket.packet}</span></div>
+                  <div className="purchase-kv"><span>Window</span><span>{selectedDeadInventoryPacket.window}</span></div>
+                  <div className="purchase-kv"><span>Focus</span><span>{selectedDeadInventoryPacket.focus}</span></div>
+                  <div className="purchase-kv"><span>Source</span><span>{selectedDeadInventoryPacket.source}</span></div>
+                  <div className="purchase-kv"><span>Status</span><span>{selectedDeadInventoryPacket.status}</span></div>
+                  <div className="purchase-kv"><span>Note</span><span>{selectedDeadInventoryPacket.note}</span></div>
+                </div>
+              ) : <div className="purchase-hint">No dead-inventory packet is selected right now.</div>}
+            </div>
+
+            <div className="purchase-note-card">
+              <h3>Dead Inventory Events</h3>
+              <p>Track route-specific `/storeExpenses/index` dead-inventory activity before live Mercury wiring is connected.</p>
+              <div className="purchase-queue-list">
+                {selectedDeadInventoryEvents.length ? selectedDeadInventoryEvents.map((row) => (
+                  <div className="purchase-queue-row" key={row.id}>
+                    <div className="purchase-queue-top">
+                      <div>
+                        <div className="purchase-queue-title">{row.action}</div>
+                        <div className="purchase-queue-meta">{row.time} · {row.actor} · {row.route}</div>
+                      </div>
+                      <span className={`purchase-tag${toneClass(row.status)}`}>{row.status}</span>
+                    </div>
+                    <div className="purchase-queue-meta">{selectedDeadInventoryPacket?.id || 'DIP-1'} · {row.note}</div>
+                  </div>
+                )) : <div className="purchase-hint">No dead-inventory events are recorded yet.</div>}
               </div>
             </div>
           </div>
