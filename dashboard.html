@@ -16193,6 +16193,7 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
   const [multiPage, setMultiPage] = useState('overview');
   const [compareDate, setCompareDate] = useState('2026-05-09');
   const [selectedStore, setSelectedStore] = useState('All');
+  const [selectedCompareStoreId, setSelectedCompareStoreId] = useState(MULTI_STORE_COMPARE[0].store);
   const [loginSearch, setLoginSearch] = useState('');
   const [loginLocationId, setLoginLocationId] = useState(currentLocation.id);
   const [launchTarget, setLaunchTarget] = useState('today');
@@ -16200,10 +16201,23 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
     { id: 'AUTH-1', time: '08:42', step: 'Location picker opened', route: '/user/viewLocations', store: 'Main Street Gas & Go', status: 'Ready' },
     { id: 'AUTH-2', time: '08:43', step: 'Redirect to dashboard', route: '/user/openHomePage', store: 'Main Street Gas & Go', status: 'Complete' },
   ]);
+  const [compareSearchEvents, setCompareSearchEvents] = useState([
+    { id: 'CMP-3301', rowId: 'Main Street Gas & Go', time: '2026-05-09 21:52', actor: 'Store manager', route: '/shifts/searchMultiStoreReport', action: 'Previewed multi-store compare packet', status: 'Opened', note: 'Owner reviewed the multi-store comparison packet before the live Mercury search route was connected.' },
+    { id: 'CMP-3302', rowId: 'Main Street Gas & Go', time: '2026-05-09 21:55', actor: 'Store manager', route: '/shifts/searchMultiStoreReport', action: 'Saved multi-store compare packet', status: 'Ready', note: 'Multi-store comparison packet exported while the live Mercury search route remained demo-only.' },
+    { id: 'CMP-3303', rowId: 'North Avenue Market', time: '2026-05-08 10:04', actor: 'StoreCheck demo', route: '/shifts/searchMultiStoreReport', action: 'Refreshed multi-store compare search', status: 'Updated', note: 'Multi-store comparison review refreshed with the current StoreCheck date and store filters.' },
+  ]);
   const [notice, setNotice] = useState('');
 
   const filteredCompare =
     selectedStore === 'All' ? MULTI_STORE_COMPARE : MULTI_STORE_COMPARE.filter((row) => row.store === selectedStore);
+  const selectedCompareRow =
+    filteredCompare.find((row) => row.store === selectedCompareStoreId) ||
+    MULTI_STORE_COMPARE.find((row) => row.store === selectedCompareStoreId) ||
+    filteredCompare[0] ||
+    MULTI_STORE_COMPARE[0] ||
+    null;
+  const selectedCompareEvents = selectedCompareRow ? compareSearchEvents.filter((row) => row.rowId === selectedCompareRow.store) : [];
+  const compareContextLabel = `${compareDate} · ${selectedStore === 'All' ? 'All stores' : selectedStore}`;
   const filteredLoginLocations = STORE_LOCATIONS.filter((item) => {
     const haystack = `${item.name} ${item.location} ${item.manager} ${item.status}`.toLowerCase();
     return haystack.includes(loginSearch.toLowerCase());
@@ -16237,6 +16251,17 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
     window.clearTimeout(window.__storecheckMultiStoreNotice);
     window.__storecheckMultiStoreNotice = window.setTimeout(() => setNotice(''), 2800);
   };
+  const compareExportRows = filteredCompare.map((row) => ({
+    Store: row.store,
+    Date: compareDate,
+    Fuel: row.fuel.toFixed(2),
+    Shop: row.shop.toFixed(2),
+    Lottery: row.lottery.toFixed(2),
+    Total: row.total.toFixed(2),
+    Gallons: row.gallons.toFixed(2),
+    CashDiff: row.cashDiff.toFixed(2),
+  }));
+  const comparePacketRows = filteredCompare.map((row) => [row.store, compareDate, fmt(row.fuel), fmt(row.shop), fmt(row.lottery), fmt(row.total), fmtN(row.gallons, 0), fmt(Math.abs(row.cashDiff))]);
   const multiStorePacketHtml = ({ title, subtitle, route, note, headers, rows }) => `<!doctype html>
 <html lang="en">
 <head>
@@ -16340,6 +16365,79 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
     showNotice('Module-launcher packet saved in demo mode.');
   };
   const exportCompare = (format) => downloadTableData(filteredCompare, format, 'storecheck-multi-store-compare');
+  const pushCompareSearchEvent = ({ rowId, action, status, note }) => {
+    const time = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    setCompareSearchEvents((current) => [
+      {
+        id: `CMP-${Date.now()}`,
+        rowId,
+        time,
+        actor: 'Store manager',
+        route: '/shifts/searchMultiStoreReport',
+        action,
+        status,
+        note,
+      },
+      ...current,
+    ].slice(0, 24));
+  };
+  const previewComparePacket = () => {
+    const row = selectedCompareRow || filteredCompare[0];
+    if (!row || !comparePacketRows.length) return;
+    openMultiStorePacket({
+      title: 'Multi-store comparison search depth',
+      subtitle: `${compareContextLabel} · /shifts/searchMultiStoreReport`,
+      headers: ['Store', 'Date', 'Fuel', 'Shop', 'Lottery', 'Total', 'Gallons', 'Cash Diff'],
+      rows: comparePacketRows,
+    });
+    pushCompareSearchEvent({
+      rowId: row.store,
+      action: 'Previewed multi-store compare packet',
+      status: 'Opened',
+      note: `Owner reviewed the ${row.store} comparison packet before the live Mercury search route was connected.`,
+    });
+    showNotice('Multi-store comparison packet preview opened in demo mode.');
+  };
+  const saveComparePacket = () => {
+    const row = selectedCompareRow || filteredCompare[0];
+    if (!row || !comparePacketRows.length) return;
+    saveMultiStorePacket({
+      title: 'Multi-store comparison search depth',
+      subtitle: `${compareContextLabel} · /shifts/searchMultiStoreReport`,
+      route: '/shifts/searchMultiStoreReport',
+      note: 'Multi-store comparison replacement shell',
+      headers: ['Store', 'Date', 'Fuel', 'Shop', 'Lottery', 'Total', 'Gallons', 'Cash Diff'],
+      rows: comparePacketRows,
+      filename: 'storecheck-multi-store-compare-search',
+    });
+    pushCompareSearchEvent({
+      rowId: row.store,
+      action: 'Saved multi-store compare packet',
+      status: 'Ready',
+      note: 'Multi-store comparison packet exported while the live Mercury search route remained demo-only.',
+    });
+    showNotice('Multi-store comparison packet saved in demo mode.');
+  };
+  const refreshCompareSearch = () => {
+    const row = filteredCompare[0] || selectedCompareRow;
+    if (!row) return;
+    setSelectedCompareStoreId(row.store);
+    pushCompareSearchEvent({
+      rowId: row.store,
+      action: 'Refreshed multi-store compare search',
+      status: 'Updated',
+      note: 'Multi-store comparison review refreshed with the current StoreCheck date and store filters.',
+    });
+    showNotice(`Multi-store comparison refreshed for ${compareDate}.`);
+  };
+  const exportCompareSearchEvents = (format) => {
+    if (!selectedCompareEvents.length) return;
+    downloadTableData(selectedCompareEvents, format, `storecheck-multi-store-compare-events-${slugify(selectedCompareRow?.store || 'all')}`);
+  };
+  const exportCompareSearchRows = (format) => {
+    if (!compareExportRows.length) return;
+    downloadTableData(compareExportRows, format, 'storecheck-multi-store-compare-search');
+  };
   const tabs = [
     { id: 'overview', label: 'Overview', icon: 'connect' },
     { id: 'compare', label: 'Daily Compare', icon: 'calendar' },
@@ -16421,12 +16519,13 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
       ) : null}
 
       {multiPage === 'compare' ? (
-        <div className="purchase-grid single">
-          <div className="purchase-surface">
+        <div className="purchase-grid">
+          <div className="purchase-stack">
+            <div className="purchase-surface">
             <div className="pricebook-toolbar" style={{ padding: '20px 20px 0' }}>
               <div>
-                <div className="pricebook-detail-title">Daily compare</div>
-                <div className="pricebook-detail-sub">Mercury-style multi-store comparison shell for a single selected day.</div>
+                <div className="pricebook-detail-title">Multi-store comparison search depth</div>
+                <div className="pricebook-detail-sub">Mercury route: <strong>/shifts/searchMultiStoreReport</strong></div>
               </div>
               <div className="pricebook-actions">
                 {['CSV', 'XLS', 'JSON'].map((format) => (
@@ -16434,6 +16533,12 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
                     <Icon name="cash" size={15} /> {format}
                   </button>
                 ))}
+                <button className="pricebook-btn" onClick={() => previewComparePacket()}>
+                  <Icon name="report" size={15} /> Preview route packet
+                </button>
+                <button className="pricebook-btn" onClick={() => saveComparePacket()}>
+                  <Icon name="cash" size={15} /> Save route packet
+                </button>
               </div>
             </div>
             <div className="pricebook-filters" style={{ padding: '0 20px 16px' }}>
@@ -16441,16 +16546,16 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
               <select className="pricebook-select" value={selectedStore} onChange={(e) => setSelectedStore(e.target.value)}>
                 {['All', ...MULTI_STORE_OVERVIEW.map((row) => row.store)].map((item) => <option key={item}>{item}</option>)}
               </select>
-              <button className="pricebook-btn primary" onClick={() => showNotice(`Multi-store comparison refreshed for ${compareDate}.`)}>
+              <button className="pricebook-btn primary" onClick={() => refreshCompareSearch()}>
                 <Icon name="calendar" size={15} /> Get Results
               </button>
             </div>
             <div className="mobile-table-scroll">
               <table className="purchase-table">
-                <thead><tr><th>Store</th><th>Date</th><th className="purchase-right">Fuel</th><th className="purchase-right">Shop</th><th className="purchase-right">Lottery</th><th className="purchase-right">Total</th><th className="purchase-right">Gallons</th><th className="purchase-right">Cash Diff</th></tr></thead>
+                <thead><tr><th>Store</th><th>Date</th><th className="purchase-right">Fuel</th><th className="purchase-right">Shop</th><th className="purchase-right">Lottery</th><th className="purchase-right">Total</th><th className="purchase-right">Gallons</th><th className="purchase-right">Cash Diff</th><th></th></tr></thead>
                 <tbody>
                   {filteredCompare.map((row) => (
-                    <tr key={row.store}>
+                    <tr key={row.store} style={row.store === selectedCompareRow?.store ? { background: '#F0FDF4' } : undefined}>
                       <td>{row.store}</td>
                       <td>{compareDate}</td>
                       <td className="purchase-right">{fmt(row.fuel)}</td>
@@ -16459,6 +16564,7 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
                       <td className="purchase-right"><strong>{fmt(row.total)}</strong></td>
                       <td className="purchase-right">{fmtN(row.gallons, 0)}</td>
                       <td className="purchase-right">{fmt(Math.abs(row.cashDiff))}</td>
+                      <td><button className="pricebook-btn soft" onClick={() => setSelectedCompareStoreId(row.store)}>Review</button></td>
                     </tr>
                   ))}
                   <tr>
@@ -16470,9 +16576,91 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
                     <td className="purchase-right"><strong>{fmt(compareTotals.total)}</strong></td>
                     <td className="purchase-right"><strong>{fmtN(compareTotals.gallons, 0)}</strong></td>
                     <td></td>
+                    <td></td>
                   </tr>
                 </tbody>
               </table>
+            </div>
+          </div>
+          </div>
+
+          <div className="purchase-stack">
+            <div className="purchase-note-card">
+              <div className="purchase-panel-head">
+                <div>
+                  <h3>Selected compare row</h3>
+                  <p>{selectedCompareRow ? `${selectedCompareRow.store} · ${compareDate}` : 'No compare row selected'}</p>
+                </div>
+                <span className="purchase-tag amber">Partial</span>
+              </div>
+              {selectedCompareRow ? (
+                <>
+                  <div className="purchase-kv-list">
+                    <div className="purchase-kv"><span>Current filter</span><span>{compareContextLabel}</span></div>
+                    <div className="purchase-kv"><span>Mercury route</span><span>/shifts/searchMultiStoreReport</span></div>
+                    <div className="purchase-kv"><span>Fuel</span><span>{fmt(selectedCompareRow.fuel)}</span></div>
+                    <div className="purchase-kv"><span>Shop</span><span>{fmt(selectedCompareRow.shop)}</span></div>
+                    <div className="purchase-kv"><span>Lottery</span><span>{fmt(selectedCompareRow.lottery)}</span></div>
+                    <div className="purchase-kv"><span>Total</span><span>{fmt(selectedCompareRow.total)}</span></div>
+                    <div className="purchase-kv"><span>Gallons</span><span>{fmtN(selectedCompareRow.gallons, 0)}</span></div>
+                    <div className="purchase-kv"><span>Cash diff</span><span>{fmt(Math.abs(selectedCompareRow.cashDiff))}</span></div>
+                  </div>
+                  <div className="pricebook-actions" style={{ marginTop: 16, flexWrap: 'wrap' }}>
+                    <button className="pricebook-btn" onClick={() => previewComparePacket()}>
+                      <Icon name="report" size={15} /> Preview route packet
+                    </button>
+                    <button className="pricebook-btn" onClick={() => saveComparePacket()}>
+                      <Icon name="cash" size={15} /> Save route packet
+                    </button>
+                    <button className="pricebook-btn primary" onClick={() => refreshCompareSearch()}>
+                      <Icon name="calendar" size={15} /> Refresh review
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <div className="pricebook-detail-sub">No selected compare row is available for this filter.</div>
+              )}
+            </div>
+
+            <div className="purchase-note-card">
+              <div className="purchase-panel-head">
+                <div>
+                  <h3>Compare search events</h3>
+                  <p>{selectedCompareRow ? `${selectedCompareRow.store} · /shifts/searchMultiStoreReport` : '/shifts/searchMultiStoreReport'}</p>
+                </div>
+                <span className="purchase-tag amber">Partial</span>
+              </div>
+              <div className="pricebook-actions" style={{ marginBottom: 16, flexWrap: 'wrap' }}>
+                {['CSV', 'XLS', 'JSON'].map((format) => (
+                  <button key={format} className="pricebook-btn" onClick={() => exportCompareSearchEvents(format)}>
+                    <Icon name="cash" size={15} /> {format}
+                  </button>
+                ))}
+                {['CSV', 'XLS', 'JSON'].map((format) => (
+                  <button key={`row-${format}`} className="pricebook-btn" onClick={() => exportCompareSearchRows(format)}>
+                    <Icon name="report" size={15} /> Row {format}
+                  </button>
+                ))}
+              </div>
+              <div className="alerts-list">
+                {selectedCompareEvents.length ? selectedCompareEvents.map((row) => (
+                  <div key={row.id} className="alert-item" style={{ alignItems: 'flex-start' }}>
+                    <Icon
+                      name={row.action.includes('Saved') ? 'cash' : row.action.includes('Previewed') ? 'report' : 'calendar'}
+                      size={18}
+                      bg={row.action.includes('Saved') ? iconDefaults.green.bg : row.action.includes('Previewed') ? iconDefaults.blue.bg : iconDefaults.slate.bg}
+                      fg={row.action.includes('Saved') ? '#15803D' : row.action.includes('Previewed') ? '#3B82F6' : '#64748B'}
+                    />
+                    <div className="alert-copy">
+                      <div className="alert-text">{row.action}</div>
+                      <div className="pricebook-detail-sub">{row.time} · {row.actor} · {row.status}</div>
+                      <div className="pricebook-detail-sub">{row.note}</div>
+                    </div>
+                  </div>
+                )) : (
+                  <div className="pricebook-detail-sub">No compare-search event history is visible for this selected store yet.</div>
+                )}
+              </div>
             </div>
           </div>
         </div>
