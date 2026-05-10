@@ -24452,7 +24452,7 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
     setSelectedAccountSettingsId(item.id);
     setSelectedAccountSettingsPacketId(packet.id);
     openSettingsPacket({
-      title: 'Email Endpoint Depth',
+      title: 'Email Endpoint Reconcile',
       subtitle: `${packet.window} · GET /administration/email`,
       headers: ['Login', 'Reports', 'Alerts', 'Status', 'Route', 'Mode'],
       rows: buildAccountSettingsRouteRows(item, packet),
@@ -24486,7 +24486,7 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
     if (!item) return;
     setSelectedAccountSettingsId(item.id);
     openSettingsPacket({
-      title: 'Email Endpoint Review',
+      title: 'Selected Email Endpoint Review',
       subtitle: `${currentLocation.name} · ${item.time}`,
       headers: ['Role', 'Email', 'Surface', 'Route'],
       rows: [
@@ -24506,7 +24506,7 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
     if (!item) return;
     setSelectedAccountSettingsId(item.id);
     saveSettingsPacket({
-      title: 'Email Endpoint Depth',
+      title: 'Email Endpoint Reconcile',
       subtitle: `${currentLocation.name} · ${item.time}`,
       route: '/administration/email',
       note: 'Admin account and email settings replacement shell',
@@ -24531,7 +24531,7 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
     setSelectedAccountSettingsId(item.id);
     setSelectedAccountSettingsPacketId(packet.id);
     saveSettingsPacket({
-      title: 'Email Endpoint Depth',
+      title: 'Email Endpoint Reconcile',
       subtitle: `${packet.window} · GET /administration/email`,
       route: 'GET /administration/email',
       note: 'Admin account and email settings replacement shell',
@@ -26630,7 +26630,7 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
         </div>
 
         <div className="settings-card">
-          <div className="settings-title">Email Endpoint Depth</div>
+          <div className="settings-title">Email Endpoint Reconcile</div>
           <div className="settings-sub">Owner-facing `GET /administration/email` review with selected packet, account-email visibility, and staged route follow-through.</div>
           <label className="form-label">Login / Account Email</label>
           <input className="form-input" value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} />
