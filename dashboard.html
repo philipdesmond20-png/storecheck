@@ -3737,6 +3737,16 @@ const FUEL_DAILY_SUMMARY_ROWS = [
   { id: 'FDS-519', date: '2026-05-09', fuelType: 'Diesel', gallons: 1184, grossSales: 4005.92, discount: 24.18, netSales: 3981.74, cost: 3559.88, poolMargin: 421.86, marginPerGallon: 0.356, terminal: 'Truck bay lanes', source: 'Owner daily recap', status: 'Needs review', note: 'Diesel margin is healthy, but the fleet discount total still needs confirmation.' },
 ];
 
+const FUEL_DAILY_DISCOUNT_ROWS = [
+  { id: 'FDD-601', date: '2026-05-03', fuelType: 'Regular', program: 'Loyalty Cents Off', transactions: 742, gallons: 1842, centsPerGallon: 0.03, totalDiscount: 55.26, fundedBy: 'Vendor 70% / Store 30%', marginImpact: 16.58, status: 'Ready', note: 'Weekend loyalty redemptions tracked cleanly against the owner recap.' },
+  { id: 'FDD-604', date: '2026-05-04', fuelType: 'Premium', program: 'Price Match Override', transactions: 96, gallons: 388, centsPerGallon: 0.05, totalDiscount: 19.4, fundedBy: 'Store funded', marginImpact: 19.4, status: 'Needs review', note: 'Premium price-match overrides need a final owner check before closeout.' },
+  { id: 'FDD-607', date: '2026-05-05', fuelType: 'Diesel', program: 'Fleet Rebate', transactions: 74, gallons: 812, centsPerGallon: 0.04, totalDiscount: 32.48, fundedBy: 'Fleet contract', marginImpact: 9.74, status: 'Ready', note: 'Fleet discount funding offsets most of the visible diesel give-up.' },
+  { id: 'FDD-610', date: '2026-05-06', fuelType: 'Mid-Grade', program: 'Car Wash Bundle', transactions: 58, gallons: 214, centsPerGallon: 0.06, totalDiscount: 12.84, fundedBy: 'Bundle promotion', marginImpact: 6.42, status: 'Logged', note: 'Bundle activity stayed modest but visible in the mid-grade mix.' },
+  { id: 'FDD-613', date: '2026-05-07', fuelType: 'Regular', program: 'Loyalty Cents Off', transactions: 788, gallons: 1966, centsPerGallon: 0.03, totalDiscount: 58.98, fundedBy: 'Vendor 70% / Store 30%', marginImpact: 17.69, status: 'Ready', note: 'Midweek loyalty redemption stayed in line with commuter volume.' },
+  { id: 'FDD-616', date: '2026-05-08', fuelType: 'Premium', program: 'Promo Code Offer', transactions: 118, gallons: 422, centsPerGallon: 0.05, totalDiscount: 21.1, fundedBy: 'Store funded', marginImpact: 21.1, status: 'Needs review', note: 'Promo-code discount total needs confirmation against card campaign reporting.' },
+  { id: 'FDD-619', date: '2026-05-09', fuelType: 'Diesel', program: 'Fleet Rebate', transactions: 82, gallons: 918, centsPerGallon: 0.04, totalDiscount: 36.72, fundedBy: 'Fleet contract', marginImpact: 11.02, status: 'Ready', note: 'Friday diesel rebate activity is ready for owner packet review.' },
+];
+
 const uniqueValues = (rows, key) => [...new Set(rows.map((row) => row[key]))].sort();
 const sumRows = (rows) => rows.reduce((sum, row) => sum + row.amount, 0);
 const groupRows = (rows, key) =>
@@ -4058,6 +4068,11 @@ const TodayView = ({ viewMode, setViewMode }) => {
   const [dayFuelType, setDayFuelType] = useState('All');
   const [selectedDayFuelId, setSelectedDayFuelId] = useState(FUEL_DAILY_SUMMARY_ROWS[0].id);
   const [dayFuelNotice, setDayFuelNotice] = useState('');
+  const [fuelDiscountFrom, setFuelDiscountFrom] = useState('2026-05-03');
+  const [fuelDiscountTo, setFuelDiscountTo] = useState('2026-05-09');
+  const [fuelDiscountProgram, setFuelDiscountProgram] = useState('All');
+  const [selectedFuelDiscountId, setSelectedFuelDiscountId] = useState(FUEL_DAILY_DISCOUNT_ROWS[0].id);
+  const [fuelDiscountNotice, setFuelDiscountNotice] = useState('');
   const [wastageEvents, setWastageEvents] = useState([
     { id: 'WGE-1601', rowId: 'DWS-214', time: '2026-05-01 06:42', actor: 'Store manager', route: '/shifts/getDailyWastageSummary', action: 'Previewed wastage drilldown packet', status: 'Opened', note: 'Owner reviewed the wastage packet before live Mercury drilldown wiring.' },
     { id: 'WGE-1602', rowId: 'DWS-214', time: '2026-05-01 06:44', actor: 'Store manager', route: '/shifts/getDailyWastageSummary', action: 'Saved wastage drilldown packet', status: 'Ready', note: 'Wastage packet exported while the live Mercury drilldown endpoint remained demo-only.' },
@@ -4072,6 +4087,11 @@ const TodayView = ({ viewMode, setViewMode }) => {
     { id: 'FDE-1801', rowId: 'FDS-519', time: '2026-05-09 17:48', actor: 'Store manager', route: '/shifts/getFuelDailySummary', action: 'Previewed fuel summary packet', status: 'Opened', note: 'Owner reviewed the diesel day packet before the live fuel-summary route was connected.' },
     { id: 'FDE-1802', rowId: 'FDS-519', time: '2026-05-09 17:52', actor: 'Store manager', route: '/shifts/getFuelDailySummary', action: 'Saved fuel summary packet', status: 'Ready', note: 'Fuel day packet exported while the live fuel-summary route remained demo-only.' },
     { id: 'FDE-1803', rowId: 'FDS-507', time: '2026-05-08 08:14', actor: 'StoreCheck demo', route: '/shifts/getFuelDailySummary', action: 'Refreshed fuel summary review', status: 'Updated', note: 'Fuel daily summary review refreshed with the current date range and fuel-type context.' },
+  ]);
+  const [fuelDiscountEvents, setFuelDiscountEvents] = useState([
+    { id: 'FDD-1901', rowId: 'FDD-616', time: '2026-05-09 18:08', actor: 'Store manager', route: '/shifts/getFuelDailyDiscount', action: 'Previewed fuel discount packet', status: 'Opened', note: 'Owner reviewed the premium discount packet before the live fuel-discount route was connected.' },
+    { id: 'FDD-1902', rowId: 'FDD-616', time: '2026-05-09 18:11', actor: 'Store manager', route: '/shifts/getFuelDailyDiscount', action: 'Saved fuel discount packet', status: 'Ready', note: 'Fuel discount packet exported while the live fuel-discount route remained demo-only.' },
+    { id: 'FDD-1903', rowId: 'FDD-607', time: '2026-05-08 08:42', actor: 'StoreCheck demo', route: '/shifts/getFuelDailyDiscount', action: 'Refreshed fuel discount review', status: 'Updated', note: 'Fuel discount review refreshed with the current date range and program context.' },
   ]);
   const diff = d.totalSales - d.prevDayTotal;
   const isUp = diff > 0;
@@ -4089,6 +4109,7 @@ const TodayView = ({ viewMode, setViewMode }) => {
   const wastageDepartmentOptions = ['All', ...uniqueValues(DAILY_WASTAGE_ROWS, 'department')];
   const recordTypeOptions = ['All', ...uniqueValues(DAY_RECORD_DETAIL_ROWS, 'recordLabel')];
   const dayFuelTypeOptions = ['All', ...uniqueValues(FUEL_DAILY_SUMMARY_ROWS, 'fuelType')];
+  const fuelDiscountProgramOptions = ['All', ...uniqueValues(FUEL_DAILY_DISCOUNT_ROWS, 'program')];
   const slugify = (value) => String(value).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
   const buildWastageStamp = () => {
     const now = new Date();
@@ -4101,6 +4122,11 @@ const TodayView = ({ viewMode, setViewMode }) => {
     return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
   };
   const buildDayFuelStamp = () => {
+    const now = new Date();
+    const pad = (value) => String(value).padStart(2, '0');
+    return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
+  };
+  const buildFuelDiscountStamp = () => {
     const now = new Date();
     const pad = (value) => String(value).padStart(2, '0');
     return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
@@ -4119,6 +4145,11 @@ const TodayView = ({ viewMode, setViewMode }) => {
     setDayFuelNotice(message);
     window.clearTimeout(window.__storecheckDayFuelNotice);
     window.__storecheckDayFuelNotice = window.setTimeout(() => setDayFuelNotice(''), 2800);
+  };
+  const showFuelDiscountNotice = (message) => {
+    setFuelDiscountNotice(message);
+    window.clearTimeout(window.__storecheckFuelDiscountNotice);
+    window.__storecheckFuelDiscountNotice = window.setTimeout(() => setFuelDiscountNotice(''), 2800);
   };
   const visibleWastageRows = DAILY_WASTAGE_ROWS.filter((row) => {
     if (row.date < wastageFrom || row.date > wastageTo) return false;
@@ -4544,6 +4575,158 @@ const TodayView = ({ viewMode, setViewMode }) => {
   const exportDayFuelEvents = (format) => {
     if (!selectedDayFuelEvents.length) return;
     downloadTableData(selectedDayFuelEvents, format, `storecheck-fuel-daily-summary-events-${slugify(selectedDayFuel?.id || 'all')}`);
+  };
+  const visibleFuelDiscountRows = FUEL_DAILY_DISCOUNT_ROWS.filter((row) => {
+    if (row.date < fuelDiscountFrom || row.date > fuelDiscountTo) return false;
+    if (fuelDiscountProgram !== 'All' && row.program !== fuelDiscountProgram) return false;
+    return true;
+  });
+  const selectedFuelDiscount =
+    visibleFuelDiscountRows.find((row) => row.id === selectedFuelDiscountId) ||
+    FUEL_DAILY_DISCOUNT_ROWS.find((row) => row.id === selectedFuelDiscountId) ||
+    visibleFuelDiscountRows[0] ||
+    FUEL_DAILY_DISCOUNT_ROWS[0] ||
+    null;
+  const selectedFuelDiscountEvents = selectedFuelDiscount ? fuelDiscountEvents.filter((row) => row.rowId === selectedFuelDiscount.id) : [];
+  const fuelDiscountTotals = visibleFuelDiscountRows.reduce((acc, row) => ({
+    transactions: acc.transactions + row.transactions,
+    gallons: acc.gallons + row.gallons,
+    totalDiscount: acc.totalDiscount + row.totalDiscount,
+    marginImpact: acc.marginImpact + row.marginImpact,
+  }), { transactions: 0, gallons: 0, totalDiscount: 0, marginImpact: 0 });
+  const fuelDiscountContextLabel = `${fuelDiscountFrom} to ${fuelDiscountTo} · ${fuelDiscountProgram === 'All' ? 'All discount programs' : fuelDiscountProgram}`;
+  const fuelDiscountExportRows = visibleFuelDiscountRows.map((row) => ({
+    Date: row.date,
+    FuelType: row.fuelType,
+    Program: row.program,
+    Transactions: row.transactions,
+    Gallons: row.gallons,
+    CentsPerGallon: row.centsPerGallon.toFixed(2),
+    TotalDiscount: row.totalDiscount.toFixed(2),
+    FundedBy: row.fundedBy,
+    MarginImpact: row.marginImpact.toFixed(2),
+    Status: row.status,
+  }));
+  const pushFuelDiscountEvent = ({ rowId, action, status, note }) => {
+    setFuelDiscountEvents((current) => [
+      {
+        id: `FDD-${Date.now()}`,
+        rowId,
+        time: buildFuelDiscountStamp(),
+        actor: 'Store manager',
+        route: '/shifts/getFuelDailyDiscount',
+        action,
+        status,
+        note,
+      },
+      ...current,
+    ].slice(0, 24));
+  };
+  const previewFuelDiscountPacket = () => {
+    const item = selectedFuelDiscount || visibleFuelDiscountRows[0];
+    if (!item || !visibleFuelDiscountRows.length) return;
+    const rows = visibleFuelDiscountRows.map((row) => [
+      row.date,
+      row.fuelType,
+      row.program,
+      fmtN(row.transactions, 0),
+      fmtN(row.gallons, 0),
+      `$${row.centsPerGallon.toFixed(2)}`,
+      fmt(row.totalDiscount),
+      fmt(row.marginImpact),
+      row.status,
+    ]);
+    openPrintPreview({
+      title: 'Fuel daily discount drilldown',
+      subtitle: `${fuelDiscountContextLabel} · /shifts/getFuelDailyDiscount`,
+      rows: [['Date', 'Fuel Type', 'Program', 'Transactions', 'Gallons', 'Disc/Gal', 'Total Discount', 'Margin Impact', 'Status'], ...rows],
+    });
+    pushFuelDiscountEvent({
+      rowId: item.id,
+      action: 'Previewed fuel discount packet',
+      status: 'Opened',
+      note: `Owner reviewed the ${item.program.toLowerCase()} packet before the live fuel-discount route was connected.`,
+    });
+    showFuelDiscountNotice('Fuel discount packet preview opened in demo mode.');
+  };
+  const saveFuelDiscountPacket = () => {
+    const item = selectedFuelDiscount || visibleFuelDiscountRows[0];
+    if (!item || !visibleFuelDiscountRows.length) return;
+    const rows = visibleFuelDiscountRows.map((row) => [
+      row.date,
+      row.fuelType,
+      row.program,
+      fmtN(row.transactions, 0),
+      fmtN(row.gallons, 0),
+      `$${row.centsPerGallon.toFixed(2)}`,
+      fmt(row.totalDiscount),
+      fmt(row.marginImpact),
+      row.status,
+    ]);
+    const html = `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Fuel daily discount drilldown</title>
+  <style>
+    body{font-family:"DM Sans",Arial,sans-serif;background:#F8FAFC;color:#0F172A;padding:28px}
+    .wrap{max-width:980px;margin:0 auto;background:#fff;border:1px solid #E2E8F0;border-radius:18px;padding:28px;box-shadow:0 12px 40px rgba(15,23,42,.08)}
+    h1{margin:0 0 8px;font-size:28px}
+    p{margin:0;color:#475569}
+    .meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin:20px 0}
+    .meta div{background:#F8FAFC;border:1px solid #E2E8F0;border-radius:12px;padding:12px 14px}
+    .meta strong{display:block;font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:#64748B;margin-bottom:6px}
+    table{width:100%;border-collapse:collapse;margin-top:16px}
+    th,td{padding:12px 14px;border-top:1px solid #E2E8F0;text-align:left}
+    th{background:#F8FAFC;font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:#64748B}
+    td{font-weight:600}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Fuel daily discount drilldown</h1>
+    <p>${fuelDiscountContextLabel}</p>
+    <div class="meta">
+      <div><strong>Mercury Route</strong>/shifts/getFuelDailyDiscount</div>
+      <div><strong>Selected Program</strong>${item.program}</div>
+      <div><strong>Visible Discount</strong>${fmt(fuelDiscountTotals.totalDiscount)}</div>
+      <div><strong>Visible Margin Impact</strong>${fmt(fuelDiscountTotals.marginImpact)}</div>
+    </div>
+    <table>
+      <thead><tr><th>Date</th><th>Fuel Type</th><th>Program</th><th>Transactions</th><th>Gallons</th><th>Disc/Gal</th><th>Total Discount</th><th>Margin Impact</th><th>Status</th></tr></thead>
+      <tbody>${rows.map((row) => `<tr>${row.map((cell) => `<td>${cell}</td>`).join('')}</tr>`).join('')}</tbody>
+    </table>
+  </div>
+</body>
+</html>`;
+    downloadTextData(html, 'text/html', `storecheck-fuel-daily-discount-${slugify(fuelDiscountContextLabel)}`, 'html');
+    pushFuelDiscountEvent({
+      rowId: item.id,
+      action: 'Saved fuel discount packet',
+      status: 'Ready',
+      note: 'Fuel discount packet exported while the live fuel-discount route remained demo-only.',
+    });
+    showFuelDiscountNotice('Fuel discount packet saved in demo mode.');
+  };
+  const refreshFuelDiscountReview = () => {
+    const item = visibleFuelDiscountRows[0] || selectedFuelDiscount;
+    if (!item) return;
+    setSelectedFuelDiscountId(item.id);
+    pushFuelDiscountEvent({
+      rowId: item.id,
+      action: 'Refreshed fuel discount review',
+      status: 'Updated',
+      note: 'Fuel discount review refreshed with the current date range and program context.',
+    });
+    showFuelDiscountNotice('Fuel daily discount refreshed in demo mode.');
+  };
+  const exportFuelDiscountRows = (format) => {
+    if (!fuelDiscountExportRows.length) return;
+    downloadTableData(fuelDiscountExportRows, format, `storecheck-fuel-daily-discount-${slugify(fuelDiscountContextLabel)}`);
+  };
+  const exportFuelDiscountEvents = (format) => {
+    if (!selectedFuelDiscountEvents.length) return;
+    downloadTableData(selectedFuelDiscountEvents, format, `storecheck-fuel-daily-discount-events-${slugify(selectedFuelDiscount?.id || 'all')}`);
   };
 
   if (viewMode === 'default') {
@@ -5391,6 +5574,190 @@ const TodayView = ({ viewMode, setViewMode }) => {
                 </div>
               )) : (
                 <div className="pricebook-detail-sub">No event history is visible for this selected fuel row yet.</div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {fuelDiscountNotice ? <div className="pricebook-notice" style={{ marginTop: 18 }}><Icon name="fuel" size={16} /> {fuelDiscountNotice}</div> : null}
+
+      <div className="ops-kpis" style={{ marginTop: 18 }}>
+        <div className="ops-kpi">
+          <div className="ops-kpi-label">Discount Rows</div>
+          <div className="ops-kpi-value">{fmtN(visibleFuelDiscountRows.length)}</div>
+          <div className="ops-kpi-sub">{fuelDiscountContextLabel}</div>
+        </div>
+        <div className="ops-kpi">
+          <div className="ops-kpi-label">Discount Gallons</div>
+          <div className="ops-kpi-value">{fmtN(fuelDiscountTotals.gallons, 0)}</div>
+          <div className="ops-kpi-sub">{fmtN(fuelDiscountTotals.transactions, 0)} transactions inside the current review window</div>
+        </div>
+        <div className="ops-kpi">
+          <div className="ops-kpi-label">Total Discount</div>
+          <div className="ops-kpi-value">{fmt(fuelDiscountTotals.totalDiscount)}</div>
+          <div className="ops-kpi-sub">Visible give-up across the current program selection</div>
+        </div>
+        <div className="ops-kpi">
+          <div className="ops-kpi-label">Margin Impact</div>
+          <div className="ops-kpi-value">{fmt(fuelDiscountTotals.marginImpact)}</div>
+          <div className="ops-kpi-sub">Owner-facing margin pressure before live endpoint wiring</div>
+        </div>
+      </div>
+
+      <div className="bottom-row" style={{ marginTop: 18, alignItems: 'stretch' }}>
+        <div className="week-card">
+          <div className="chart-header">
+            <div>
+              <div className="chart-title">Fuel daily discount drilldown</div>
+              <div className="chart-sub">Mercury route: <strong>/shifts/getFuelDailyDiscount</strong></div>
+            </div>
+            <span className="purchase-tag amber">Partial</span>
+          </div>
+
+          <div className="shop-tx-toolbar">
+            <div className="shop-tx-filters">
+              <div className="shop-filter-group">
+                <label className="shop-filter-label">From</label>
+                <input className="shop-tx-input" type="date" value={fuelDiscountFrom} onChange={(e) => setFuelDiscountFrom(e.target.value)} />
+              </div>
+              <div className="shop-filter-group">
+                <label className="shop-filter-label">To</label>
+                <input className="shop-tx-input" type="date" value={fuelDiscountTo} onChange={(e) => setFuelDiscountTo(e.target.value)} />
+              </div>
+              <div className="shop-filter-group">
+                <label className="shop-filter-label">Program</label>
+                <select className="shop-tx-select" value={fuelDiscountProgram} onChange={(e) => setFuelDiscountProgram(e.target.value)}>
+                  {fuelDiscountProgramOptions.map((item) => <option key={item}>{item}</option>)}
+                </select>
+              </div>
+              <button className="pricebook-btn primary" onClick={() => refreshFuelDiscountReview()}>
+                <Icon name="calendar" size={15} /> Get Results
+              </button>
+            </div>
+            <div className="shop-tx-exports">
+              <button className="pricebook-btn" onClick={() => previewFuelDiscountPacket()}>
+                <Icon name="report" size={15} /> Preview route packet
+              </button>
+              <button className="pricebook-btn" onClick={() => saveFuelDiscountPacket()}>
+                <Icon name="cash" size={15} /> Save route packet
+              </button>
+              {['CSV', 'XLS', 'JSON'].map((format) => (
+                <button key={format} className="pricebook-btn" onClick={() => exportFuelDiscountRows(format)}>
+                  <Icon name="cash" size={15} /> {format}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="mobile-table-scroll">
+            <table className="purchase-table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Fuel Type</th>
+                  <th>Program</th>
+                  <th className="purchase-right">Transactions</th>
+                  <th className="purchase-right">Gallons</th>
+                  <th className="purchase-right">Disc/Gal</th>
+                  <th className="purchase-right">Total Discount</th>
+                  <th className="purchase-right">Margin Impact</th>
+                  <th>Status</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {visibleFuelDiscountRows.length ? visibleFuelDiscountRows.map((row) => (
+                  <tr key={row.id} style={row.id === selectedFuelDiscount?.id ? { background: '#F0FDF4' } : undefined}>
+                    <td>{row.date}</td>
+                    <td>{row.fuelType}</td>
+                    <td>{row.program}<br /><small>{row.fundedBy}</small></td>
+                    <td className="purchase-right">{fmtN(row.transactions, 0)}</td>
+                    <td className="purchase-right">{fmtN(row.gallons, 0)}</td>
+                    <td className="purchase-right">${row.centsPerGallon.toFixed(2)}</td>
+                    <td className="purchase-right">{fmt(row.totalDiscount)}</td>
+                    <td className="purchase-right">{fmt(row.marginImpact)}</td>
+                    <td><span className={`purchase-tag${row.status === 'Ready' ? ' blue' : row.status === 'Needs review' ? ' amber' : ''}`}>{row.status}</span></td>
+                    <td><button className="pricebook-btn soft" onClick={() => setSelectedFuelDiscountId(row.id)}>Review</button></td>
+                  </tr>
+                )) : (
+                  <tr>
+                    <td colSpan="10">No fuel discount rows matched this date range and program.</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+          <div className="settings-card">
+            <div className="chart-header">
+              <div>
+                <div className="chart-title">Selected fuel discount row</div>
+                <div className="chart-sub">{selectedFuelDiscount ? `${selectedFuelDiscount.program} · ${selectedFuelDiscount.date}` : 'No discount row selected'}</div>
+              </div>
+              {selectedFuelDiscount ? <span className={`purchase-tag${selectedFuelDiscount.status === 'Ready' ? ' blue' : selectedFuelDiscount.status === 'Needs review' ? ' amber' : ''}`}>{selectedFuelDiscount.status}</span> : null}
+            </div>
+
+            {selectedFuelDiscount ? (
+              <>
+                <div className="purchase-kv-list">
+                  <div className="purchase-kv"><span>Current filter</span><span>{fuelDiscountContextLabel}</span></div>
+                  <div className="purchase-kv"><span>Fuel type</span><span>{selectedFuelDiscount.fuelType}</span></div>
+                  <div className="purchase-kv"><span>Program</span><span>{selectedFuelDiscount.program}</span></div>
+                  <div className="purchase-kv"><span>Transactions</span><span>{fmtN(selectedFuelDiscount.transactions, 0)}</span></div>
+                  <div className="purchase-kv"><span>Gallons</span><span>{fmtN(selectedFuelDiscount.gallons, 0)}</span></div>
+                  <div className="purchase-kv"><span>Discount / gallon</span><span>${selectedFuelDiscount.centsPerGallon.toFixed(2)}</span></div>
+                  <div className="purchase-kv"><span>Total discount</span><span>{fmt(selectedFuelDiscount.totalDiscount)}</span></div>
+                  <div className="purchase-kv"><span>Funded by</span><span>{selectedFuelDiscount.fundedBy}</span></div>
+                  <div className="purchase-kv"><span>Margin impact</span><span>{fmt(selectedFuelDiscount.marginImpact)}</span></div>
+                  <div className="purchase-kv"><span>Summary</span><span>{selectedFuelDiscount.note}</span></div>
+                </div>
+                <div className="pricebook-actions" style={{ marginTop: 16, flexWrap: 'wrap' }}>
+                  <button className="pricebook-btn" onClick={() => previewFuelDiscountPacket()}>
+                    <Icon name="report" size={15} /> Preview route packet
+                  </button>
+                  <button className="pricebook-btn" onClick={() => saveFuelDiscountPacket()}>
+                    <Icon name="cash" size={15} /> Save route packet
+                  </button>
+                  <button className="pricebook-btn primary" onClick={() => refreshFuelDiscountReview()}>
+                    <Icon name="calendar" size={15} /> Refresh review
+                  </button>
+                </div>
+              </>
+            ) : (
+              <div className="chart-sub">No selected fuel discount row is available for this filter.</div>
+            )}
+          </div>
+
+          <div className="alerts-card">
+            <div className="alerts-title">Fuel discount events</div>
+            <div className="alerts-sub">{selectedFuelDiscount ? `${selectedFuelDiscount.program} · /shifts/getFuelDailyDiscount` : '/shifts/getFuelDailyDiscount'}</div>
+            <div className="pricebook-actions" style={{ margin: '16px 0', flexWrap: 'wrap' }}>
+              {['CSV', 'XLS', 'JSON'].map((format) => (
+                <button key={format} className="pricebook-btn" onClick={() => exportFuelDiscountEvents(format)}>
+                  <Icon name="cash" size={15} /> {format}
+                </button>
+              ))}
+            </div>
+            <div className="alerts-list">
+              {selectedFuelDiscountEvents.length ? selectedFuelDiscountEvents.map((row) => (
+                <div key={row.id} className="alert-item" style={{ alignItems: 'flex-start' }}>
+                  <Icon
+                    name={row.action.includes('Saved') ? 'cash' : row.action.includes('Previewed') ? 'report' : 'calendar'}
+                    size={18}
+                    bg={row.action.includes('Saved') ? iconDefaults.green.bg : row.action.includes('Previewed') ? iconDefaults.blue.bg : iconDefaults.fuel.bg}
+                    fg={row.action.includes('Saved') ? '#15803D' : row.action.includes('Previewed') ? '#3B82F6' : '#B45309'}
+                  />
+                  <div className="alert-copy">
+                    <div className="alert-text">{row.action}</div>
+                    <div className="pricebook-detail-sub">{row.time} · {row.actor} · {row.status}</div>
+                    <div className="pricebook-detail-sub">{row.note}</div>
+                  </div>
+                </div>
+              )) : (
+                <div className="pricebook-detail-sub">No event history is visible for this selected discount row yet.</div>
               )}
             </div>
           </div>
