@@ -20549,10 +20549,25 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
     { id: 'RXML-1502', sendId: 'XML-1', time: '2026-05-10 01:28', actor: 'Store manager', route: '/shifts/getDayInfoForXml', action: 'Saved XML export packet', status: 'Ready', note: 'XML export packet was downloaded before the live file handoff was connected.' },
     { id: 'RXML-1503', sendId: 'XML-2', time: '2026-05-09 18:36', actor: 'StoreCheck demo', route: '/shifts/getDayInfoForXml', action: 'Queued XML export handoff', status: 'Queued', note: 'Previous XML export handoff remained visible in demo mode.' },
   ]);
+  const [dailyPdfRows, setDailyPdfRows] = useState([
+    { id: 'DP-1', shiftDate: '2026-05-09', window: '06:00-22:00', output: 'PDF Preview', actor: 'Store manager', status: 'Ready', note: 'Primary custom-day PDF stayed aligned for the owner print review.' },
+    { id: 'DP-2', shiftDate: '2026-05-08', window: '05:30-21:00', output: 'PDF Preview', actor: 'StoreCheck demo', status: 'Needs review', note: 'Previous custom-day PDF stayed visible for rerun follow-through in demo mode.' },
+  ]);
+  const [selectedDailyPdfId, setSelectedDailyPdfId] = useState('DP-1');
+  const [dailyPdfPacketRows, setDailyPdfPacketRows] = useState([
+    { id: 'DPP-1', packet: 'Primary daily PDF handoff', window: 'Custom-day print review', focus: 'Owner daily-PDF validation', source: 'Reports / Print Center', status: 'Queued', note: 'Primary daily-PDF handoff is staged for owner review before the live Mercury route is connected.' },
+    { id: 'DPP-2', packet: 'Daily PDF rerun follow-through', window: 'Previous day rerun review', focus: 'Custom-day reprint follow-up', source: 'Reports / Delivery', status: 'Needs review', note: 'Daily-PDF rerun follow-through still needs final owner review before the live Mercury route is connected.' },
+  ]);
+  const [selectedDailyPdfPacketId, setSelectedDailyPdfPacketId] = useState('DPP-1');
   const [dailyPdfEvents, setDailyPdfEvents] = useState([
-    { id: 'RDL-981', time: '2026-05-09 07:49', actor: 'Store manager', route: '/shifts/createDailyPdf', action: 'Opened daily PDF preview', status: 'Opened', note: 'Single-day packet preview opened for the custom-day review.' },
-    { id: 'RDL-982', time: '2026-05-09 07:50', actor: 'Store manager', route: '/shifts/createDailyPdf', action: 'Saved daily PDF packet', status: 'Ready', note: 'Custom-day PDF packet exported before owner follow-through.' },
-    { id: 'RDL-983', time: '2026-05-08 07:47', actor: 'StoreCheck demo', route: '/shifts/createDailyPdf', action: 'Previewed daily packet', status: 'Ready', note: 'Previous single-day packet preview stayed visible in demo mode.' },
+    { id: 'RDL-981', rowId: 'DP-1', time: '2026-05-09 07:49', actor: 'Store manager', route: 'POST /shifts/createDailyPdf', action: 'Opened daily PDF preview', status: 'Opened', note: 'Single-day packet preview opened for the custom-day review.' },
+    { id: 'RDL-982', rowId: 'DP-1', time: '2026-05-09 07:50', actor: 'Store manager', route: 'POST /shifts/createDailyPdf', action: 'Saved daily PDF packet', status: 'Ready', note: 'Custom-day PDF packet exported before owner follow-through.' },
+    { id: 'RDL-983', rowId: 'DP-2', time: '2026-05-08 07:47', actor: 'StoreCheck demo', route: 'POST /shifts/createDailyPdf', action: 'Previewed daily packet', status: 'Ready', note: 'Previous single-day packet preview stayed visible in demo mode.' },
+  ]);
+  const [dailyPdfRouteEvents, setDailyPdfRouteEvents] = useState([
+    { id: 'RDR-981', packetId: 'DPP-1', time: '2026-05-09 07:49', actor: 'Store manager', route: 'POST /shifts/createDailyPdf', action: 'Previewed daily PDF route packet', status: 'Opened', note: 'Route-level daily-PDF packet was reviewed before the live Mercury renderer was connected.' },
+    { id: 'RDR-982', packetId: 'DPP-1', time: '2026-05-09 07:50', actor: 'Store manager', route: 'POST /shifts/createDailyPdf', action: 'Saved daily PDF route packet', status: 'Ready', note: 'Daily-PDF route packet was exported before the live Mercury renderer was connected.' },
+    { id: 'RDR-983', packetId: 'DPP-2', time: '2026-05-08 07:51', actor: 'StoreCheck demo', route: 'POST /shifts/createDailyPdf', action: 'Queued daily PDF route handoff', status: 'Queued', note: 'Previous daily-PDF rerun handoff stayed visible in demo mode.' },
   ]);
   const [daysPdfEvents, setDaysPdfEvents] = useState([
     { id: 'RDP-951', time: '2026-05-09 07:54', actor: 'Store manager', route: '/shifts/createDaysPdf', action: 'Opened days PDF preview', status: 'Opened', note: 'Seven-day packet preview opened for the weekly owner review.' },
@@ -20660,7 +20675,7 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
   const reportActionPresets = [
     { id: 'summaryPdf', label: 'Summary PDF', shortLabel: 'Summary PDF', group: 'print', route: '/shifts/createSummaryPdf', surface: 'Reports / Print Center', format: 'PDF Preview', note: 'Summary render replacement shell', params: 'window=open', previewRows: monthPreviewRows, subtitle: `${currentLocation.name} · summary preview`, fileName: 'storecheck-summary-pdf' },
     { id: 'daysPdf', label: 'Days PDF', shortLabel: 'Days PDF', group: 'print', route: '/shifts/createDaysPdf', surface: 'Reports / Print Center', format: 'PDF Preview', note: 'Seven-day report window', params: 'window=open', previewRows: weekPreviewRows, subtitle: `${currentLocation.name} · days preview`, fileName: 'storecheck-days-pdf' },
-    { id: 'dailyPdf', label: 'Daily PDF', shortLabel: 'Daily PDF', group: 'print', route: '/shifts/createDailyPdf', surface: 'Reports / Print Center', format: 'PDF Preview', note: 'Single-day custom render', params: `shiftDate=${customTo}; csv=false`, previewRows: customPreviewRows, subtitle: `${currentLocation.name} · daily preview`, fileName: 'storecheck-daily-pdf' },
+    { id: 'dailyPdf', label: 'Daily PDF', shortLabel: 'Daily PDF', group: 'print', route: 'POST /shifts/createDailyPdf', surface: 'Reports / Print Center', format: 'PDF Preview', note: 'Single-day custom render', params: `shiftDate=${customTo}; csv=false`, previewRows: customPreviewRows, subtitle: `${currentLocation.name} · daily preview`, fileName: 'storecheck-daily-pdf' },
     { id: 'reportWindow', label: 'Printable Report Window', shortLabel: 'Report Window', group: 'print', route: '/administration/openReport?reportName=weekly-summary', surface: 'Reports / Print Center', format: 'HTML Print View', note: 'Shared report renderer replacement', params: 'reportName=weekly-summary', previewRows: weekPreviewRows, subtitle: `${currentLocation.name} · shared report renderer`, fileName: 'storecheck-report-window' },
     { id: 'shiftEmail', label: 'Shift Email', shortLabel: 'Shift Email', group: 'email', route: '/shifts/sendShiftEmail', surface: 'Reports / Email Delivery', format: 'Configured Email', note: 'Confirmation-only send to store email', params: `dailyShiftId=DLV-301; shiftDate=2026-05-09; toAddress=${deliveryEmail}`, previewRows: weekPreviewRows, subtitle: `${currentLocation.name} · shift email confirmation`, fileName: 'storecheck-shift-email-packet' },
     { id: 'dayReportEmail', label: 'Day Report Email', shortLabel: 'Day Email', group: 'email', route: '/shifts/sendDayReport', surface: 'Reports / Email Delivery', format: 'Configured Email', note: 'Day report send with no manual address entry', params: `shiftDate=${customTo}; toAddress=${deliveryEmail}`, previewRows: customPreviewRows, subtitle: `${currentLocation.name} · day report email`, fileName: 'storecheck-day-email-packet' },
@@ -20695,13 +20710,20 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
   const selectedMonthDownload = monthDownloadRows.find((item) => item.id === selectedMonthDownloadId) || monthDownloadRows[0];
   const selectedQuickbooks = quickbooksRows.find((item) => item.id === selectedQuickbooksId) || quickbooksRows[0];
   const selectedXmlExport = xmlExportRows.find((item) => item.id === selectedXmlExportId) || xmlExportRows[0];
+  const selectedDailyPdf = dailyPdfRows.find((item) => item.id === selectedDailyPdfId) || dailyPdfRows[0];
+  const selectedDailyPdfPacket =
+    dailyPdfPacketRows.find((item) => item.id === selectedDailyPdfPacketId) ||
+    dailyPdfPacketRows[0] ||
+    null;
   const selectedShiftEmailEvents = selectedShiftEmail ? shiftEmailEvents.filter((item) => item.sendId === selectedShiftEmail.id) : shiftEmailEvents;
   const selectedDayReportEmailEvents = selectedDayReportEmail ? dayReportEmailEvents.filter((item) => item.sendId === selectedDayReportEmail.id) : dayReportEmailEvents;
   const selectedDayDownloadEvents = selectedDayDownload ? dayDownloadEvents.filter((item) => item.sendId === selectedDayDownload.id) : dayDownloadEvents;
   const selectedMonthDownloadEvents = selectedMonthDownload ? monthDownloadEvents.filter((item) => item.sendId === selectedMonthDownload.id) : monthDownloadEvents;
   const selectedQuickbooksEvents = selectedQuickbooks ? quickbooksEvents.filter((item) => item.sendId === selectedQuickbooks.id) : quickbooksEvents;
   const selectedXmlExportEvents = selectedXmlExport ? xmlExportEvents.filter((item) => item.sendId === selectedXmlExport.id) : xmlExportEvents;
-  const selectedDailyPdfEvents = dailyPdfEvents;
+  const selectedDailyPdfEvents = selectedDailyPdf ? dailyPdfEvents.filter((item) => item.rowId === selectedDailyPdf.id) : dailyPdfEvents;
+  const selectedDailyPdfRouteEvents =
+    selectedDailyPdfPacket ? dailyPdfRouteEvents.filter((item) => item.packetId === selectedDailyPdfPacket.id) : dailyPdfRouteEvents;
   const selectedDaysPdfEvents = daysPdfEvents;
   const selectedSummaryPdfEvents = summaryPdfEvents;
   const selectedReportWindowEvents = reportWindowEvents.filter((item) => item.reportName === reportWindowName);
@@ -21053,13 +21075,29 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
     });
     showDeliveryNotice(`XML export for ${item.shiftDate} staged in demo mode. Live \`${selectedXmlAction.route}\` endpoint still pending.`);
   };
-  const pushDailyPdfEvent = ({ action, status, note }) => {
+  const pushDailyPdfEvent = ({ rowId = selectedDailyPdf?.id, action, status, note }) => {
     setDailyPdfEvents((current) => [
       {
         id: `RDL-${current.length + 981}`,
+        rowId,
         time: buildReportStamp(),
         actor: 'StoreCheck demo',
-        route: '/shifts/createDailyPdf',
+        route: 'POST /shifts/createDailyPdf',
+        action,
+        status,
+        note,
+      },
+      ...current,
+    ]);
+  };
+  const pushDailyPdfRouteEvent = ({ packetId = selectedDailyPdfPacket?.id, action, status, note }) => {
+    setDailyPdfRouteEvents((current) => [
+      {
+        id: `RDR-${current.length + 981}`,
+        packetId,
+        time: buildReportStamp(),
+        actor: 'StoreCheck demo',
+        route: 'POST /shifts/createDailyPdf',
         action,
         status,
         note,
@@ -21137,6 +21175,63 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
   const exportDailyPdfEvents = (format) => {
     downloadTableData(selectedDailyPdfEvents, format, 'storecheck-daily-pdf-events');
     showDeliveryNotice(`${fmtN(selectedDailyPdfEvents.length)} daily PDF events exported in ${format} format.`);
+  };
+  const buildDailyPdfRouteAction = (item = selectedDailyPdf, packet = selectedDailyPdfPacket) => ({
+    ...selectedDailyPdfAction,
+    route: 'POST /shifts/createDailyPdf',
+    params: `shiftDate=${item?.shiftDate || customTo}; startTime=${item?.window?.split('-')[0] || customStartTime}; endTime=${item?.window?.split('-')[1] || customEndTime}; csv=false`,
+    subtitle: `${packet?.window || 'Custom-day print review'} · POST /shifts/createDailyPdf`,
+    fileName: `storecheck-daily-pdf-route-${String(packet?.id || 'route').toLowerCase()}`,
+  });
+  const previewDailyPdfRoutePacket = (item = selectedDailyPdf, packet = selectedDailyPdfPacket) => {
+    if (!item || !packet) return;
+    setSelectedDailyPdfId(item.id);
+    setSelectedDailyPdfPacketId(packet.id);
+    const action = buildDailyPdfRouteAction(item, packet);
+    openReportSurface('Daily PDF Endpoint Depth', action.subtitle, action.previewRows);
+    pushDailyPdfRouteEvent({
+      packetId: packet.id,
+      action: 'Previewed daily PDF route packet',
+      status: 'Opened',
+      note: `${packet.packet} preview opened before the live Mercury renderer was connected.`,
+    });
+    showDeliveryNotice(`${item.id} daily-PDF route packet preview opened in demo mode.`);
+  };
+  const stageDailyPdfRouteHandoff = (item = selectedDailyPdf, packet = selectedDailyPdfPacket) => {
+    if (!item || !packet) return;
+    setSelectedDailyPdfId(item.id);
+    setSelectedDailyPdfPacketId(packet.id);
+    setDailyPdfPacketRows((current) => current.map((row) => (
+      row.id === packet.id
+        ? { ...row, status: 'Queued', note: `Daily-PDF route handoff is staged for ${packet.window.toLowerCase()}.` }
+        : row
+    )));
+    pushDailyPdfRouteEvent({
+      packetId: packet.id,
+      action: 'Queued daily PDF route handoff',
+      status: 'Queued',
+      note: `Mercury-style daily-PDF handoff accepted for ${packet.window}.`,
+    });
+    showDeliveryNotice(`${item.id} daily-PDF route handoff staged in demo mode. Live \`POST /shifts/createDailyPdf\` endpoint still pending.`);
+  };
+  const saveDailyPdfRoutePacket = (item = selectedDailyPdf, packet = selectedDailyPdfPacket) => {
+    if (!item || !packet) return;
+    setSelectedDailyPdfId(item.id);
+    setSelectedDailyPdfPacketId(packet.id);
+    const action = buildDailyPdfRouteAction(item, packet);
+    const html = buildReportPackageHtml(action);
+    downloadTextData(html, 'text/html', action.fileName, 'html');
+    pushDailyPdfRouteEvent({
+      packetId: packet.id,
+      action: 'Saved daily PDF route packet',
+      status: 'Ready',
+      note: 'Daily-PDF route packet exported while the live renderer remained demo-only.',
+    });
+    showDeliveryNotice(`${item.id} daily-PDF route packet saved in demo mode.`);
+  };
+  const exportDailyPdfRouteEvents = (format) => {
+    downloadTableData(selectedDailyPdfRouteEvents, format, `storecheck-daily-pdf-route-events-${String(selectedDailyPdfPacket?.id || 'route').toLowerCase()}`);
+    showDeliveryNotice(`${fmtN(selectedDailyPdfRouteEvents.length)} daily-PDF route events exported in ${format} format.`);
   };
   const exportDaysPdfEvents = (format) => {
     downloadTableData(selectedDaysPdfEvents, format, 'storecheck-days-pdf-events');
@@ -21430,29 +21525,89 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
             <div className="report-delivery-card">
               <div className="purchase-panel-head">
                 <div>
-                  <h3>Daily PDF endpoint</h3>
-                  <p>Keep the `/shifts/createDailyPdf` packet and custom-day context visible before the live PDF renderer is connected.</p>
+                  <h3>Daily PDF Endpoint Depth</h3>
+                  <p>Keep the `POST /shifts/createDailyPdf` packet and custom-day context visible with selected route follow-through before the live PDF renderer is connected.</p>
                 </div>
               </div>
               <div className="purchase-kv-list">
-                <div className="purchase-kv"><span>Route</span><span>{selectedDailyPdfAction.route}</span></div>
+                <div className="purchase-kv"><span>Selected packet</span><span>{selectedDailyPdfPacket ? `${selectedDailyPdfPacket.packet} · ${selectedDailyPdfPacket.status}` : 'Pending'}</span></div>
+                <div className="purchase-kv"><span>Selected run</span><span>{selectedDailyPdf ? `${selectedDailyPdf.shiftDate} · ${selectedDailyPdf.status}` : 'Pending'}</span></div>
+                <div className="purchase-kv"><span>Route</span><span>POST /shifts/createDailyPdf</span></div>
                 <div className="purchase-kv"><span>Surface</span><span>{selectedDailyPdfAction.surface}</span></div>
+                <div className="purchase-kv"><span>Window</span><span>{selectedDailyPdf?.window || `${customStartTime}-${customEndTime}`}</span></div>
                 <div className="purchase-kv"><span>Custom windows</span><span>{fmtN(customSnapshots.length)}</span></div>
                 <div className="purchase-kv"><span>Day total</span><span>{fmt(customTotals.total)}</span></div>
                 <div className="purchase-kv"><span>Day gallons</span><span>{fmtN(customTotals.gallons)}</span></div>
-                <div className="purchase-kv"><span>Latest event</span><span>{selectedDailyPdfEvents[0]?.action || 'No events yet'}</span></div>
+                <div className="purchase-kv"><span>Latest route event</span><span>{selectedDailyPdfRouteEvents[0]?.action || 'No events yet'}</span></div>
               </div>
-              <div className="pricebook-actions" style={{ marginTop: 16 }}>
-                <button className="pricebook-btn" onClick={() => runReportAction(selectedDailyPdfAction)}>
+              <div className="pricebook-actions" style={{ marginTop: 16, flexWrap: 'wrap' }}>
+                <button className="pricebook-btn" onClick={() => previewDailyPdfRoutePacket(selectedDailyPdf, selectedDailyPdfPacket)}>
                   <Icon name="report" size={15} /> Preview route packet
                 </button>
-                <button className="pricebook-btn" onClick={() => downloadActionPackage(selectedDailyPdfAction)}>
+                <button className="pricebook-btn" onClick={() => stageDailyPdfRouteHandoff(selectedDailyPdf, selectedDailyPdfPacket)}>
+                  <Icon name="calendar" size={15} /> Stage handoff
+                </button>
+                <button className="pricebook-btn primary" onClick={() => saveDailyPdfRoutePacket(selectedDailyPdf, selectedDailyPdfPacket)}>
                   <Icon name="cash" size={15} /> Save route packet
                 </button>
-                <button className="pricebook-btn primary" onClick={() => exportDailyPdfEvents('CSV')}>
-                  <Icon name="save" size={15} /> Export route log
-                </button>
               </div>
+              <div className="purchase-queue-list" style={{ marginTop: 16 }}>
+                {dailyPdfRows.map((item) => (
+                  <div className="purchase-queue-row" key={item.id}>
+                    <div className="purchase-queue-top">
+                      <div>
+                        <div className="purchase-queue-title">{item.shiftDate}</div>
+                        <div className="purchase-queue-meta">{item.window} · {item.output} · {item.actor}</div>
+                      </div>
+                      <div className="pricebook-actions" style={{ gap: 8 }}>
+                        <span className={`purchase-tag${item.status === 'Ready' ? ' blue' : item.status === 'Needs review' ? ' amber' : ''}`}>{item.status}</span>
+                        <button className="pricebook-btn soft" onClick={() => setSelectedDailyPdfId(item.id)}>Review</button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="purchase-queue-list" style={{ marginTop: 12 }}>
+                {dailyPdfPacketRows.map((item) => (
+                  <div className="purchase-queue-row" key={item.id}>
+                    <div className="purchase-queue-top">
+                      <div>
+                        <div className="purchase-queue-title">{item.packet}</div>
+                        <div className="purchase-queue-meta">{item.window} · {item.focus} · {item.source}</div>
+                      </div>
+                      <button className="pricebook-btn soft" onClick={() => setSelectedDailyPdfPacketId(item.id)}>Review</button>
+                    </div>
+                    <div className="purchase-queue-meta">{item.note}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="report-delivery-card">
+              <div className="purchase-panel-head">
+                <div>
+                  <h3>Selected Daily PDF Review</h3>
+                  <p>Keep the chosen daily-PDF response visible before the print-center route hands off.</p>
+                </div>
+              </div>
+              {selectedDailyPdf ? (
+                <div className="purchase-kv-list">
+                  <div className="purchase-kv"><span>Packet</span><span>{selectedDailyPdfPacket?.packet || 'Pending'}</span></div>
+                  <div className="purchase-kv"><span>Window</span><span>{selectedDailyPdfPacket?.window || 'Custom-day print review'}</span></div>
+                  <div className="purchase-kv"><span>Focus</span><span>{selectedDailyPdfPacket?.focus || 'Owner daily-PDF validation'}</span></div>
+                  <div className="purchase-kv"><span>Source</span><span>{selectedDailyPdfPacket?.source || 'Reports / Print Center'}</span></div>
+                  <div className="purchase-kv"><span>Packet status</span><span>{selectedDailyPdfPacket?.status || 'Pending'}</span></div>
+                  <div className="purchase-kv"><span>Shift date</span><span>{selectedDailyPdf.shiftDate}</span></div>
+                  <div className="purchase-kv"><span>Window</span><span>{selectedDailyPdf.window}</span></div>
+                  <div className="purchase-kv"><span>Output</span><span>{selectedDailyPdf.output}</span></div>
+                  <div className="purchase-kv"><span>Actor</span><span>{selectedDailyPdf.actor}</span></div>
+                  <div className="purchase-kv"><span>Status</span><span>{selectedDailyPdf.status}</span></div>
+                  <div className="purchase-kv"><span>Route</span><span>POST /shifts/createDailyPdf</span></div>
+                  <div className="purchase-kv"><span>Note</span><span>{selectedDailyPdf.note}</span></div>
+                </div>
+              ) : (
+                <div className="purchase-hint">No daily-PDF review is selected yet.</div>
+              )}
             </div>
 
             <div className="report-delivery-card">
@@ -21743,12 +21898,19 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
             <div className="report-delivery-card">
               <div className="purchase-panel-head">
                 <div>
-                  <h3>Daily PDF events</h3>
-                  <p>Owner-facing event visibility for the daily PDF packet handoff.</p>
+                  <h3>Daily PDF Route Events</h3>
+                  <p>Track route-specific `POST /shifts/createDailyPdf` packet activity before the live renderer is connected.</p>
                 </div>
               </div>
+              <div className="pricebook-actions" style={{ marginBottom: 16, flexWrap: 'wrap' }}>
+                {['CSV', 'XLS', 'JSON'].map((format) => (
+                  <button key={format} className="pricebook-btn" onClick={() => exportDailyPdfRouteEvents(format)}>
+                    <Icon name="cash" size={15} /> {format}
+                  </button>
+                ))}
+              </div>
               <div className="report-delivery-list">
-                {selectedDailyPdfEvents.length ? selectedDailyPdfEvents.map((item) => (
+                {selectedDailyPdfRouteEvents.length ? selectedDailyPdfRouteEvents.map((item) => (
                   <div className="report-delivery-row" key={item.id}>
                     <div className="report-delivery-head">
                       <div>
@@ -21757,9 +21919,9 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
                       </div>
                       <span className={`purchase-tag${item.status === 'Needs review' ? ' amber' : ' blue'}`}>{item.status}</span>
                     </div>
-                    <div className="report-delivery-meta">{item.note}</div>
+                    <div className="report-delivery-meta">{selectedDailyPdfPacket?.id || 'DPP-1'} · {item.note}</div>
                   </div>
-                )) : <div className="purchase-hint">No daily PDF events are recorded yet.</div>}
+                )) : <div className="purchase-hint">No daily-PDF route events are recorded yet.</div>}
               </div>
             </div>
 
