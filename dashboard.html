@@ -19097,8 +19097,14 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
   const [releaseFilter, setReleaseFilter] = useState('All');
   const [releaseSearch, setReleaseSearch] = useState('');
   const [logoutQueue, setLogoutQueue] = useState([
-    { id: 'LQ-1', time: '17:12', reason: 'End of shift', destination: 'Return to login', store: 'Main Street Gas & Go', status: 'Pending updates' },
-    { id: 'LQ-2', time: '08:05', reason: 'Store handoff', destination: 'Open release notes', store: 'Sandy Cross Fuel Center', status: 'Complete' },
+    { id: 'LQ-1', time: '17:12', reason: 'End of shift', destination: 'Return to login', store: 'Main Street Gas & Go', status: 'Pending updates', note: 'Release notes still need owner review before the logout can fully close.' },
+    { id: 'LQ-2', time: '08:05', reason: 'Store handoff', destination: 'Open release notes', store: 'Sandy Cross Fuel Center', status: 'Complete', note: 'Release notes were reviewed before the store-handoff logout closed.' },
+  ]);
+  const [selectedLogoutQueueId, setSelectedLogoutQueueId] = useState('LQ-1');
+  const [logoutEvents, setLogoutEvents] = useState([
+    { id: 'LOE-4001', rowId: 'LQ-1', time: '17:13', actor: 'Owner session', route: '/user/logout', action: 'Previewed logout packet', status: 'Opened', note: 'Owner reviewed the logout packet before the live Mercury route was connected.' },
+    { id: 'LOE-4002', rowId: 'LQ-1', time: '17:14', actor: 'Owner session', route: '/user/logout', action: 'Saved logout packet', status: 'Ready', note: 'Logout packet exported while the live Mercury route remained demo-only.' },
+    { id: 'LOE-4003', rowId: 'LQ-2', time: '08:06', actor: 'Owner session', route: '/user/logout', action: 'Confirmed logout handoff', status: 'Complete', note: 'Store-handoff logout was staged after the release review was completed.' },
   ]);
   const [tempSessionOpen, setTempSessionOpen] = useState(false);
   const [newScreensEnabled, setNewScreensEnabled] = useState(true);
@@ -19124,9 +19130,15 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
     registerRefreshRows[0] ||
     null;
   const selectedRegisterRefreshEvents = selectedRegisterRefresh ? registerRefreshEvents.filter((item) => item.rowId === selectedRegisterRefresh.id) : [];
+  const selectedLogoutQueue =
+    logoutQueue.find((item) => item.id === selectedLogoutQueueId) ||
+    logoutQueue[0] ||
+    null;
+  const selectedLogoutEvents = selectedLogoutQueue ? logoutEvents.filter((item) => item.rowId === selectedLogoutQueue.id) : [];
   const latestLicenceCheck = licenceCheckRows[0];
   const latestAgreementSave = agreementSaveRows[0];
   const latestRegisterRefresh = registerRefreshRows[0];
+  const latestLogoutQueue = logoutQueue[0];
   const visibleReleaseRows = releaseRows.filter((item) => {
     const matchesFilter = releaseFilter === 'All' ? true : item.status === releaseFilter;
     const haystack = `${item.title} ${item.note} ${item.date} ${item.audience}`.toLowerCase();
@@ -19135,10 +19147,20 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
   const releaseNeedsReviewCount = releaseRows.filter((item) => item.status === 'Needs review').length;
   const stampLogoutQueue = (status) => {
     const time = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-    setLogoutQueue((current) => [
-      { id: `LQ-${Date.now()}`, time, reason: logoutReason, destination: logoutDestination, store: currentLocation.name, status },
-      ...current,
-    ].slice(0, 6));
+    const row = {
+      id: `LQ-${Date.now()}`,
+      time,
+      reason: logoutReason,
+      destination: logoutDestination,
+      store: currentLocation.name,
+      status,
+      note: status === 'Complete'
+        ? 'Logout handoff was staged without pending release blockers.'
+        : 'Release notes still need owner review before the logout can fully close.',
+    };
+    setLogoutQueue((current) => [row, ...current].slice(0, 6));
+    setSelectedLogoutQueueId(row.id);
+    return row;
   };
   const stampSessionTime = () => new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
   const settingsPacketHtml = ({ title, subtitle, route, note, headers, rows }) => `<!doctype html>
@@ -19464,29 +19486,97 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
     }
     showSessionNotice('Register-refresh packet saved in demo mode.');
   };
-  const previewLogoutHandoff = () =>
+  const pushLogoutEvent = ({ rowId = selectedLogoutQueue?.id, action, status, note }) => {
+    if (!rowId) return;
+    const time = stampSessionTime();
+    setLogoutEvents((current) => [
+      {
+        id: `LOE-${Date.now()}`,
+        rowId,
+        time,
+        actor: 'Owner session',
+        route: '/user/logout',
+        action,
+        status,
+        note,
+      },
+      ...current,
+    ].slice(0, 24));
+  };
+  const exportLogoutEvents = (format) => {
+    if (!selectedLogoutEvents.length) return;
+    downloadTableData(selectedLogoutEvents, format, `storecheck-logout-events-${String(selectedLogoutQueue?.id || 'session').toLowerCase()}`);
+  };
+  const previewLogoutHandoff = (item = null) => {
+    const context = item || {
+      store: currentLocation.name,
+      reason: logoutReason,
+      destination: logoutDestination,
+      status: releaseNeedsReviewCount ? 'Pending updates' : 'Ready',
+      note: releaseNeedsReviewCount
+        ? 'Release notes still need owner review before the logout can fully close.'
+        : 'Logout handoff is ready to close in demo mode.',
+      time: stampSessionTime(),
+    };
+    if (item?.id) {
+      setSelectedLogoutQueueId(item.id);
+    }
     openSettingsPacket({
-      title: 'Logout Confirmation',
-      subtitle: `${currentLocation.name} · ${logoutReason}`,
+      title: item?.id ? 'Logout Endpoint Review' : 'Logout Confirmation',
+      subtitle: `${context.store} · ${context.reason}`,
       headers: ['Store', 'Reason', 'Next Step', 'Register', 'Pending Updates', 'Temp Session'],
-      rows: [[currentLocation.name, logoutReason, logoutDestination, registerStatus, fmtN(releaseNeedsReviewCount), tempSessionOpen ? 'Open' : 'Closed']],
+      rows: [[context.store, context.reason, context.destination, registerStatus, fmtN(releaseNeedsReviewCount), tempSessionOpen ? 'Open' : 'Closed']],
     });
-  const saveLogoutPacket = () => {
+    if (item?.id) {
+      pushLogoutEvent({
+        rowId: item.id,
+        action: 'Previewed logout packet',
+        status: 'Opened',
+        note: `Owner reviewed the ${item.store} logout packet before the live Mercury route was connected.`,
+      });
+    }
+  };
+  const saveLogoutPacket = (item = null) => {
+    const context = item || {
+      store: currentLocation.name,
+      reason: logoutReason,
+      destination: logoutDestination,
+      status: releaseNeedsReviewCount ? 'Pending updates' : 'Ready',
+      note: releaseNeedsReviewCount
+        ? 'Release notes still need owner review before the logout can fully close.'
+        : 'Logout handoff is ready to close in demo mode.',
+      time: stampSessionTime(),
+    };
     saveSettingsPacket({
-      title: 'Session Logout Packet',
-      subtitle: `${currentLocation.name} · ${logoutReason}`,
+      title: item?.id ? 'Logout Endpoint Depth' : 'Session Logout Packet',
+      subtitle: `${context.store} · ${context.reason}`,
       route: '/user/logout',
       note: 'Logout and session handoff replacement shell',
       headers: ['Store', 'Manager', 'Reason', 'Next Step', 'Register Status', 'Pending Updates', 'Temp Session'],
-      rows: [[currentLocation.name, currentLocation.manager, logoutReason, logoutDestination, registerStatus, fmtN(releaseNeedsReviewCount), tempSessionOpen ? 'Open' : 'Closed']],
+      rows: [[context.store, currentLocation.manager, context.reason, context.destination, registerStatus, fmtN(releaseNeedsReviewCount), tempSessionOpen ? 'Open' : 'Closed']],
       filename: 'storecheck-session-logout',
     });
+    if (item?.id) {
+      setSelectedLogoutQueueId(item.id);
+      pushLogoutEvent({
+        rowId: item.id,
+        action: 'Saved logout packet',
+        status: 'Ready',
+        note: 'Logout packet exported while the live Mercury route remained demo-only.',
+      });
+    }
     showSessionNotice('Logout/session packet saved in demo mode. Real logout endpoint still pending.');
   };
   const confirmLogoutHandoff = () => {
-    stampLogoutQueue(releaseNeedsReviewCount ? 'Pending updates' : 'Complete');
+    const row = stampLogoutQueue(releaseNeedsReviewCount ? 'Pending updates' : 'Complete');
     setTempSessionOpen(false);
     setRegisterStatus(registerStatus === 'Connected' ? 'Refresh Needed' : registerStatus);
+    pushLogoutEvent({
+      rowId: row.id,
+      action: 'Confirmed logout handoff',
+      status: row.status,
+      note: row.note,
+    });
     showSessionNotice(`Logout handoff staged for ${currentLocation.name} in demo mode. Real \`/user/logout\` wiring still pending.`);
   };
   const previewReleaseNotes = () =>
@@ -19871,12 +19961,20 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
         </div>
 
         <div className="settings-card">
-          <div className="settings-title">Logout Handoff Queue</div>
-          <div className="settings-sub">Track recent logout/session-close decisions before the real endpoint is wired.</div>
+          <div className="settings-title">Logout Endpoint Depth</div>
+          <div className="settings-sub">Owner-facing `/user/logout` review with selected handoff visibility before live wiring is connected.</div>
           <div className="purchase-kv-list">
-            <div className="purchase-kv"><span>Queue items</span><span>{fmtN(logoutQueue.length)}</span></div>
-            <div className="purchase-kv"><span>Pending updates</span><span>{fmtN(releaseNeedsReviewCount)}</span></div>
-            <div className="purchase-kv"><span>Current next step</span><span>{logoutDestination}</span></div>
+            <div className="purchase-kv"><span>Selected handoff</span><span>{selectedLogoutQueue ? `${selectedLogoutQueue.time} · ${selectedLogoutQueue.status}` : 'Pending'}</span></div>
+            <div className="purchase-kv"><span>Selected next step</span><span>{selectedLogoutQueue?.destination || logoutDestination}</span></div>
+            <div className="purchase-kv"><span>Logout route</span><span>/user/logout</span></div>
+          </div>
+          <div className="pricebook-actions" style={{ marginTop: 16, flexWrap: 'wrap' }}>
+            <button className="pricebook-btn" onClick={() => previewLogoutHandoff(selectedLogoutQueue || latestLogoutQueue)}>
+              <Icon name="report" size={15} /> Preview logout
+            </button>
+            <button className="pricebook-btn" onClick={() => saveLogoutPacket(selectedLogoutQueue || latestLogoutQueue)}>
+              <Icon name="cash" size={15} /> Save logout
+            </button>
           </div>
           <div className="purchase-queue-list" style={{ marginTop: 16 }}>
             {logoutQueue.map((item) => (
@@ -19886,10 +19984,60 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
                     <div className="purchase-queue-title">{item.reason}</div>
                     <div className="purchase-queue-meta">{item.time} · {item.store} · {item.destination}</div>
                   </div>
-                  <span className={`purchase-tag${item.status === 'Complete' ? ' blue' : ' amber'}`}>{item.status}</span>
+                  <div className="pricebook-actions" style={{ gap: 8 }}>
+                    <span className={`purchase-tag${item.status === 'Complete' ? ' blue' : ' amber'}`}>{item.status}</span>
+                    <button className="pricebook-btn soft" onClick={() => setSelectedLogoutQueueId(item.id)}>Review</button>
+                  </div>
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+
+        <div className="settings-card">
+          <div className="settings-title">Selected Logout Review</div>
+          <div className="settings-sub">Keep the chosen logout response visible before the session-close handoff proceeds.</div>
+          {selectedLogoutQueue ? (
+            <div className="purchase-kv-list">
+              <div className="purchase-kv"><span>Store</span><span>{selectedLogoutQueue.store}</span></div>
+              <div className="purchase-kv"><span>Reason</span><span>{selectedLogoutQueue.reason}</span></div>
+              <div className="purchase-kv"><span>After logout</span><span>{selectedLogoutQueue.destination}</span></div>
+              <div className="purchase-kv"><span>Status</span><span>{selectedLogoutQueue.status}</span></div>
+              <div className="purchase-kv"><span>Note</span><span>{selectedLogoutQueue.note}</span></div>
+            </div>
+          ) : (
+            <div className="pricebook-detail-sub">No logout handoff is selected yet.</div>
+          )}
+        </div>
+
+        <div className="settings-card">
+          <div className="settings-title">Logout Endpoint Events</div>
+          <div className="settings-sub">Track route-specific `/user/logout` activity before live wiring is connected.</div>
+          <div className="pricebook-actions" style={{ marginBottom: 16, flexWrap: 'wrap' }}>
+            {['CSV', 'XLS', 'JSON'].map((format) => (
+              <button key={format} className="pricebook-btn" onClick={() => exportLogoutEvents(format)}>
+                <Icon name="cash" size={15} /> {format}
+              </button>
+            ))}
+          </div>
+          <div className="alerts-list">
+            {selectedLogoutEvents.length ? selectedLogoutEvents.map((item) => (
+              <div key={item.id} className="alert-item" style={{ alignItems: 'flex-start' }}>
+                <Icon
+                  name={item.action.includes('Saved') ? 'cash' : item.action.includes('Previewed') ? 'report' : 'close'}
+                  size={18}
+                  bg={item.action.includes('Saved') ? iconDefaults.green.bg : item.action.includes('Previewed') ? iconDefaults.blue.bg : iconDefaults.slate.bg}
+                  fg={item.action.includes('Saved') ? '#15803D' : item.action.includes('Previewed') ? '#3B82F6' : '#64748B'}
+                />
+                <div className="alert-copy">
+                  <div className="alert-text">{item.action}</div>
+                  <div className="pricebook-detail-sub">{item.time} · {item.actor} · {item.status}</div>
+                  <div className="pricebook-detail-sub">{item.note}</div>
+                </div>
+              </div>
+            )) : (
+              <div className="pricebook-detail-sub">No logout event history is visible for this selected handoff yet.</div>
+            )}
           </div>
         </div>
 
