@@ -19121,6 +19121,16 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
     { id: 'TSE-4002', rowId: 'TS-1', time: '06:20', actor: 'Owner session', route: '/administration/openTempSession', action: 'Saved temp session packet', status: 'Ready', note: 'Temp-session packet exported while the live Mercury route remained demo-only.' },
     { id: 'TSE-4003', rowId: 'TS-2', time: '22:07', actor: 'Owner session', route: '/administration/openTempSession', action: 'Saved temp session state', status: 'Closed', note: 'Temp-session state was updated during the session-close handoff.' },
   ]);
+  const [newScreensRows, setNewScreensRows] = useState([
+    { id: 'NS-1', time: '06:25', state: 'Enabled', fallback: 'Disabled', actor: 'Owner session', status: 'Saved', note: 'New screens remained enabled during session-start review.' },
+    { id: 'NS-2', time: '21:52', state: 'Disabled', fallback: 'Visible', actor: 'Owner session', status: 'Reviewed', note: 'Legacy Mercury fallback was re-enabled during overnight troubleshooting.' },
+  ]);
+  const [selectedNewScreensId, setSelectedNewScreensId] = useState('NS-1');
+  const [newScreensEvents, setNewScreensEvents] = useState([
+    { id: 'NSE-4001', rowId: 'NS-1', time: '06:26', actor: 'Owner session', route: '/util/showNewScreens', action: 'Previewed feature toggle', status: 'Opened', note: 'Owner reviewed the new-screens toggle packet before the live Mercury route was connected.' },
+    { id: 'NSE-4002', rowId: 'NS-1', time: '06:27', actor: 'Owner session', route: '/util/showNewScreens', action: 'Saved feature toggle packet', status: 'Ready', note: 'Feature-toggle packet exported while the live Mercury route remained demo-only.' },
+    { id: 'NSE-4003', rowId: 'NS-2', time: '21:53', actor: 'Owner session', route: '/util/showNewScreens', action: 'Saved feature toggle state', status: 'Reviewed', note: 'Legacy Mercury fallback state was captured during overnight review.' },
+  ]);
   const [tempSessionOpen, setTempSessionOpen] = useState(false);
   const [newScreensEnabled, setNewScreensEnabled] = useState(true);
 
@@ -19156,12 +19166,18 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
     tempSessionRows[0] ||
     null;
   const selectedTempSessionEvents = selectedTempSession ? tempSessionEvents.filter((item) => item.rowId === selectedTempSession.id) : [];
+  const selectedNewScreens =
+    newScreensRows.find((item) => item.id === selectedNewScreensId) ||
+    newScreensRows[0] ||
+    null;
+  const selectedNewScreensEvents = selectedNewScreens ? newScreensEvents.filter((item) => item.rowId === selectedNewScreens.id) : [];
   const latestLicenceCheck = licenceCheckRows[0];
   const latestAgreementSave = agreementSaveRows[0];
   const latestRegisterRefresh = registerRefreshRows[0];
   const latestRelease = releaseRows[0];
   const latestLogoutQueue = logoutQueue[0];
   const latestTempSession = tempSessionRows[0];
+  const latestNewScreens = newScreensRows[0];
   const visibleReleaseRows = releaseRows.filter((item) => {
     const matchesFilter = releaseFilter === 'All' ? true : item.status === releaseFilter;
     const haystack = `${item.title} ${item.note} ${item.date} ${item.audience}`.toLowerCase();
@@ -19808,6 +19824,86 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
     });
     showSessionNotice(`Temp session ${nextOpen ? 'opened' : 'closed'} in demo mode. Real \`/administration/openTempSession\` wiring still pending.`);
   };
+  const pushNewScreensEvent = ({ rowId = selectedNewScreens?.id, action, status, note }) => {
+    if (!rowId) return;
+    const time = stampSessionTime();
+    setNewScreensEvents((current) => [
+      {
+        id: `NSE-${Date.now()}`,
+        rowId,
+        time,
+        actor: 'Owner session',
+        route: '/util/showNewScreens',
+        action,
+        status,
+        note,
+      },
+      ...current,
+    ].slice(0, 24));
+  };
+  const exportNewScreensEvents = (format) => {
+    if (!selectedNewScreensEvents.length) return;
+    downloadTableData(selectedNewScreensEvents, format, `storecheck-new-screens-events-${String(selectedNewScreens?.id || 'session').toLowerCase()}`);
+  };
+  const previewNewScreensToggle = (item = selectedNewScreens || latestNewScreens) => {
+    if (!item) return;
+    setSelectedNewScreensId(item.id);
+    openSettingsPacket({
+      title: 'New Screens Toggle Review',
+      subtitle: `${currentLocation.name} · ${item.time}`,
+      headers: ['State', 'Fallback', 'Actor', 'Status', 'Route', 'Note'],
+      rows: [[item.state, item.fallback, item.actor, item.status, '/util/showNewScreens', item.note]],
+    });
+    pushNewScreensEvent({
+      rowId: item.id,
+      action: 'Previewed feature toggle',
+      status: 'Opened',
+      note: `Owner reviewed the ${item.state.toLowerCase()} new-screens packet before the live Mercury route was connected.`,
+    });
+  };
+  const saveNewScreensPacket = (item = selectedNewScreens || latestNewScreens) => {
+    if (!item) return;
+    setSelectedNewScreensId(item.id);
+    saveSettingsPacket({
+      title: 'New Screens Toggle Depth',
+      subtitle: `${currentLocation.name} · ${item.time}`,
+      route: '/util/showNewScreens',
+      note: 'Feature-toggle control replacement shell',
+      headers: ['Time', 'State', 'Fallback', 'Actor', 'Status', 'Route', 'Note'],
+      rows: newScreensRows.map((row) => [row.time, row.state, row.fallback, row.actor, row.status, '/util/showNewScreens', row.note]),
+      filename: 'storecheck-new-screens-history',
+    });
+    pushNewScreensEvent({
+      rowId: item.id,
+      action: 'Saved feature toggle packet',
+      status: 'Ready',
+      note: 'Feature-toggle packet exported while the live Mercury route remained demo-only.',
+    });
+    showSessionNotice('Feature-toggle packet saved in demo mode. Real `/util/showNewScreens` wiring still pending.');
+  };
+  const saveNewScreensToggle = () => {
+    const time = stampSessionTime();
+    const row = {
+      id: `NS-${Date.now()}`,
+      time,
+      state: newScreensEnabled ? 'Enabled' : 'Disabled',
+      fallback: newScreensEnabled ? 'Disabled' : 'Visible',
+      actor: 'Owner session',
+      status: 'Saved',
+      note: newScreensEnabled
+        ? 'New screens were kept enabled while legacy Mercury fallback stayed hidden.'
+        : 'Legacy Mercury fallback was restored while new screens were disabled.',
+    };
+    setNewScreensRows((current) => [row, ...current].slice(0, 6));
+    setSelectedNewScreensId(row.id);
+    pushNewScreensEvent({
+      rowId: row.id,
+      action: 'Saved feature toggle state',
+      status: row.status,
+      note: row.note,
+    });
+    showSessionNotice(`New screens ${newScreensEnabled ? 'enabled' : 'disabled'} in demo mode. Real \`/util/showNewScreens\` wiring still pending.`);
+  };
 
   return (
     <div className="shell">
@@ -20238,7 +20334,7 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
             <Icon name="connect" size={16} bg="rgba(255,255,255,0.12)" fg="#86EFAC" />
             <span>{tempSessionOpen ? 'Refresh Temp Session' : 'Open Temp Session'}</span>
           </button>
-          <button className="connect-btn" style={{ marginTop: 10 }} onClick={() => showSessionNotice(`New screens ${newScreensEnabled ? 'enabled' : 'disabled'} in demo mode. Real \`/util/showNewScreens\` wiring still pending.`)}>
+          <button className="connect-btn" style={{ marginTop: 10 }} onClick={() => saveNewScreensToggle()}>
             <Icon name="save" size={16} bg="rgba(255,255,255,0.12)" fg="#86EFAC" />
             <span>Save Feature Toggle</span>
           </button>
@@ -20321,6 +20417,87 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
               </div>
             )) : (
               <div className="pricebook-detail-sub">No temp-session event history is visible for this selected review yet.</div>
+            )}
+          </div>
+        </div>
+
+        <div className="settings-card">
+          <div className="settings-title">New Screens Toggle Depth</div>
+          <div className="settings-sub">Owner-facing `/util/showNewScreens` review with selected toggle visibility and Mercury fallback context.</div>
+          <div className="purchase-kv-list">
+            <div className="purchase-kv"><span>Selected toggle</span><span>{selectedNewScreens ? `${selectedNewScreens.time} · ${selectedNewScreens.status}` : 'Pending'}</span></div>
+            <div className="purchase-kv"><span>Current state</span><span>{selectedNewScreens?.state || (newScreensEnabled ? 'Enabled' : 'Disabled')}</span></div>
+            <div className="purchase-kv"><span>Toggle route</span><span>/util/showNewScreens</span></div>
+          </div>
+          <div className="pricebook-actions" style={{ marginTop: 16, flexWrap: 'wrap' }}>
+            <button className="pricebook-btn" onClick={() => previewNewScreensToggle(selectedNewScreens || latestNewScreens)}>
+              <Icon name="report" size={15} /> Preview toggle
+            </button>
+            <button className="pricebook-btn" onClick={() => saveNewScreensPacket(selectedNewScreens || latestNewScreens)}>
+              <Icon name="cash" size={15} /> Save toggle
+            </button>
+          </div>
+          <div className="purchase-queue-list" style={{ marginTop: 16 }}>
+            {newScreensRows.map((item) => (
+              <div className="purchase-queue-row" key={item.id}>
+                <div className="purchase-queue-top">
+                  <div>
+                    <div className="purchase-queue-title">{item.state}</div>
+                    <div className="purchase-queue-meta">{item.time} · {item.fallback} fallback · {item.actor}</div>
+                  </div>
+                  <div className="pricebook-actions" style={{ gap: 8 }}>
+                    <span className={`purchase-tag${item.state === 'Enabled' ? ' blue' : ''}`}>{item.status}</span>
+                    <button className="pricebook-btn soft" onClick={() => setSelectedNewScreensId(item.id)}>Review</button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="settings-card">
+          <div className="settings-title">Selected Toggle Review</div>
+          <div className="settings-sub">Keep the chosen new-screens response visible before internal controls proceed.</div>
+          {selectedNewScreens ? (
+            <div className="purchase-kv-list">
+              <div className="purchase-kv"><span>State</span><span>{selectedNewScreens.state}</span></div>
+              <div className="purchase-kv"><span>Fallback</span><span>{selectedNewScreens.fallback}</span></div>
+              <div className="purchase-kv"><span>Actor</span><span>{selectedNewScreens.actor}</span></div>
+              <div className="purchase-kv"><span>Status</span><span>{selectedNewScreens.status}</span></div>
+              <div className="purchase-kv"><span>Note</span><span>{selectedNewScreens.note}</span></div>
+            </div>
+          ) : (
+            <div className="pricebook-detail-sub">No feature-toggle review is selected yet.</div>
+          )}
+        </div>
+
+        <div className="settings-card">
+          <div className="settings-title">New Screens Events</div>
+          <div className="settings-sub">Track route-specific `/util/showNewScreens` activity before live wiring is connected.</div>
+          <div className="pricebook-actions" style={{ marginBottom: 16, flexWrap: 'wrap' }}>
+            {['CSV', 'XLS', 'JSON'].map((format) => (
+              <button key={format} className="pricebook-btn" onClick={() => exportNewScreensEvents(format)}>
+                <Icon name="cash" size={15} /> {format}
+              </button>
+            ))}
+          </div>
+          <div className="alerts-list">
+            {selectedNewScreensEvents.length ? selectedNewScreensEvents.map((item) => (
+              <div key={item.id} className="alert-item" style={{ alignItems: 'flex-start' }}>
+                <Icon
+                  name={item.action.includes('Saved') ? 'cash' : item.action.includes('Previewed') ? 'report' : 'connect'}
+                  size={18}
+                  bg={item.action.includes('Saved') ? iconDefaults.green.bg : item.action.includes('Previewed') ? iconDefaults.blue.bg : iconDefaults.slate.bg}
+                  fg={item.action.includes('Saved') ? '#15803D' : item.action.includes('Previewed') ? '#3B82F6' : '#64748B'}
+                />
+                <div className="alert-copy">
+                  <div className="alert-text">{item.action}</div>
+                  <div className="pricebook-detail-sub">{item.time} · {item.actor} · {item.status}</div>
+                  <div className="pricebook-detail-sub">{item.note}</div>
+                </div>
+              </div>
+            )) : (
+              <div className="pricebook-detail-sub">No new-screens event history is visible for this selected toggle yet.</div>
             )}
           </div>
         </div>
