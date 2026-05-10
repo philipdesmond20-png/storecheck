@@ -19077,6 +19077,12 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
     { id: 'REG-1', time: '07:54', store: 'Main Street Gas & Go', previous: 'Refresh Needed', current: 'Connected', source: 'Session start', status: 'Updated', note: 'Main register came online after refresh.' },
     { id: 'REG-0', time: '06:14', store: 'Sandy Cross Fuel Center', previous: 'Connected', current: 'Connected', source: 'Session start', status: 'Reviewed', note: 'No register change was needed at open.' },
   ]);
+  const [selectedRegisterRefreshId, setSelectedRegisterRefreshId] = useState('REG-1');
+  const [registerRefreshEvents, setRegisterRefreshEvents] = useState([
+    { id: 'RSE-4001', rowId: 'REG-1', time: '07:54', actor: 'Owner session', route: '/user/checkRegisterStatus', action: 'Previewed register refresh', status: 'Opened', note: 'Owner reviewed the register-status packet before the live Mercury route was connected.' },
+    { id: 'RSE-4002', rowId: 'REG-1', time: '07:55', actor: 'Owner session', route: '/user/checkRegisterStatus', action: 'Saved register packet', status: 'Ready', note: 'Register-status packet exported while the live Mercury route remained demo-only.' },
+    { id: 'RSE-4003', rowId: 'REG-0', time: '06:14', actor: 'Owner session', route: '/user/checkRegisterStatus', action: 'Saved register refresh state', status: 'Reviewed', note: 'Register review was captured during early session startup.' },
+  ]);
   const [logoutReason, setLogoutReason] = useState('End of shift');
   const [logoutDestination, setLogoutDestination] = useState('Return to login');
   const [releaseRows, setReleaseRows] = useState(
@@ -19113,6 +19119,11 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
     agreementSaveRows[0] ||
     null;
   const selectedAgreementSaveEvents = selectedAgreementSave ? agreementSaveEvents.filter((item) => item.rowId === selectedAgreementSave.id) : [];
+  const selectedRegisterRefresh =
+    registerRefreshRows.find((item) => item.id === selectedRegisterRefreshId) ||
+    registerRefreshRows[0] ||
+    null;
+  const selectedRegisterRefreshEvents = selectedRegisterRefresh ? registerRefreshEvents.filter((item) => item.rowId === selectedRegisterRefresh.id) : [];
   const latestLicenceCheck = licenceCheckRows[0];
   const latestAgreementSave = agreementSaveRows[0];
   const latestRegisterRefresh = registerRefreshRows[0];
@@ -19352,6 +19363,43 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
     }
     showSessionNotice('Agreement-history packet saved in demo mode.');
   };
+  const pushRegisterRefreshEvent = ({ rowId = selectedRegisterRefresh?.id, action, status, note }) => {
+    if (!rowId) return;
+    const time = stampSessionTime();
+    setRegisterRefreshEvents((current) => [
+      {
+        id: `RSE-${Date.now()}`,
+        rowId,
+        time,
+        actor: 'Owner session',
+        route: '/user/checkRegisterStatus',
+        action,
+        status,
+        note,
+      },
+      ...current,
+    ].slice(0, 24));
+  };
+  const previewRegisterRefresh = (item = selectedRegisterRefresh || latestRegisterRefresh) => {
+    if (!item) return;
+    setSelectedRegisterRefreshId(item.id);
+    openSettingsPacket({
+      title: 'Register Status Review',
+      subtitle: `${item.store} · ${item.time}`,
+      headers: ['Store', 'Previous', 'Current', 'Source', 'Status', 'Note'],
+      rows: [[item.store, item.previous, item.current, item.source, item.status, item.note]],
+    });
+    pushRegisterRefreshEvent({
+      rowId: item.id,
+      action: 'Previewed register refresh',
+      status: 'Opened',
+      note: `Owner reviewed the ${item.store} register-status packet before the live Mercury route was connected.`,
+    });
+  };
+  const exportRegisterRefreshEvents = (format) => {
+    if (!selectedRegisterRefreshEvents.length) return;
+    downloadTableData(selectedRegisterRefreshEvents, format, `storecheck-register-events-${String(selectedRegisterRefresh?.id || 'session').toLowerCase()}`);
+  };
   const refreshRegisterReview = () => {
     const previous = registerStatus;
     const nextStatus = registerStatus === 'Connected' ? 'Refresh Needed' : 'Connected';
@@ -19377,8 +19425,15 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
     };
     setRegisterStatus(nextStatus);
     setRegisterRefreshRows((current) => [refreshRow, ...current].slice(0, 6));
+    setSelectedRegisterRefreshId(refreshRow.id);
     setLicenceCheckRows((current) => [licenceRow, ...current].slice(0, 6));
     setSelectedLicenceCheckId(licenceRow.id);
+    pushRegisterRefreshEvent({
+      rowId: refreshRow.id,
+      action: 'Saved register refresh state',
+      status: refreshRow.status,
+      note: nextStatus === 'Connected' ? 'Register came online before the session moved forward.' : 'Register still needs follow-up before the session can proceed.',
+    });
     pushLicenceCheckEvent({
       rowId: licenceRow.id,
       action: 'Updated licence review from register refresh',
@@ -19388,15 +19443,25 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
     showSessionNotice('Register status refreshed in demo mode. Real `/user/checkRegisterStatus` wiring still pending.');
   };
   const saveRegisterRefreshPacket = () => {
+    const item = selectedRegisterRefresh || latestRegisterRefresh;
     saveSettingsPacket({
-      title: 'Register Refresh Log',
-      subtitle: `${currentLocation.name} · session init`,
+      title: 'Register Status Depth',
+      subtitle: `${item ? `${item.store} · ${item.time}` : `${currentLocation.name} · session init`}`,
       route: '/user/checkRegisterStatus',
       note: 'Register refresh review replacement shell',
       headers: ['Time', 'Store', 'Previous', 'Current', 'Source', 'Status', 'Note'],
       rows: registerRefreshRows.map((item) => [item.time, item.store, item.previous, item.current, item.source, item.status, item.note]),
       filename: 'storecheck-register-refresh-log',
     });
+    if (item) {
+      setSelectedRegisterRefreshId(item.id);
+      pushRegisterRefreshEvent({
+        rowId: item.id,
+        action: 'Saved register packet',
+        status: 'Ready',
+        note: 'Register-status packet exported while the live Mercury route remained demo-only.',
+      });
+    }
     showSessionNotice('Register-refresh packet saved in demo mode.');
   };
   const previewLogoutHandoff = () =>
@@ -19686,8 +19751,21 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
         </div>
 
         <div className="settings-card">
-          <div className="settings-title">Register Refresh Log</div>
-          <div className="settings-sub">Keep register-status review tied to session start instead of hiding it behind a silent refresh.</div>
+          <div className="settings-title">Register Status Depth</div>
+          <div className="settings-sub">Owner-facing `/user/checkRegisterStatus` review with session-start register state visibility.</div>
+          <div className="purchase-kv-list">
+            <div className="purchase-kv"><span>Selected refresh</span><span>{selectedRegisterRefresh ? `${selectedRegisterRefresh.time} · ${selectedRegisterRefresh.status}` : 'Pending'}</span></div>
+            <div className="purchase-kv"><span>Current register</span><span>{selectedRegisterRefresh?.current || registerStatus}</span></div>
+            <div className="purchase-kv"><span>Refresh route</span><span>/user/checkRegisterStatus</span></div>
+          </div>
+          <div className="pricebook-actions" style={{ marginTop: 16, flexWrap: 'wrap' }}>
+            <button className="pricebook-btn" onClick={() => previewRegisterRefresh(selectedRegisterRefresh)}>
+              <Icon name="report" size={15} /> Preview register
+            </button>
+            <button className="pricebook-btn" onClick={() => saveRegisterRefreshPacket()}>
+              <Icon name="cash" size={15} /> Save register
+            </button>
+          </div>
           <div className="purchase-queue-list">
             {registerRefreshRows.map((item) => (
               <div className="purchase-queue-row" key={item.id}>
@@ -19696,10 +19774,60 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
                     <div className="purchase-queue-title">{item.previous} → {item.current}</div>
                     <div className="purchase-queue-meta">{item.time} · {item.store} · {item.source}</div>
                   </div>
-                  <span className={`purchase-tag${item.status === 'Updated' || item.status === 'Reviewed' ? ' blue' : ' amber'}`}>{item.status}</span>
+                  <div className="pricebook-actions" style={{ gap: 8 }}>
+                    <span className={`purchase-tag${item.status === 'Updated' || item.status === 'Reviewed' ? ' blue' : ' amber'}`}>{item.status}</span>
+                    <button className="pricebook-btn soft" onClick={() => setSelectedRegisterRefreshId(item.id)}>Review</button>
+                  </div>
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+
+        <div className="settings-card">
+          <div className="settings-title">Selected Register Review</div>
+          <div className="settings-sub">Keep the chosen register response visible before session init proceeds.</div>
+          {selectedRegisterRefresh ? (
+            <div className="purchase-kv-list">
+              <div className="purchase-kv"><span>Store</span><span>{selectedRegisterRefresh.store}</span></div>
+              <div className="purchase-kv"><span>Previous</span><span>{selectedRegisterRefresh.previous}</span></div>
+              <div className="purchase-kv"><span>Current</span><span>{selectedRegisterRefresh.current}</span></div>
+              <div className="purchase-kv"><span>Status</span><span>{selectedRegisterRefresh.status}</span></div>
+              <div className="purchase-kv"><span>Note</span><span>{selectedRegisterRefresh.note}</span></div>
+            </div>
+          ) : (
+            <div className="pricebook-detail-sub">No register refresh is selected yet.</div>
+          )}
+        </div>
+
+        <div className="settings-card">
+          <div className="settings-title">Register Status Events</div>
+          <div className="settings-sub">Track route-specific `/user/checkRegisterStatus` activity before live wiring is connected.</div>
+          <div className="pricebook-actions" style={{ marginBottom: 16, flexWrap: 'wrap' }}>
+            {['CSV', 'XLS', 'JSON'].map((format) => (
+              <button key={format} className="pricebook-btn" onClick={() => exportRegisterRefreshEvents(format)}>
+                <Icon name="cash" size={15} /> {format}
+              </button>
+            ))}
+          </div>
+          <div className="alerts-list">
+            {selectedRegisterRefreshEvents.length ? selectedRegisterRefreshEvents.map((item) => (
+              <div key={item.id} className="alert-item" style={{ alignItems: 'flex-start' }}>
+                <Icon
+                  name={item.action.includes('Saved') ? 'cash' : item.action.includes('Previewed') ? 'report' : 'connect'}
+                  size={18}
+                  bg={item.action.includes('Saved') ? iconDefaults.green.bg : item.action.includes('Previewed') ? iconDefaults.blue.bg : iconDefaults.slate.bg}
+                  fg={item.action.includes('Saved') ? '#15803D' : item.action.includes('Previewed') ? '#3B82F6' : '#64748B'}
+                />
+                <div className="alert-copy">
+                  <div className="alert-text">{item.action}</div>
+                  <div className="pricebook-detail-sub">{item.time} · {item.actor} · {item.status}</div>
+                  <div className="pricebook-detail-sub">{item.note}</div>
+                </div>
+              </div>
+            )) : (
+              <div className="pricebook-detail-sub">No register-status event history is visible for this selected refresh yet.</div>
+            )}
           </div>
         </div>
 
