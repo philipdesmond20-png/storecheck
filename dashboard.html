@@ -20494,6 +20494,11 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
     { id: 'SE-2', dailyShiftId: 'DLV-298', shiftDate: '2026-05-08', report: 'Shift 3 closeout', recipient: 'accounting@mainstreetgas.com', shift: 'Shift 3', source: 'Day Report', status: 'Needs review', note: 'Previous shift-email handoff still needs a final recipient check.' },
   ]);
   const [selectedShiftEmailId, setSelectedShiftEmailId] = useState('SE-1');
+  const [shiftEmailPacketRows, setShiftEmailPacketRows] = useState([
+    { id: 'SEP-1', packet: 'Primary shift email handoff', window: 'Owner closeout review', focus: 'Shift 2 confirmation packet', source: 'Reports / Email Delivery', status: 'Queued', note: 'Primary shift-email handoff is staged for the configured store recipient before the live Mercury sender is connected.' },
+    { id: 'SEP-2', packet: 'Accounting follow-through rerun', window: 'Back-office resend review', focus: 'Shift 3 accounting packet', source: 'Reports / Delivery', status: 'Needs review', note: 'Previous shift-email rerun still needs final recipient confirmation before the live Mercury sender is connected.' },
+  ]);
+  const [selectedShiftEmailPacketId, setSelectedShiftEmailPacketId] = useState('SEP-1');
   const [dayReportEmailRows, setDayReportEmailRows] = useState([
     { id: 'DE-1', shiftDate: '2026-05-09', report: 'Daily Sales Recap', recipient: 'owner@mainstreetgas.com', window: '2026-05-09 only', source: 'Daily PDF', status: 'Queued', note: 'Daily owner recap is ready for Mercury-style confirmation.' },
     { id: 'DE-2', shiftDate: '2026-05-08', report: 'Shift Closeout Digest', recipient: 'accounting@mainstreetgas.com', window: '2026-05-08 only', source: 'Day Report', status: 'Needs review', note: 'Previous day-report handoff still needs a final recipient check.' },
@@ -20523,6 +20528,11 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
     { id: 'RSE-1001', sendId: 'SE-1', time: '2026-05-09 08:06', actor: 'Store manager', route: '/shifts/sendShiftEmail', action: 'Confirmed shift email', status: 'Queued', note: 'Shift email confirmation accepted for the configured store address.' },
     { id: 'RSE-1002', sendId: 'SE-1', time: '2026-05-09 08:07', actor: 'Store manager', route: '/shifts/sendShiftEmail', action: 'Saved shift email packet', status: 'Ready', note: 'Shift email packet exported before the live send endpoint was connected.' },
     { id: 'RSE-1003', sendId: 'SE-2', time: '2026-05-08 21:18', actor: 'StoreCheck demo', route: '/shifts/sendShiftEmail', action: 'Previewed shift email packet', status: 'Ready', note: 'Previous shift-email packet preview stayed visible in demo mode.' },
+  ]);
+  const [shiftEmailRouteEvents, setShiftEmailRouteEvents] = useState([
+    { id: 'RSH-1001', packetId: 'SEP-1', time: '2026-05-09 08:06', actor: 'Store manager', route: 'POST /shifts/sendShiftEmail', action: 'Queued shift email route handoff', status: 'Queued', note: 'Shift-email route handoff was accepted for the owner closeout review.' },
+    { id: 'RSH-1002', packetId: 'SEP-1', time: '2026-05-09 08:07', actor: 'Store manager', route: 'POST /shifts/sendShiftEmail', action: 'Saved shift email route packet', status: 'Ready', note: 'Shift-email route packet was exported before the live sender was connected.' },
+    { id: 'RSH-1003', packetId: 'SEP-2', time: '2026-05-08 21:19', actor: 'StoreCheck demo', route: 'POST /shifts/sendShiftEmail', action: 'Previewed shift email route packet', status: 'Opened', note: 'Previous shift-email route preview stayed visible in demo mode.' },
   ]);
   const [dayReportEmailEvents, setDayReportEmailEvents] = useState([
     { id: 'RDE-1101', sendId: 'DE-1', time: '2026-05-10 00:16', actor: 'Store manager', route: '/shifts/sendDayReport', action: 'Queued day report email', status: 'Queued', note: 'Day-report confirmation was accepted for the configured store address.' },
@@ -20735,6 +20745,10 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
   const emailActions = reportActionPresets.filter((action) => action.group === 'email');
   const handoffActions = reportActionPresets.filter((action) => action.group === 'download' || action.group === 'export');
   const selectedShiftEmail = shiftEmailRows.find((item) => item.id === selectedShiftEmailId) || shiftEmailRows[0];
+  const selectedShiftEmailPacket =
+    shiftEmailPacketRows.find((item) => item.id === selectedShiftEmailPacketId) ||
+    shiftEmailPacketRows[0] ||
+    null;
   const selectedDayReportEmail = dayReportEmailRows.find((item) => item.id === selectedDayReportEmailId) || dayReportEmailRows[0];
   const selectedDayDownload = dayDownloadRows.find((item) => item.id === selectedDayDownloadId) || dayDownloadRows[0];
   const selectedMonthDownload = monthDownloadRows.find((item) => item.id === selectedMonthDownloadId) || monthDownloadRows[0];
@@ -20756,6 +20770,8 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
     summaryPdfPacketRows[0] ||
     null;
   const selectedShiftEmailEvents = selectedShiftEmail ? shiftEmailEvents.filter((item) => item.sendId === selectedShiftEmail.id) : shiftEmailEvents;
+  const selectedShiftEmailRouteEvents =
+    selectedShiftEmailPacket ? shiftEmailRouteEvents.filter((item) => item.packetId === selectedShiftEmailPacket.id) : shiftEmailRouteEvents;
   const selectedDayReportEmailEvents = selectedDayReportEmail ? dayReportEmailEvents.filter((item) => item.sendId === selectedDayReportEmail.id) : dayReportEmailEvents;
   const selectedDayDownloadEvents = selectedDayDownload ? dayDownloadEvents.filter((item) => item.sendId === selectedDayDownload.id) : dayDownloadEvents;
   const selectedMonthDownloadEvents = selectedMonthDownload ? monthDownloadEvents.filter((item) => item.sendId === selectedMonthDownload.id) : monthDownloadEvents;
@@ -20780,6 +20796,21 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
         time: buildReportStamp(),
         actor: 'StoreCheck demo',
         route: '/shifts/sendShiftEmail',
+        action,
+        status,
+        note,
+      },
+      ...current,
+    ]);
+  };
+  const pushShiftEmailRouteEvent = ({ packetId = selectedShiftEmailPacket?.id, action, status, note }) => {
+    setShiftEmailRouteEvents((current) => [
+      {
+        id: `RSH-${current.length + 1001}`,
+        packetId,
+        time: buildReportStamp(),
+        actor: 'StoreCheck demo',
+        route: 'POST /shifts/sendShiftEmail',
         action,
         status,
         note,
@@ -20817,6 +20848,66 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
       row.id === item.id ? { ...row, status: 'Queued', recipient: item.recipient, note: `Shift email confirmation is staged for ${item.recipient}.` } : row
     )));
     runReportAction(selectedShiftEmailAction);
+  };
+  const buildShiftEmailRouteAction = (item = selectedShiftEmail, packet = selectedShiftEmailPacket) => ({
+    ...selectedShiftEmailAction,
+    route: 'POST /shifts/sendShiftEmail',
+    params: `dailyShiftId=${item?.dailyShiftId || 'DLV-301'}; shiftDate=${item?.shiftDate || '2026-05-09'}; toAddress=${item?.recipient || deliveryEmail}`,
+    subtitle: `${packet?.window || 'Owner closeout review'} · POST /shifts/sendShiftEmail`,
+    fileName: `storecheck-shift-email-route-${String(packet?.id || 'route').toLowerCase()}`,
+  });
+  const previewShiftEmailRoutePacket = (item = selectedShiftEmail, packet = selectedShiftEmailPacket) => {
+    if (!item || !packet) return;
+    setSelectedShiftEmailId(item.id);
+    setSelectedShiftEmailPacketId(packet.id);
+    setDeliveryEmail(item.recipient);
+    const action = buildShiftEmailRouteAction(item, packet);
+    openReportSurface('Shift Email Endpoint Reconcile', action.subtitle, action.previewRows);
+    pushShiftEmailRouteEvent({
+      packetId: packet.id,
+      action: 'Previewed shift email route packet',
+      status: 'Opened',
+      note: `${packet.packet} preview opened before the live Mercury sender was connected.`,
+    });
+    showDeliveryNotice(`${item.id} shift-email route packet preview opened in demo mode.`);
+  };
+  const stageShiftEmailRouteHandoff = (item = selectedShiftEmail, packet = selectedShiftEmailPacket) => {
+    if (!item || !packet) return;
+    setSelectedShiftEmailId(item.id);
+    setSelectedShiftEmailPacketId(packet.id);
+    setDeliveryEmail(item.recipient);
+    setShiftEmailPacketRows((current) => current.map((row) => (
+      row.id === packet.id
+        ? { ...row, status: 'Queued', note: `Shift-email route handoff is staged for ${packet.window.toLowerCase()}.` }
+        : row
+    )));
+    pushShiftEmailRouteEvent({
+      packetId: packet.id,
+      action: 'Queued shift email route handoff',
+      status: 'Queued',
+      note: `Mercury-style shift-email handoff accepted for ${packet.window}.`,
+    });
+    showDeliveryNotice(`${item.id} shift-email route handoff staged in demo mode. Live \`POST /shifts/sendShiftEmail\` endpoint still pending.`);
+  };
+  const saveShiftEmailRoutePacket = (item = selectedShiftEmail, packet = selectedShiftEmailPacket) => {
+    if (!item || !packet) return;
+    setSelectedShiftEmailId(item.id);
+    setSelectedShiftEmailPacketId(packet.id);
+    setDeliveryEmail(item.recipient);
+    const action = buildShiftEmailRouteAction(item, packet);
+    const html = buildReportPackageHtml(action);
+    downloadTextData(html, 'text/html', action.fileName, 'html');
+    pushShiftEmailRouteEvent({
+      packetId: packet.id,
+      action: 'Saved shift email route packet',
+      status: 'Ready',
+      note: 'Shift-email route packet exported while the live sender remained demo-only.',
+    });
+    showDeliveryNotice(`${item.id} shift-email route packet saved in demo mode.`);
+  };
+  const exportShiftEmailRouteEvents = (format) => {
+    downloadTableData(selectedShiftEmailRouteEvents, format, `storecheck-shift-email-route-events-${String(selectedShiftEmailPacket?.id || 'route').toLowerCase()}`);
+    showDeliveryNotice(`${fmtN(selectedShiftEmailRouteEvents.length)} shift-email route events exported in ${format} format.`);
   };
   const pushDayReportEmailEvent = ({ sendId = selectedDayReportEmail?.id, action, status, note }) => {
     setDayReportEmailEvents((current) => [
@@ -22299,47 +22390,60 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
             <div className="report-delivery-card">
               <div className="purchase-panel-head">
                 <div>
-                  <h3>Shift Email Endpoint Depth</h3>
-                  <p>Keep the `/shifts/sendShiftEmail` confirmation handoff visible with selected send context before the live email sender is connected.</p>
+                  <h3>Shift Email Endpoint Reconcile</h3>
+                  <p>Keep the `POST /shifts/sendShiftEmail` packet visible with selected send and route follow-through context before the live email sender is connected.</p>
                 </div>
               </div>
               <div className="purchase-kv-list">
+                <div className="purchase-kv"><span>Selected packet</span><span>{selectedShiftEmailPacket ? `${selectedShiftEmailPacket.packet} · ${selectedShiftEmailPacket.status}` : 'Pending'}</span></div>
                 <div className="purchase-kv"><span>Selected send</span><span>{selectedShiftEmail ? `${selectedShiftEmail.dailyShiftId} · ${selectedShiftEmail.status}` : 'Pending'}</span></div>
-                <div className="purchase-kv"><span>Route</span><span>{selectedShiftEmailAction.route}</span></div>
+                <div className="purchase-kv"><span>Route</span><span>POST /shifts/sendShiftEmail</span></div>
                 <div className="purchase-kv"><span>Recipient</span><span>{selectedShiftEmail?.recipient || deliveryEmail}</span></div>
                 <div className="purchase-kv"><span>Params</span><span>{`dailyShiftId=${selectedShiftEmail?.dailyShiftId || 'DLV-301'}; shiftDate=${selectedShiftEmail?.shiftDate || '2026-05-09'}; toAddress=${selectedShiftEmail?.recipient || deliveryEmail}`}</span></div>
+                <div className="purchase-kv"><span>Packet window</span><span>{selectedShiftEmailPacket?.window || 'Owner closeout review'}</span></div>
                 <div className="purchase-kv"><span>Current shift</span><span>{selectedShiftEmail ? `${selectedShiftEmail.shiftDate} · ${selectedShiftEmail.shift}` : '2026-05-09 · Shift 2'}</span></div>
-                <div className="purchase-kv"><span>Latest event</span><span>{selectedShiftEmailEvents[0]?.action || 'No events yet'}</span></div>
+                <div className="purchase-kv"><span>Latest route event</span><span>{selectedShiftEmailRouteEvents[0]?.action || 'No events yet'}</span></div>
               </div>
               <div className="pricebook-actions" style={{ marginTop: 16, flexWrap: 'wrap' }}>
-                <button className="pricebook-btn" onClick={() => previewShiftEmailPacket(selectedShiftEmail)}>
-                  <Icon name="report" size={15} /> Preview send
+                <button className="pricebook-btn" onClick={() => previewShiftEmailRoutePacket(selectedShiftEmail, selectedShiftEmailPacket)}>
+                  <Icon name="report" size={15} /> Preview route packet
                 </button>
-                <button className="pricebook-btn" onClick={() => confirmShiftEmailSend(selectedShiftEmail)}>
-                  <Icon name="bell" size={15} /> Confirm route send
+                <button className="pricebook-btn" onClick={() => stageShiftEmailRouteHandoff(selectedShiftEmail, selectedShiftEmailPacket)}>
+                  <Icon name="bell" size={15} /> Stage handoff
                 </button>
-                <button className="pricebook-btn" onClick={() => saveShiftEmailPacket(selectedShiftEmail)}>
+                <button className="pricebook-btn primary" onClick={() => saveShiftEmailRoutePacket(selectedShiftEmail, selectedShiftEmailPacket)}>
                   <Icon name="report" size={15} /> Save route packet
                 </button>
-                <button className="pricebook-btn primary" onClick={() => exportShiftEmailEvents('CSV')}>
-                  <Icon name="save" size={15} /> Export route log
-                </button>
               </div>
-              <div className="report-delivery-list" style={{ marginTop: 18 }}>
+              <div className="purchase-queue-list" style={{ marginTop: 16 }}>
                 {shiftEmailRows.map((row) => (
-                  <div className="report-delivery-row" key={row.id}>
-                    <div className="report-delivery-head">
+                  <div className="purchase-queue-row" key={row.id}>
+                    <div className="purchase-queue-top">
                       <div>
-                        <div className="report-delivery-title">{row.report}</div>
-                        <div className="report-delivery-meta">{row.recipient} · {row.shiftDate} · {row.shift}</div>
+                        <div className="purchase-queue-title">{row.report}</div>
+                        <div className="purchase-queue-meta">{row.recipient} · {row.shiftDate} · {row.shift} · {row.source}</div>
                       </div>
-                      <span className={`purchase-tag${row.status === 'Needs review' ? ' amber' : ' blue'}`}>{row.status}</span>
+                      <div className="pricebook-actions" style={{ gap: 8 }}>
+                        <span className={`purchase-tag${row.status === 'Needs review' ? ' amber' : ' blue'}`}>{row.status}</span>
+                        <button className="pricebook-btn soft" onClick={() => { setSelectedShiftEmailId(row.id); setDeliveryEmail(row.recipient); }}>
+                          Review
+                        </button>
+                      </div>
                     </div>
-                    <div className="report-delivery-actions">
-                      <button className="pricebook-btn" onClick={() => { setSelectedShiftEmailId(row.id); setDeliveryEmail(row.recipient); }}>
-                        <Icon name="report" size={15} /> Review
-                      </button>
+                  </div>
+                ))}
+              </div>
+              <div className="purchase-queue-list" style={{ marginTop: 12 }}>
+                {shiftEmailPacketRows.map((row) => (
+                  <div className="purchase-queue-row" key={row.id}>
+                    <div className="purchase-queue-top">
+                      <div>
+                        <div className="purchase-queue-title">{row.packet}</div>
+                        <div className="purchase-queue-meta">{row.window} · {row.focus} · {row.source}</div>
+                      </div>
+                      <button className="pricebook-btn soft" onClick={() => setSelectedShiftEmailPacketId(row.id)}>Review</button>
                     </div>
+                    <div className="purchase-queue-meta">{row.note}</div>
                   </div>
                 ))}
               </div>
@@ -22348,16 +22452,21 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
             <div className="report-delivery-card">
               <div className="purchase-panel-head">
                 <div>
-                  <h3>Selected Shift Email Review</h3>
-                  <p>Owner-facing visibility for the chosen shift-email handoff before the live sender is connected.</p>
+                  <h3>Selected Shift Email Endpoint Review</h3>
+                  <p>Owner-facing visibility for the chosen shift-email route packet before the live sender is connected.</p>
                 </div>
               </div>
               {selectedShiftEmail ? (
                 <div className="purchase-kv-list">
+                  <div className="purchase-kv"><span>Packet</span><span>{selectedShiftEmailPacket?.packet || 'Pending'}</span></div>
+                  <div className="purchase-kv"><span>Window</span><span>{selectedShiftEmailPacket?.window || 'Owner closeout review'}</span></div>
+                  <div className="purchase-kv"><span>Focus</span><span>{selectedShiftEmailPacket?.focus || 'Shift confirmation packet'}</span></div>
+                  <div className="purchase-kv"><span>Packet status</span><span>{selectedShiftEmailPacket?.status || 'Pending'}</span></div>
                   <div className="purchase-kv"><span>Daily shift ID</span><span>{selectedShiftEmail.dailyShiftId}</span></div>
                   <div className="purchase-kv"><span>Report</span><span>{selectedShiftEmail.report}</span></div>
                   <div className="purchase-kv"><span>Recipient</span><span>{selectedShiftEmail.recipient}</span></div>
                   <div className="purchase-kv"><span>Source</span><span>{selectedShiftEmail.source}</span></div>
+                  <div className="purchase-kv"><span>Route</span><span>POST /shifts/sendShiftEmail</span></div>
                   <div className="purchase-kv"><span>Status</span><span>{selectedShiftEmail.status}</span></div>
                   <div className="purchase-kv"><span>Note</span><span>{selectedShiftEmail.note}</span></div>
                 </div>
@@ -22367,12 +22476,19 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
             <div className="report-delivery-card">
               <div className="purchase-panel-head">
                 <div>
-                  <h3>Shift Email Events</h3>
-                  <p>Owner-facing event visibility for the selected shift-email handoff.</p>
+                  <h3>Shift Email Route Events</h3>
+                  <p>Track route-specific `POST /shifts/sendShiftEmail` packet activity before the live sender is connected.</p>
                 </div>
               </div>
+              <div className="pricebook-actions" style={{ marginBottom: 16, flexWrap: 'wrap' }}>
+                {['CSV', 'XLS', 'JSON'].map((format) => (
+                  <button key={format} className="pricebook-btn" onClick={() => exportShiftEmailRouteEvents(format)}>
+                    <Icon name="save" size={15} /> {format}
+                  </button>
+                ))}
+              </div>
               <div className="report-delivery-list">
-                {selectedShiftEmailEvents.length ? selectedShiftEmailEvents.map((item) => (
+                {selectedShiftEmailRouteEvents.length ? selectedShiftEmailRouteEvents.map((item) => (
                   <div className="report-delivery-row" key={item.id}>
                     <div className="report-delivery-head">
                       <div>
@@ -22381,9 +22497,9 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
                       </div>
                       <span className={`purchase-tag${item.status === 'Needs review' ? ' amber' : ' blue'}`}>{item.status}</span>
                     </div>
-                    <div className="report-delivery-meta">{selectedShiftEmail?.dailyShiftId || 'DLV-301'} · {item.note}</div>
+                    <div className="report-delivery-meta">{selectedShiftEmailPacket?.id || 'SEP-1'} · {item.note}</div>
                   </div>
-                )) : <div className="purchase-hint">No shift-email events are recorded for the selected handoff yet.</div>}
+                )) : <div className="purchase-hint">No shift-email route events are recorded for the selected packet yet.</div>}
               </div>
             </div>
 
