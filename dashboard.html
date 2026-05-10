@@ -16193,6 +16193,7 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
   const [multiPage, setMultiPage] = useState('overview');
   const [compareDate, setCompareDate] = useState('2026-05-09');
   const [selectedStore, setSelectedStore] = useState('All');
+  const [selectedRedirectStoreId, setSelectedRedirectStoreId] = useState(currentLocation.id);
   const [selectedCompareStoreId, setSelectedCompareStoreId] = useState(MULTI_STORE_COMPARE[0].store);
   const [selectedSwitchStoreId, setSelectedSwitchStoreId] = useState(currentLocation.id);
   const [loginSearch, setLoginSearch] = useState('');
@@ -16201,6 +16202,11 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
   const [authFlowRows, setAuthFlowRows] = useState([
     { id: 'AUTH-1', time: '08:42', step: 'Location picker opened', route: '/user/viewLocations', store: 'Main Street Gas & Go', status: 'Ready' },
     { id: 'AUTH-2', time: '08:43', step: 'Redirect to dashboard', route: '/user/openHomePage', store: 'Main Street Gas & Go', status: 'Complete' },
+  ]);
+  const [redirectActionEvents, setRedirectActionEvents] = useState([
+    { id: 'MDR-3501', rowId: 'main-street', time: '2026-05-09 22:31', actor: 'Store manager', route: '/user/redirectMultiDashboard', action: 'Previewed multi-dashboard packet', status: 'Opened', note: 'Owner reviewed the dashboard redirect packet before the live Mercury route was connected.' },
+    { id: 'MDR-3502', rowId: 'main-street', time: '2026-05-09 22:34', actor: 'Store manager', route: '/user/redirectMultiDashboard', action: 'Saved multi-dashboard packet', status: 'Ready', note: 'Dashboard redirect packet exported while the live Mercury route remained demo-only.' },
+    { id: 'MDR-3503', rowId: 'sandy-cross', time: '2026-05-08 10:41', actor: 'StoreCheck demo', route: '/user/redirectMultiDashboard', action: 'Redirected to store dashboard', status: 'Complete', note: 'Store redirect stayed inside StoreCheck while the live Mercury route remained pending.' },
   ]);
   const [compareSearchEvents, setCompareSearchEvents] = useState([
     { id: 'CMP-3301', rowId: 'Main Street Gas & Go', time: '2026-05-09 21:52', actor: 'Store manager', route: '/shifts/searchMultiStoreReport', action: 'Previewed multi-store compare packet', status: 'Opened', note: 'Owner reviewed the multi-store comparison packet before the live Mercury search route was connected.' },
@@ -16216,6 +16222,15 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
 
   const filteredCompare =
     selectedStore === 'All' ? MULTI_STORE_COMPARE : MULTI_STORE_COMPARE.filter((row) => row.store === selectedStore);
+  const selectedRedirectLocation =
+    STORE_LOCATIONS.find((item) => item.id === selectedRedirectStoreId) ||
+    STORE_LOCATIONS.find((item) => item.id === currentLocation.id) ||
+    STORE_LOCATIONS[0];
+  const selectedRedirectOverview =
+    MULTI_STORE_OVERVIEW.find((row) => row.id === selectedRedirectLocation.id) ||
+    MULTI_STORE_OVERVIEW[0];
+  const selectedRedirectEvents = redirectActionEvents.filter((row) => row.rowId === selectedRedirectLocation.id);
+  const redirectContextLabel = `${selectedRedirectLocation.name} · Today's Summary`;
   const selectedCompareRow =
     filteredCompare.find((row) => row.store === selectedCompareStoreId) ||
     MULTI_STORE_COMPARE.find((row) => row.store === selectedCompareStoreId) ||
@@ -16278,6 +16293,14 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
     CashDiff: row.cashDiff.toFixed(2),
   }));
   const comparePacketRows = filteredCompare.map((row) => [row.store, compareDate, fmt(row.fuel), fmt(row.shop), fmt(row.lottery), fmt(row.total), fmtN(row.gallons, 0), fmt(Math.abs(row.cashDiff))]);
+  const redirectPacketRows = [[
+    selectedRedirectLocation.id,
+    selectedRedirectLocation.name,
+    selectedRedirectLocation.location,
+    selectedRedirectLocation.manager,
+    "Today's Summary",
+    currentLocation.id === selectedRedirectLocation.id ? 'Ready now' : 'Queued redirect',
+  ]];
   const switchPacketRows = [[
     selectedSwitchLocation.id,
     selectedSwitchLocation.name,
@@ -16389,6 +16412,74 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
     showNotice('Module-launcher packet saved in demo mode.');
   };
   const exportCompare = (format) => downloadTableData(filteredCompare, format, 'storecheck-multi-store-compare');
+  const pushRedirectActionEvent = ({ rowId, action, status, note }) => {
+    const time = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    setRedirectActionEvents((current) => [
+      {
+        id: `MDR-${Date.now()}`,
+        rowId,
+        time,
+        actor: 'Store manager',
+        route: '/user/redirectMultiDashboard',
+        action,
+        status,
+        note,
+      },
+      ...current,
+    ].slice(0, 24));
+  };
+  const previewRedirectPacket = () => {
+    openMultiStorePacket({
+      title: 'Multi-dashboard redirect depth',
+      subtitle: `${redirectContextLabel} · /user/redirectMultiDashboard`,
+      headers: ['LocationId', 'Store', 'Location', 'Manager', 'Destination', 'Redirect Status'],
+      rows: redirectPacketRows,
+    });
+    pushRedirectActionEvent({
+      rowId: selectedRedirectLocation.id,
+      action: 'Previewed multi-dashboard packet',
+      status: 'Opened',
+      note: `Owner reviewed the ${selectedRedirectLocation.name} dashboard redirect packet before the live Mercury route was connected.`,
+    });
+    showNotice('Multi-dashboard redirect packet preview opened in demo mode.');
+  };
+  const saveRedirectPacket = () => {
+    saveMultiStorePacket({
+      title: 'Multi-dashboard redirect depth',
+      subtitle: `${redirectContextLabel} · /user/redirectMultiDashboard`,
+      route: '/user/redirectMultiDashboard',
+      note: 'Multi-dashboard redirect replacement shell',
+      headers: ['LocationId', 'Store', 'Location', 'Manager', 'Destination', 'Redirect Status'],
+      rows: redirectPacketRows,
+      filename: 'storecheck-multi-dashboard-redirect',
+    });
+    pushRedirectActionEvent({
+      rowId: selectedRedirectLocation.id,
+      action: 'Saved multi-dashboard packet',
+      status: 'Ready',
+      note: 'Dashboard redirect packet exported while the live Mercury route remained demo-only.',
+    });
+    showNotice('Multi-dashboard redirect packet saved in demo mode.');
+  };
+  const runRedirectAction = (targetLocationId = selectedRedirectLocation.id) => {
+    const targetLocation =
+      STORE_LOCATIONS.find((item) => item.id === targetLocationId) ||
+      selectedRedirectLocation;
+    setSelectedRedirectStoreId(targetLocation.id);
+    setLocationId(targetLocation.id);
+    setView('today');
+    pushRedirectActionEvent({
+      rowId: targetLocation.id,
+      action: 'Redirected to store dashboard',
+      status: 'Complete',
+      note: `${targetLocation.name} was redirected to Today's Summary inside StoreCheck while the live Mercury route remained pending.`,
+    });
+    showNotice(`${targetLocation.name} opened from the multi-dashboard redirect in demo mode.`);
+  };
+  const exportRedirectEvents = (format) => {
+    if (!selectedRedirectEvents.length) return;
+    downloadTableData(selectedRedirectEvents, format, `storecheck-multi-dashboard-events-${slugify(selectedRedirectLocation.name)}`);
+  };
   const pushCompareSearchEvent = ({ rowId, action, status, note }) => {
     const time = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
     setCompareSearchEvents((current) => [
@@ -16568,7 +16659,7 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
           <div className="purchase-stack">
             <div className="purchase-summary-grid">
               {MULTI_STORE_OVERVIEW.map((row) => (
-                <div className="purchase-note-card" key={row.id}>
+                <div className="purchase-note-card" key={row.id} style={row.id === selectedRedirectLocation.id ? { borderColor: 'rgba(39,198,107,0.24)' } : undefined}>
                   <div className="purchase-panel-head">
                     <div>
                       <h3>{row.store}</h3>
@@ -16583,10 +16674,10 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
                     <div className="purchase-kv"><span>Cash diff</span><span>{fmt(Math.abs(row.cashDiff))}</span></div>
                   </div>
                   <div className="pricebook-actions" style={{ marginTop: 16 }}>
-                    <button className="pricebook-btn" onClick={() => { setLocationId(row.id); showNotice(`${row.store} set as the active store.`); }}>
-                      <Icon name="connect" size={15} /> Make active
+                    <button className="pricebook-btn soft" onClick={() => setSelectedRedirectStoreId(row.id)}>
+                      <Icon name="report" size={15} /> Review redirect
                     </button>
-                    <button className="pricebook-btn primary" onClick={() => { setLocationId(row.id); setView('today'); showNotice(`Opening ${row.store} dashboard in demo mode.`); }}>
+                    <button className="pricebook-btn primary" onClick={() => runRedirectAction(row.id)}>
                       <Icon name="home" size={15} /> Open dashboard
                     </button>
                   </div>
@@ -16597,16 +16688,93 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
 
           <div className="purchase-stack">
             <div className="purchase-note-card">
-              <h3>Multi-dashboard redirect</h3>
-              <p>Replacement shell for Mercury multi-dashboard redirect and store-picker flow.</p>
+              <div className="purchase-panel-head">
+                <div>
+                  <h3>Multi-dashboard redirect depth</h3>
+                  <p>Mercury route: <strong>/user/redirectMultiDashboard</strong></p>
+                </div>
+                <span className="purchase-tag amber">Partial</span>
+              </div>
               <div className="purchase-kv-list">
-                <div className="purchase-kv"><span>Active location</span><span>{currentLocation.name}</span></div>
+                <div className="purchase-kv"><span>Selected store</span><span>{selectedRedirectLocation.name}</span></div>
+                <div className="purchase-kv"><span>Destination</span><span>Today's Summary</span></div>
+                <div className="purchase-kv"><span>Redirect context</span><span>{redirectContextLabel}</span></div>
+                <div className="purchase-kv"><span>Current active</span><span>{currentLocation.name}</span></div>
+              </div>
+              <div className="pricebook-actions" style={{ marginTop: 16, flexWrap: 'wrap' }}>
+                <button className="pricebook-btn" onClick={() => previewRedirectPacket()}>
+                  <Icon name="report" size={15} /> Preview route packet
+                </button>
+                <button className="pricebook-btn" onClick={() => saveRedirectPacket()}>
+                  <Icon name="cash" size={15} /> Save route packet
+                </button>
+                <button className="pricebook-btn primary" onClick={() => runRedirectAction(selectedRedirectLocation.id)}>
+                  <Icon name="home" size={15} /> Open dashboard
+                </button>
+              </div>
+            </div>
+
+            <div className="purchase-note-card">
+              <div className="purchase-panel-head">
+                <div>
+                  <h3>Selected redirect row</h3>
+                  <p>{selectedRedirectLocation.name} · {selectedRedirectLocation.location}</p>
+                </div>
+                <span className={`purchase-tag${currentLocation.id === selectedRedirectLocation.id ? ' blue' : ' amber'}`}>{currentLocation.id === selectedRedirectLocation.id ? 'Ready now' : 'Queued redirect'}</span>
+              </div>
+              <div className="purchase-kv-list">
+                <div className="purchase-kv"><span>Manager</span><span>{selectedRedirectLocation.manager}</span></div>
+                <div className="purchase-kv"><span>Store status</span><span>{selectedRedirectOverview.status}</span></div>
+                <div className="purchase-kv"><span>Total sales</span><span>{fmt(selectedRedirectOverview.total)}</span></div>
+                <div className="purchase-kv"><span>Fuel / Shop</span><span>{fmt(selectedRedirectOverview.fuel)} / {fmt(selectedRedirectOverview.shop)}</span></div>
+                <div className="purchase-kv"><span>Cash diff</span><span>{fmt(Math.abs(selectedRedirectOverview.cashDiff))}</span></div>
+              </div>
+            </div>
+
+            <div className="purchase-note-card">
+              <div className="purchase-panel-head">
+                <div>
+                  <h3>Redirect events</h3>
+                  <p>{selectedRedirectLocation.name} · /user/redirectMultiDashboard</p>
+                </div>
+                <span className="purchase-tag amber">Partial</span>
+              </div>
+              <div className="pricebook-actions" style={{ marginBottom: 16, flexWrap: 'wrap' }}>
+                {['CSV', 'XLS', 'JSON'].map((format) => (
+                  <button key={format} className="pricebook-btn" onClick={() => exportRedirectEvents(format)}>
+                    <Icon name="cash" size={15} /> {format}
+                  </button>
+                ))}
+              </div>
+              <div className="alerts-list">
+                {selectedRedirectEvents.length ? selectedRedirectEvents.map((row) => (
+                  <div key={row.id} className="alert-item" style={{ alignItems: 'flex-start' }}>
+                    <Icon
+                      name={row.action.includes('Saved') ? 'cash' : row.action.includes('Previewed') ? 'report' : 'home'}
+                      size={18}
+                      bg={row.action.includes('Saved') ? iconDefaults.green.bg : row.action.includes('Previewed') ? iconDefaults.blue.bg : iconDefaults.green.bg}
+                      fg={row.action.includes('Saved') ? '#15803D' : row.action.includes('Previewed') ? '#3B82F6' : '#15803D'}
+                    />
+                    <div className="alert-copy">
+                      <div className="alert-text">{row.action}</div>
+                      <div className="pricebook-detail-sub">{row.time} · {row.actor} · {row.status}</div>
+                      <div className="pricebook-detail-sub">{row.note}</div>
+                    </div>
+                  </div>
+                )) : (
+                  <div className="pricebook-detail-sub">No redirect event history is visible for this selected store yet.</div>
+                )}
+              </div>
+            </div>
+
+            <div className="purchase-note-card">
+              <h3>Redirect coverage</h3>
+              <p>This keeps the Mercury multi-dashboard handoff visible before real redirect wiring is connected.</p>
+              <div className="purchase-kv-list">
                 <div className="purchase-kv"><span>Picker coverage</span><span>Sidebar + Settings + Multi-Store + Login Flow</span></div>
                 <div className="purchase-kv"><span>Redirect mode</span><span>Dashboard shell only</span></div>
+                <div className="purchase-kv"><span>Owner review</span><span>Packet + event rail</span></div>
               </div>
-              <button className="pricebook-btn primary" style={{ marginTop: 16 }} onClick={() => { setView('today'); showNotice(`Redirected to ${currentLocation.name} in demo mode.`); }}>
-                <Icon name="home" size={15} /> Open active store
-              </button>
             </div>
           </div>
         </div>
