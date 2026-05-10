@@ -16203,6 +16203,11 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
     { id: 'AUTH-1', time: '08:42', step: 'Location picker opened', route: '/user/viewLocations', store: 'Main Street Gas & Go', status: 'Ready' },
     { id: 'AUTH-2', time: '08:43', step: 'Redirect to dashboard', route: '/user/openHomePage', store: 'Main Street Gas & Go', status: 'Complete' },
   ]);
+  const [pickerActionEvents, setPickerActionEvents] = useState([
+    { id: 'LPR-3601', rowId: 'main-street', time: '2026-05-09 22:52', actor: 'Store manager', route: '/user/viewLocations', action: 'Previewed location-picker packet', status: 'Opened', note: 'Owner reviewed the post-login location picker packet before the live Mercury route was connected.' },
+    { id: 'LPR-3602', rowId: 'main-street', time: '2026-05-09 22:56', actor: 'Store manager', route: '/user/viewLocations', action: 'Saved location-picker packet', status: 'Ready', note: 'Location-picker packet exported while the live Mercury route remained demo-only.' },
+    { id: 'LPR-3603', rowId: 'north-avenue', time: '2026-05-08 10:59', actor: 'StoreCheck demo', route: '/user/viewLocations', action: 'Selected location in picker', status: 'Selected', note: 'Location selection stayed inside StoreCheck while the live Mercury route remained pending.' },
+  ]);
   const [redirectActionEvents, setRedirectActionEvents] = useState([
     { id: 'MDR-3501', rowId: 'main-street', time: '2026-05-09 22:31', actor: 'Store manager', route: '/user/redirectMultiDashboard', action: 'Previewed multi-dashboard packet', status: 'Opened', note: 'Owner reviewed the dashboard redirect packet before the live Mercury route was connected.' },
     { id: 'MDR-3502', rowId: 'main-street', time: '2026-05-09 22:34', actor: 'Store manager', route: '/user/redirectMultiDashboard', action: 'Saved multi-dashboard packet', status: 'Ready', note: 'Dashboard redirect packet exported while the live Mercury route remained demo-only.' },
@@ -16256,6 +16261,11 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
     STORE_LOCATIONS.find((item) => item.id === loginLocationId) ||
     filteredLoginLocations[0] ||
     STORE_LOCATIONS[0];
+  const selectedLoginOverview =
+    MULTI_STORE_OVERVIEW.find((row) => row.id === selectedLoginLocation.id) ||
+    MULTI_STORE_OVERVIEW[0];
+  const selectedPickerEvents = pickerActionEvents.filter((row) => row.rowId === selectedLoginLocation.id);
+  const loginContextLabel = `${selectedLoginLocation.name} · ${selectedLoginLocation.location}`;
   const launcherTargets = [
     { id: 'today', label: "Today's Summary", icon: 'home', note: 'Open dashboard after login redirect' },
     { id: 'fuel', label: 'Fuel', icon: 'fuel', note: 'Jump straight to deliveries and margins' },
@@ -16293,6 +16303,14 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
     CashDiff: row.cashDiff.toFixed(2),
   }));
   const comparePacketRows = filteredCompare.map((row) => [row.store, compareDate, fmt(row.fuel), fmt(row.shop), fmt(row.lottery), fmt(row.total), fmtN(row.gallons, 0), fmt(Math.abs(row.cashDiff))]);
+  const loginPickerPacketRows = filteredLoginLocations.map((item) => [
+    item.id,
+    item.name,
+    item.location,
+    item.manager,
+    item.status,
+    item.id === selectedLoginLocation.id ? 'Selected' : 'Available',
+  ]);
   const redirectPacketRows = [[
     selectedRedirectLocation.id,
     selectedRedirectLocation.name,
@@ -16356,24 +16374,67 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
       ...current,
     ].slice(0, 6));
   };
+  const pushPickerActionEvent = ({ rowId, action, status, note }) => {
+    const time = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    setPickerActionEvents((current) => [
+      {
+        id: `LPR-${Date.now()}`,
+        rowId,
+        time,
+        actor: 'Store manager',
+        route: '/user/viewLocations',
+        action,
+        status,
+        note,
+      },
+      ...current,
+    ].slice(0, 24));
+  };
   const previewLocationPicker = () =>
-    openMultiStorePacket({
-      title: 'Post-Login Location Picker',
-      subtitle: `${selectedLoginLocation.name} · selected for session`,
-      headers: ['Store', 'Location', 'Manager', 'Status', 'Selected'],
-      rows: filteredLoginLocations.map((item) => [item.name, item.location, item.manager, item.status, item.id === selectedLoginLocation.id ? 'Yes' : 'No']),
-    });
+    (openMultiStorePacket({
+      title: 'Location picker review depth',
+      subtitle: `${loginContextLabel} · /user/viewLocations`,
+      headers: ['LocationId', 'Store', 'Location', 'Manager', 'Status', 'Selection'],
+      rows: loginPickerPacketRows,
+    }),
+    pushPickerActionEvent({
+      rowId: selectedLoginLocation.id,
+      action: 'Previewed location-picker packet',
+      status: 'Opened',
+      note: `Owner reviewed the ${selectedLoginLocation.name} location-choice packet before the live Mercury route was connected.`,
+    }),
+    showNotice('Location-picker packet preview opened in demo mode.'));
   const saveLocationPickerPacket = () => {
     saveMultiStorePacket({
-      title: 'Post-Login Location Picker Packet',
-      subtitle: `${selectedLoginLocation.name} · selected for session`,
+      title: 'Location picker review depth',
+      subtitle: `${loginContextLabel} · /user/viewLocations`,
       route: '/user/viewLocations',
       note: 'Post-auth location picker replacement shell',
-      headers: ['Store', 'Location', 'Manager', 'Status', 'Selected'],
-      rows: filteredLoginLocations.map((item) => [item.name, item.location, item.manager, item.status, item.id === selectedLoginLocation.id ? 'Yes' : 'No']),
-      filename: 'storecheck-post-login-location-picker',
+      headers: ['LocationId', 'Store', 'Location', 'Manager', 'Status', 'Selection'],
+      rows: loginPickerPacketRows,
+      filename: 'storecheck-location-picker-review',
+    });
+    pushPickerActionEvent({
+      rowId: selectedLoginLocation.id,
+      action: 'Saved location-picker packet',
+      status: 'Ready',
+      note: 'Location-picker packet exported while the live Mercury route remained demo-only.',
     });
     showNotice('Location-picker packet saved in demo mode.');
+  };
+  const reviewLoginLocation = (locationId) => {
+    const targetLocation =
+      STORE_LOCATIONS.find((item) => item.id === locationId) ||
+      selectedLoginLocation;
+    setLoginLocationId(targetLocation.id);
+    pushPickerActionEvent({
+      rowId: targetLocation.id,
+      action: 'Selected location in picker',
+      status: 'Selected',
+      note: `${targetLocation.name} was selected inside the post-login location picker while the live Mercury route remained pending.`,
+    });
+    stampAuthFlow('Location selected', '/user/viewLocations', targetLocation.name, 'Selected');
+    showNotice(`${targetLocation.name} selected in the post-login picker.`);
   };
   const openHomeRedirect = () => {
     setLocationId(selectedLoginLocation.id);
@@ -16410,6 +16471,10 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
       filename: 'storecheck-module-launcher',
     });
     showNotice('Module-launcher packet saved in demo mode.');
+  };
+  const exportPickerEvents = (format) => {
+    if (!selectedPickerEvents.length) return;
+    downloadTableData(selectedPickerEvents, format, `storecheck-location-picker-events-${slugify(selectedLoginLocation.name)}`);
   };
   const exportCompare = (format) => downloadTableData(filteredCompare, format, 'storecheck-multi-store-compare');
   const pushRedirectActionEvent = ({ rowId, action, status, note }) => {
@@ -17057,22 +17122,22 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
             <div className="purchase-surface">
               <div className="pricebook-toolbar" style={{ padding: '20px 20px 0' }}>
                 <div>
-                  <div className="pricebook-detail-title">Post-login location picker</div>
-                  <div className="pricebook-detail-sub">Make the Mercury location selection and home redirect visible before the module launcher opens.</div>
+                  <div className="pricebook-detail-title">Location picker review depth</div>
+                  <div className="pricebook-detail-sub">Mercury route: <strong>/user/viewLocations</strong></div>
                 </div>
                 <div className="pricebook-actions">
                   <input className="pricebook-input" value={loginSearch} onChange={(e) => setLoginSearch(e.target.value)} placeholder="Search stores, manager, or address" />
                   <button className="pricebook-btn" onClick={() => previewLocationPicker()}>
-                    <Icon name="report" size={15} /> Preview picker
+                    <Icon name="report" size={15} /> Preview route packet
                   </button>
                   <button className="pricebook-btn" onClick={() => saveLocationPickerPacket()}>
-                    <Icon name="cash" size={15} /> Save packet
+                    <Icon name="cash" size={15} /> Save route packet
                   </button>
                 </div>
               </div>
               <div className="purchase-summary-grid">
                 {filteredLoginLocations.map((item) => (
-                  <div className="purchase-note-card" key={item.id}>
+                  <div className="purchase-note-card" key={item.id} style={item.id === selectedLoginLocation.id ? { borderColor: 'rgba(39,198,107,0.24)' } : undefined}>
                     <div className="purchase-panel-head">
                       <div>
                         <h3>{item.name}</h3>
@@ -17085,7 +17150,10 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
                       <div className="purchase-kv"><span>Manager</span><span>{item.manager}</span></div>
                     </div>
                     <div className="pricebook-actions" style={{ marginTop: 16 }}>
-                      <button className="pricebook-btn" onClick={() => { setLoginLocationId(item.id); stampAuthFlow('Location selected', '/user/viewLocations', item.name, 'Selected'); showNotice(`${item.name} selected in the post-login picker.`); }}>
+                      <button className="pricebook-btn soft" onClick={() => reviewLoginLocation(item.id)}>
+                        <Icon name="report" size={15} /> Review row
+                      </button>
+                      <button className="pricebook-btn" onClick={() => reviewLoginLocation(item.id)}>
                         <Icon name="connect" size={15} /> Select store
                       </button>
                       <button className="pricebook-btn primary" onClick={() => { setLoginLocationId(item.id); setLocationId(item.id); setView('today'); stampAuthFlow('Redirect to dashboard', '/user/openHomePage', item.name, 'Complete'); showNotice(`${item.name} opened from the post-login picker in demo mode.`); }}>
@@ -17100,21 +17168,85 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
 
           <div className="purchase-stack">
             <div className="purchase-note-card">
-              <h3>Selected login location</h3>
-              <p>Keep the chosen location and redirect route visible before opening the dashboard or a module.</p>
+              <div className="purchase-panel-head">
+                <div>
+                  <h3>Location picker review depth</h3>
+                  <p>{selectedLoginLocation.name} · /user/viewLocations</p>
+                </div>
+                <span className="purchase-tag amber">Partial</span>
+              </div>
               <div className="purchase-kv-list">
-                <div className="purchase-kv"><span>Store</span><span>{selectedLoginLocation.name}</span></div>
-                <div className="purchase-kv"><span>Manager</span><span>{selectedLoginLocation.manager}</span></div>
+                <div className="purchase-kv"><span>Selected store</span><span>{selectedLoginLocation.name}</span></div>
+                <div className="purchase-kv"><span>Search results</span><span>{fmtN(filteredLoginLocations.length)}</span></div>
                 <div className="purchase-kv"><span>Picker route</span><span>/user/viewLocations</span></div>
                 <div className="purchase-kv"><span>Home route</span><span>/user/openHomePage</span></div>
               </div>
-              <div className="pricebook-actions" style={{ marginTop: 16 }}>
+              <div className="pricebook-actions" style={{ marginTop: 16, flexWrap: 'wrap' }}>
+                <button className="pricebook-btn" onClick={() => previewLocationPicker()}>
+                  <Icon name="report" size={15} /> Preview route packet
+                </button>
+                <button className="pricebook-btn" onClick={() => saveLocationPickerPacket()}>
+                  <Icon name="cash" size={15} /> Save route packet
+                </button>
                 <button className="pricebook-btn" onClick={() => saveHomeRedirectPacket()}>
                   <Icon name="cash" size={15} /> Save redirect
                 </button>
                 <button className="pricebook-btn primary" onClick={() => openHomeRedirect()}>
                   <Icon name="home" size={15} /> Open home
                 </button>
+              </div>
+            </div>
+
+            <div className="purchase-note-card">
+              <div className="purchase-panel-head">
+                <div>
+                  <h3>Selected picker row</h3>
+                  <p>{selectedLoginLocation.name} · {selectedLoginLocation.location}</p>
+                </div>
+                <span className={`purchase-tag${currentLocation.id === selectedLoginLocation.id ? ' blue' : ' amber'}`}>{currentLocation.id === selectedLoginLocation.id ? 'Active now' : 'Selected'}</span>
+              </div>
+              <div className="purchase-kv-list">
+                <div className="purchase-kv"><span>Manager</span><span>{selectedLoginLocation.manager}</span></div>
+                <div className="purchase-kv"><span>Store status</span><span>{selectedLoginLocation.status}</span></div>
+                <div className="purchase-kv"><span>Total sales</span><span>{fmt(selectedLoginOverview.total)}</span></div>
+                <div className="purchase-kv"><span>Fuel / Shop</span><span>{fmt(selectedLoginOverview.fuel)} / {fmt(selectedLoginOverview.shop)}</span></div>
+                <div className="purchase-kv"><span>Cash diff</span><span>{fmt(Math.abs(selectedLoginOverview.cashDiff))}</span></div>
+              </div>
+            </div>
+
+            <div className="purchase-note-card">
+              <div className="purchase-panel-head">
+                <div>
+                  <h3>Picker events</h3>
+                  <p>{selectedLoginLocation.name} · /user/viewLocations</p>
+                </div>
+                <span className="purchase-tag amber">Partial</span>
+              </div>
+              <div className="pricebook-actions" style={{ marginBottom: 16, flexWrap: 'wrap' }}>
+                {['CSV', 'XLS', 'JSON'].map((format) => (
+                  <button key={format} className="pricebook-btn" onClick={() => exportPickerEvents(format)}>
+                    <Icon name="cash" size={15} /> {format}
+                  </button>
+                ))}
+              </div>
+              <div className="alerts-list">
+                {selectedPickerEvents.length ? selectedPickerEvents.map((row) => (
+                  <div key={row.id} className="alert-item" style={{ alignItems: 'flex-start' }}>
+                    <Icon
+                      name={row.action.includes('Saved') ? 'cash' : row.action.includes('Previewed') ? 'report' : 'connect'}
+                      size={18}
+                      bg={row.action.includes('Saved') ? iconDefaults.green.bg : row.action.includes('Previewed') ? iconDefaults.blue.bg : iconDefaults.green.bg}
+                      fg={row.action.includes('Saved') ? '#15803D' : row.action.includes('Previewed') ? '#3B82F6' : '#15803D'}
+                    />
+                    <div className="alert-copy">
+                      <div className="alert-text">{row.action}</div>
+                      <div className="pricebook-detail-sub">{row.time} · {row.actor} · {row.status}</div>
+                      <div className="pricebook-detail-sub">{row.note}</div>
+                    </div>
+                  </div>
+                )) : (
+                  <div className="pricebook-detail-sub">No picker event history is visible for this selected store yet.</div>
+                )}
               </div>
             </div>
 
