@@ -19096,6 +19096,11 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
   const [selectedReleaseId, setSelectedReleaseId] = useState('REL-1');
   const [releaseFilter, setReleaseFilter] = useState('All');
   const [releaseSearch, setReleaseSearch] = useState('');
+  const [releaseEvents, setReleaseEvents] = useState([
+    { id: 'RLE-4001', rowId: 'REL-1', time: '06:48', actor: 'Owner session', route: '/user/openReleasePage', action: 'Previewed release page', status: 'Opened', note: 'Owner reviewed the latest release-note packet before the live Mercury route was connected.' },
+    { id: 'RLE-4002', rowId: 'REL-1', time: '06:49', actor: 'Owner session', route: '/user/openReleasePage', action: 'Saved release packet', status: 'Ready', note: 'Release-note packet exported while the live Mercury route remained demo-only.' },
+    { id: 'RLE-4003', rowId: 'REL-2', time: '05:32', actor: 'Owner session', route: '/user/openReleasePage', action: 'Marked release reviewed', status: 'Reviewed', note: 'Prior release note was reviewed before the session-close handoff.' },
+  ]);
   const [logoutQueue, setLogoutQueue] = useState([
     { id: 'LQ-1', time: '17:12', reason: 'End of shift', destination: 'Return to login', store: 'Main Street Gas & Go', status: 'Pending updates', note: 'Release notes still need owner review before the logout can fully close.' },
     { id: 'LQ-2', time: '08:05', reason: 'Store handoff', destination: 'Open release notes', store: 'Sandy Cross Fuel Center', status: 'Complete', note: 'Release notes were reviewed before the store-handoff logout closed.' },
@@ -19135,9 +19140,11 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
     logoutQueue[0] ||
     null;
   const selectedLogoutEvents = selectedLogoutQueue ? logoutEvents.filter((item) => item.rowId === selectedLogoutQueue.id) : [];
+  const selectedReleaseEvents = selectedRelease ? releaseEvents.filter((item) => item.rowId === selectedRelease.id) : [];
   const latestLicenceCheck = licenceCheckRows[0];
   const latestAgreementSave = agreementSaveRows[0];
   const latestRegisterRefresh = registerRefreshRows[0];
+  const latestRelease = releaseRows[0];
   const latestLogoutQueue = logoutQueue[0];
   const visibleReleaseRows = releaseRows.filter((item) => {
     const matchesFilter = releaseFilter === 'All' ? true : item.status === releaseFilter;
@@ -19579,13 +19586,43 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
     });
     showSessionNotice(`Logout handoff staged for ${currentLocation.name} in demo mode. Real \`/user/logout\` wiring still pending.`);
   };
-  const previewReleaseNotes = () =>
+  const pushReleaseEvent = ({ rowId = selectedRelease?.id, action, status, note }) => {
+    if (!rowId) return;
+    const time = stampSessionTime();
+    setReleaseEvents((current) => [
+      {
+        id: `RLE-${Date.now()}`,
+        rowId,
+        time,
+        actor: 'Owner session',
+        route: '/user/openReleasePage',
+        action,
+        status,
+        note,
+      },
+      ...current,
+    ].slice(0, 24));
+  };
+  const exportReleaseEvents = (format) => {
+    if (!selectedReleaseEvents.length) return;
+    downloadTableData(selectedReleaseEvents, format, `storecheck-release-events-${String(selectedRelease?.id || 'session').toLowerCase()}`);
+  };
+  const previewReleaseNotes = (item = selectedRelease || latestRelease) => {
+    if (!item) return;
+    setSelectedReleaseId(item.id);
     openSettingsPacket({
-      title: 'Release Notes',
-      subtitle: `${currentLocation.name} · StoreCheck updates`,
-      headers: ['Date', 'Title', 'Status', 'Note'],
-      rows: releaseRows.map((item) => [item.date, item.title, item.status, item.note]),
+      title: 'Release Page Endpoint Review',
+      subtitle: `${currentLocation.name} · ${item.title}`,
+      headers: ['Date', 'Title', 'Status', 'Audience', 'Route', 'Note'],
+      rows: [[item.date, item.title, item.status, item.audience, '/user/openReleasePage', item.note]],
     });
+    pushReleaseEvent({
+      rowId: item.id,
+      action: 'Previewed release page',
+      status: 'Opened',
+      note: `Owner reviewed the ${item.title} release-note packet before the live Mercury route was connected.`,
+    });
+  };
   const openSelectedRelease = (item = selectedRelease) => {
     if (!item) return;
     setSelectedReleaseId(item.id);
@@ -19598,24 +19635,40 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
       headers: ['Date', 'Title', 'Status', 'Audience', 'Note'],
       rows: [[item.date, item.title, item.status, item.audience, item.note]],
     });
+    pushReleaseEvent({
+      rowId: item.id,
+      action: 'Opened release page',
+      status: item.status === 'Needs review' ? 'Opened' : item.status,
+      note: `${item.title} was opened in demo mode before the live Mercury route was connected.`,
+    });
     showSessionNotice(`${item.id} opened in demo mode. Live \`/user/openReleasePage\` wiring still pending.`);
   };
-  const saveReleaseNotesPacket = () => {
+  const saveReleaseNotesPacket = (item = selectedRelease || latestRelease) => {
     saveSettingsPacket({
-      title: 'Release Notes Packet',
-      subtitle: `${currentLocation.name} · StoreCheck updates`,
+      title: 'Release Page Endpoint Depth',
+      subtitle: `${currentLocation.name} · ${item ? item.title : 'StoreCheck updates'}`,
       route: '/user/openReleasePage',
       note: 'Release notes and updates replacement shell',
-      headers: ['Date', 'Title', 'Status', 'Note'],
-      rows: releaseRows.map((item) => [item.date, item.title, item.status, item.note]),
+      headers: ['Date', 'Title', 'Status', 'Audience', 'Route', 'Note'],
+      rows: releaseRows.map((row) => [row.date, row.title, row.status, row.audience, '/user/openReleasePage', row.note]),
       filename: 'storecheck-release-notes',
     });
+    if (item) {
+      setSelectedReleaseId(item.id);
+      pushReleaseEvent({
+        rowId: item.id,
+        action: 'Saved release packet',
+        status: 'Ready',
+        note: 'Release-note packet exported while the live Mercury route remained demo-only.',
+      });
+    }
     showSessionNotice('Release-notes packet saved in demo mode.');
   };
   const saveSelectedReleasePacket = (item = selectedRelease) => {
     if (!item) return;
+    setSelectedReleaseId(item.id);
     saveSettingsPacket({
-      title: 'Release Review Packet',
+      title: 'Selected Release Packet',
       subtitle: `${currentLocation.name} · ${item.title}`,
       route: '/user/openReleasePage',
       note: 'Release-note review replacement shell',
@@ -19623,12 +19676,39 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
       rows: [[item.date, item.title, item.status, item.audience, item.note]],
       filename: `storecheck-release-${String(item.id).toLowerCase()}`,
     });
+    pushReleaseEvent({
+      rowId: item.id,
+      action: 'Saved selected release',
+      status: 'Ready',
+      note: `${item.title} was exported as the selected release-note packet in demo mode.`,
+    });
     showSessionNotice(`${item.id} release packet saved in demo mode.`);
   };
   const markReleaseReviewed = (id) => {
-    setReleaseRows((current) => current.map((item) => (item.id === id ? { ...item, status: 'Reviewed' } : item)));
+    const item = releaseRows.find((entry) => entry.id === id);
+    setReleaseRows((current) => current.map((entry) => (entry.id === id ? { ...entry, status: 'Reviewed' } : entry)));
     setSelectedReleaseId(id);
+    if (item) {
+      pushReleaseEvent({
+        rowId: id,
+        action: 'Marked release reviewed',
+        status: 'Reviewed',
+        note: `${item.title} was marked reviewed before the session-close handoff proceeded.`,
+      });
+    }
     showSessionNotice(`${id} marked reviewed in demo mode.`);
+  };
+  const tieReleaseToLogout = (item = selectedRelease) => {
+    if (!item) return;
+    setSelectedReleaseId(item.id);
+    setLogoutDestination('Open release notes');
+    pushReleaseEvent({
+      rowId: item.id,
+      action: 'Tied release to logout',
+      status: 'Queued',
+      note: `${item.title} was tied to the logout handoff so the owner lands on release notes after session close.`,
+    });
+    showSessionNotice(`${item.id} tied to logout in demo mode.`);
   };
 
   return (
@@ -20186,13 +20266,18 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
         </div>
 
         <div className="settings-card">
-          <div className="settings-title">Release Notes & Updates</div>
-          <div className="settings-sub">Replacement shell for Mercury release notes and update visibility.</div>
+          <div className="settings-title">Release Page Endpoint Depth</div>
+          <div className="settings-sub">Owner-facing `/user/openReleasePage` review with selected update visibility and logout tie-in.</div>
           <div className="pricebook-actions" style={{ marginBottom: 16, flexWrap: 'wrap' }}>
             <input className="pricebook-input" value={releaseSearch} onChange={(e) => setReleaseSearch(e.target.value)} placeholder="Search updates" />
             <select className="pricebook-select" value={releaseFilter} onChange={(e) => setReleaseFilter(e.target.value)}>
               {['All', 'Needs review', 'Opened', 'Reviewed'].map((item) => <option key={item}>{item}</option>)}
             </select>
+          </div>
+          <div className="purchase-kv-list">
+            <div className="purchase-kv"><span>Selected update</span><span>{selectedRelease?.title || 'Pending'}</span></div>
+            <div className="purchase-kv"><span>Selected status</span><span>{selectedRelease?.status || 'Pending'}</span></div>
+            <div className="purchase-kv"><span>Release route</span><span>/user/openReleasePage</span></div>
           </div>
           {visibleReleaseRows.map((item) => (
             <div key={item.id} className="toggle-row" onClick={() => setSelectedReleaseId(item.id)} style={{ cursor: 'pointer' }}>
@@ -20200,25 +20285,20 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
                 <div style={{ fontWeight: 800 }}>{item.title}</div>
                 <div style={{ color: 'var(--text-3)', fontSize: 12, marginTop: 4 }}>{item.date} · {item.audience} · {item.note}</div>
               </div>
-              <span className={`purchase-tag${item.status === 'Needs review' ? ' amber' : item.status === 'Reviewed' ? ' blue' : ''}`}>{item.status}</span>
+              <div className="pricebook-actions" style={{ gap: 8 }}>
+                <span className={`purchase-tag${item.status === 'Needs review' ? ' amber' : item.status === 'Reviewed' ? ' blue' : ''}`}>{item.status}</span>
+                <button className="pricebook-btn soft" onClick={() => setSelectedReleaseId(item.id)}>Review</button>
+              </div>
             </div>
           ))}
-          {selectedRelease ? (
-            <div className="purchase-kv-list">
-              <div className="purchase-kv"><span>Selected update</span><span>{selectedRelease.title}</span></div>
-              <div className="purchase-kv"><span>Status</span><span>{selectedRelease.status}</span></div>
-              <div className="purchase-kv"><span>Date</span><span>{selectedRelease.date}</span></div>
-              <div className="purchase-kv"><span>Audience</span><span>{selectedRelease.audience}</span></div>
-            </div>
-          ) : null}
-          <div className="pricebook-actions" style={{ marginTop: 16 }}>
+          <div className="pricebook-actions" style={{ marginTop: 16, flexWrap: 'wrap' }}>
+            <button className="pricebook-btn" onClick={() => previewReleaseNotes(selectedRelease || latestRelease)}>
+              <Icon name="report" size={15} /> Preview release
+            </button>
             <button className="pricebook-btn" onClick={() => openSelectedRelease(selectedRelease)}>
               <Icon name="report" size={15} /> Open update
             </button>
-            <button className="pricebook-btn" onClick={() => previewReleaseNotes()}>
-              <Icon name="report" size={15} /> Preview notes
-            </button>
-            <button className="pricebook-btn" onClick={() => saveReleaseNotesPacket()}>
+            <button className="pricebook-btn" onClick={() => saveReleaseNotesPacket(selectedRelease || latestRelease)}>
               <Icon name="cash" size={15} /> Save packet
             </button>
             {selectedRelease ? (
@@ -20234,24 +20314,26 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
         </div>
 
         <div className="settings-card">
-          <div className="settings-title">Selected Update</div>
+          <div className="settings-title">Selected Release Review</div>
           <div className="settings-sub">Owner-facing release visibility stays tied to the current session and logout handoff.</div>
           {selectedRelease ? (
             <>
               <div className="purchase-kv-list">
                 <div className="purchase-kv"><span>Update</span><span>{selectedRelease.title}</span></div>
+                <div className="purchase-kv"><span>Date</span><span>{selectedRelease.date}</span></div>
                 <div className="purchase-kv"><span>Status</span><span>{selectedRelease.status}</span></div>
                 <div className="purchase-kv"><span>Audience</span><span>{selectedRelease.audience}</span></div>
                 <div className="purchase-kv"><span>Route</span><span>/user/openReleasePage</span></div>
+                <div className="purchase-kv"><span>Note</span><span>{selectedRelease.note}</span></div>
               </div>
-              <div className="pricebook-actions" style={{ marginTop: 16 }}>
+              <div className="pricebook-actions" style={{ marginTop: 16, flexWrap: 'wrap' }}>
                 <button className="pricebook-btn" onClick={() => saveSelectedReleasePacket(selectedRelease)}>
                   <Icon name="cash" size={15} /> Save selected
                 </button>
                 <button className="pricebook-btn" onClick={() => markReleaseReviewed(selectedRelease.id)}>
                   <Icon name="sync" size={15} /> Mark reviewed
                 </button>
-                <button className="pricebook-btn primary" onClick={() => setLogoutDestination('Open release notes')}>
+                <button className="pricebook-btn primary" onClick={() => tieReleaseToLogout(selectedRelease)}>
                   <Icon name="connect" size={15} /> Tie to logout
                 </button>
               </div>
@@ -20259,6 +20341,37 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
           ) : (
             <div className="purchase-hint">No release note is selected right now.</div>
           )}
+        </div>
+
+        <div className="settings-card">
+          <div className="settings-title">Release Page Events</div>
+          <div className="settings-sub">Track route-specific `/user/openReleasePage` activity before live wiring is connected.</div>
+          <div className="pricebook-actions" style={{ marginBottom: 16, flexWrap: 'wrap' }}>
+            {['CSV', 'XLS', 'JSON'].map((format) => (
+              <button key={format} className="pricebook-btn" onClick={() => exportReleaseEvents(format)}>
+                <Icon name="cash" size={15} /> {format}
+              </button>
+            ))}
+          </div>
+          <div className="alerts-list">
+            {selectedReleaseEvents.length ? selectedReleaseEvents.map((item) => (
+              <div key={item.id} className="alert-item" style={{ alignItems: 'flex-start' }}>
+                <Icon
+                  name={item.action.includes('Saved') ? 'cash' : item.action.includes('Previewed') || item.action.includes('Opened') ? 'report' : 'connect'}
+                  size={18}
+                  bg={item.action.includes('Saved') ? iconDefaults.green.bg : item.action.includes('Previewed') || item.action.includes('Opened') ? iconDefaults.blue.bg : iconDefaults.slate.bg}
+                  fg={item.action.includes('Saved') ? '#15803D' : item.action.includes('Previewed') || item.action.includes('Opened') ? '#3B82F6' : '#64748B'}
+                />
+                <div className="alert-copy">
+                  <div className="alert-text">{item.action}</div>
+                  <div className="pricebook-detail-sub">{item.time} · {item.actor} · {item.status}</div>
+                  <div className="pricebook-detail-sub">{item.note}</div>
+                </div>
+              </div>
+            )) : (
+              <div className="pricebook-detail-sub">No release-page event history is visible for this selected update yet.</div>
+            )}
+          </div>
         </div>
       </div>
     </div>
