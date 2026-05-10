@@ -20670,10 +20670,17 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
     { id: 'RSR-903', packetId: 'SPP-2', time: '2026-05-08 08:00', actor: 'StoreCheck demo', route: '/shifts/createSummaryPdf', action: 'Queued summary PDF route handoff', status: 'Queued', note: 'Previous summary-PDF rerun handoff stayed visible in demo mode.' },
   ]);
   const [reportWindowName, setReportWindowName] = useState('weekly-summary');
+  const [reportWindowPacketRows, setReportWindowPacketRows] = useState([
+    { id: 'RWP-1', reportName: 'weekly-summary', packet: 'Primary weekly renderer handoff', window: 'Owner weekly print review', focus: 'Weekly Summary route validation', source: 'Reports / Print Center', status: 'Queued', note: 'Primary weekly renderer handoff is staged for owner review before the live Mercury route is connected.' },
+    { id: 'RWP-2', reportName: 'monthly-summary', packet: 'Monthly renderer follow-through', window: 'Owner monthly print review', focus: 'Monthly Summary route validation', source: 'Reports / Delivery', status: 'Needs review', note: 'Monthly renderer follow-through still needs final owner review before the live Mercury route is connected.' },
+    { id: 'RWP-3', reportName: 'custom-window', packet: 'Custom renderer handoff', window: 'Custom window print review', focus: 'Custom Window route validation', source: 'Reports / Delivery', status: 'Queued', note: 'Custom renderer handoff is staged for owner review before the live Mercury route is connected.' },
+  ]);
+  const [selectedReportWindowPacketId, setSelectedReportWindowPacketId] = useState('RWP-1');
   const [reportWindowEvents, setReportWindowEvents] = useState([
-    { id: 'RWE-801', reportName: 'weekly-summary', time: '2026-05-09 08:04', actor: 'Store manager', route: '/administration/openReport?reportName=', action: 'Opened report window', status: 'Opened', note: 'Weekly summary renderer reviewed before printing.' },
-    { id: 'RWE-802', reportName: 'weekly-summary', time: '2026-05-09 08:05', actor: 'Store manager', route: '/administration/openReport?reportName=', action: 'Saved report window packet', status: 'Ready', note: 'Shared renderer packet exported for owner follow-through.' },
-    { id: 'RWE-803', reportName: 'monthly-summary', time: '2026-05-08 09:15', actor: 'StoreCheck demo', route: '/administration/openReport?reportName=', action: 'Previewed report window packet', status: 'Ready', note: 'Monthly report window was previewed in demo mode.' },
+    { id: 'RWE-801', packetId: 'RWP-1', reportName: 'weekly-summary', time: '2026-05-09 08:04', actor: 'Store manager', route: '/administration/openReport?reportName=', action: 'Queued report renderer route handoff', status: 'Queued', note: 'Weekly summary renderer handoff was accepted for owner review.' },
+    { id: 'RWE-802', packetId: 'RWP-1', reportName: 'weekly-summary', time: '2026-05-09 08:05', actor: 'Store manager', route: '/administration/openReport?reportName=', action: 'Saved report renderer route packet', status: 'Ready', note: 'Weekly summary route packet was exported before the live renderer was connected.' },
+    { id: 'RWE-803', packetId: 'RWP-2', reportName: 'monthly-summary', time: '2026-05-08 09:15', actor: 'StoreCheck demo', route: '/administration/openReport?reportName=', action: 'Previewed report renderer route packet', status: 'Opened', note: 'Monthly summary route packet preview stayed visible in demo mode.' },
+    { id: 'RWE-804', packetId: 'RWP-3', reportName: 'custom-window', time: '2026-05-08 09:22', actor: 'StoreCheck demo', route: '/administration/openReport?reportName=', action: 'Queued report renderer route handoff', status: 'Queued', note: 'Custom-window renderer handoff remained visible in demo mode.' },
   ]);
   const rows = MOCK.week;
   const totals = rows.reduce(
@@ -20839,6 +20846,11 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
     summaryPdfPacketRows.find((item) => item.id === selectedSummaryPdfPacketId) ||
     summaryPdfPacketRows[0] ||
     null;
+  const reportWindowPacketsForSelection = reportWindowPacketRows.filter((item) => item.reportName === reportWindowName);
+  const selectedReportWindowPacket =
+    reportWindowPacketsForSelection.find((item) => item.id === selectedReportWindowPacketId) ||
+    reportWindowPacketsForSelection[0] ||
+    null;
   const selectedShiftEmailEvents = selectedShiftEmail ? shiftEmailEvents.filter((item) => item.sendId === selectedShiftEmail.id) : shiftEmailEvents;
   const selectedShiftEmailRouteEvents =
     selectedShiftEmailPacket ? shiftEmailRouteEvents.filter((item) => item.packetId === selectedShiftEmailPacket.id) : shiftEmailRouteEvents;
@@ -20866,7 +20878,8 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
   const selectedSummaryPdfEvents = selectedSummaryPdf ? summaryPdfEvents.filter((item) => item.rowId === selectedSummaryPdf.id) : summaryPdfEvents;
   const selectedSummaryPdfRouteEvents =
     selectedSummaryPdfPacket ? summaryPdfRouteEvents.filter((item) => item.packetId === selectedSummaryPdfPacket.id) : summaryPdfRouteEvents;
-  const selectedReportWindowEvents = reportWindowEvents.filter((item) => item.reportName === reportWindowName);
+  const selectedReportWindowEvents =
+    selectedReportWindowPacket ? reportWindowEvents.filter((item) => item.packetId === selectedReportWindowPacket.id) : reportWindowEvents.filter((item) => item.reportName === reportWindowName);
 
   const pushShiftEmailEvent = ({ sendId = selectedShiftEmail?.id, action, status, note }) => {
     setShiftEmailEvents((current) => [
@@ -21743,11 +21756,12 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
       ...current,
     ]);
   };
-  const pushReportWindowEvent = ({ action, status, note }) => {
+  const pushReportWindowEvent = ({ packetId = selectedReportWindowPacket?.id, reportName = reportWindowName, action, status, note }) => {
     setReportWindowEvents((current) => [
       {
         id: `RWE-${current.length + 801}`,
-        reportName: reportWindowName,
+        packetId,
+        reportName,
         time: buildReportStamp(),
         actor: 'StoreCheck demo',
         route: '/administration/openReport?reportName=',
@@ -21965,10 +21979,63 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
     downloadTableData(selectedSummaryPdfRouteEvents, format, `storecheck-summary-pdf-route-events-${String(selectedSummaryPdfPacket?.id || 'route').toLowerCase()}`);
     showDeliveryNotice(`${fmtN(selectedSummaryPdfRouteEvents.length)} summary-PDF route events exported in ${format} format.`);
   };
+  const buildReportWindowRouteAction = (packet = selectedReportWindowPacket) => ({
+    ...selectedReportWindowAction,
+    route: `/administration/openReport?reportName=${reportWindowName}`,
+    params: `reportName=${reportWindowName}`,
+    subtitle: `${packet?.window || `${selectedReportWindowOption.label} renderer review`} · /administration/openReport?reportName=${reportWindowName}`,
+    fileName: `storecheck-report-renderer-route-${String(packet?.id || reportWindowName).toLowerCase()}`,
+  });
+  const previewReportWindowRoutePacket = (packet = selectedReportWindowPacket) => {
+    if (!packet) return;
+    setSelectedReportWindowPacketId(packet.id);
+    const action = buildReportWindowRouteAction(packet);
+    openReportSurface('Report Renderer Endpoint Reconcile', action.subtitle, action.previewRows);
+    pushReportWindowEvent({
+      packetId: packet.id,
+      reportName: reportWindowName,
+      action: 'Previewed report renderer route packet',
+      status: 'Opened',
+      note: `${packet.packet} preview opened before the live report renderer was connected.`,
+    });
+    showDeliveryNotice(`${selectedReportWindowOption.label} report-renderer route packet preview opened in demo mode.`);
+  };
+  const stageReportWindowRouteHandoff = (packet = selectedReportWindowPacket) => {
+    if (!packet) return;
+    setSelectedReportWindowPacketId(packet.id);
+    setReportWindowPacketRows((current) => current.map((row) => (
+      row.id === packet.id
+        ? { ...row, status: 'Queued', note: `Report-renderer handoff is staged for ${packet.window.toLowerCase()}.` }
+        : row
+    )));
+    pushReportWindowEvent({
+      packetId: packet.id,
+      reportName: reportWindowName,
+      action: 'Queued report renderer route handoff',
+      status: 'Queued',
+      note: `Mercury-style report renderer handoff accepted for ${selectedReportWindowOption.label}.`,
+    });
+    showDeliveryNotice(`${selectedReportWindowOption.label} report-renderer route handoff staged in demo mode. Live \`/administration/openReport?reportName=\` endpoint still pending.`);
+  };
+  const saveReportWindowRoutePacket = (packet = selectedReportWindowPacket) => {
+    if (!packet) return;
+    setSelectedReportWindowPacketId(packet.id);
+    const action = buildReportWindowRouteAction(packet);
+    const html = buildReportPackageHtml(action);
+    downloadTextData(html, 'text/html', action.fileName, 'html');
+    pushReportWindowEvent({
+      packetId: packet.id,
+      reportName: reportWindowName,
+      action: 'Saved report renderer route packet',
+      status: 'Ready',
+      note: 'Report-renderer route packet was exported while the live renderer remained demo-only.',
+    });
+    showDeliveryNotice(`${selectedReportWindowOption.label} report-renderer route packet saved in demo mode.`);
+  };
   const exportReportWindowEvents = (format) => {
     const rows = selectedReportWindowEvents.length ? selectedReportWindowEvents : reportWindowEvents;
-    downloadTableData(rows, format, 'storecheck-report-window-events');
-    showDeliveryNotice(`${fmtN(rows.length)} report-window events exported in ${format} format.`);
+    downloadTableData(rows, format, `storecheck-report-renderer-route-events-${String(selectedReportWindowPacket?.id || reportWindowName).toLowerCase()}`);
+    showDeliveryNotice(`${fmtN(rows.length)} report-renderer route events exported in ${format} format.`);
   };
 
   const exportDeliveryData = (kind, options = {}) => {
@@ -22101,7 +22168,7 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
     }
     if (action.id === 'reportWindow') {
       pushReportWindowEvent({
-        action: 'Saved report window packet',
+        action: 'Saved report renderer route packet',
         status: 'Ready',
         note: `Route packet exported for ${selectedReportWindowOption.label.toLowerCase()} while the live report window stayed demo-only.`,
       });
@@ -22514,7 +22581,7 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
             <div className="report-delivery-card">
               <div className="purchase-panel-head">
                 <div>
-                  <h3>Report Renderer Endpoint Depth</h3>
+                  <h3>Report Renderer Endpoint Reconcile</h3>
                   <p>Keep the shared `/administration/openReport?reportName=` handoff visible with explicit report-name routing before the live renderer is connected.</p>
                 </div>
               </div>
@@ -22527,41 +22594,62 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
                 </div>
               </div>
               <div className="purchase-kv-list">
+                <div className="purchase-kv"><span>Selected route packet</span><span>{selectedReportWindowPacket ? `${selectedReportWindowPacket.packet} · ${selectedReportWindowPacket.status}` : 'Pending'}</span></div>
                 <div className="purchase-kv"><span>Selected renderer</span><span>{selectedReportWindowOption.label}</span></div>
                 <div className="purchase-kv"><span>Route</span><span>{selectedReportWindowAction.route}</span></div>
                 <div className="purchase-kv"><span>Params</span><span>{selectedReportWindowAction.params}</span></div>
                 <div className="purchase-kv"><span>Print surface</span><span>{selectedReportWindowAction.surface}</span></div>
+                <div className="purchase-kv"><span>Packet window</span><span>{selectedReportWindowPacket?.window || 'Renderer review'}</span></div>
                 <div className="purchase-kv"><span>Rows in packet</span><span>{fmtN(Math.max(0, selectedReportWindowAction.previewRows.length - 1))}</span></div>
-                <div className="purchase-kv"><span>Window events</span><span>{fmtN(selectedReportWindowEvents.length)}</span></div>
-                <div className="purchase-kv"><span>Latest event</span><span>{selectedReportWindowEvents[0]?.action || 'No events yet'}</span></div>
+                <div className="purchase-kv"><span>Route events</span><span>{fmtN(selectedReportWindowEvents.length)}</span></div>
+                <div className="purchase-kv"><span>Latest route event</span><span>{selectedReportWindowEvents[0]?.action || 'No events yet'}</span></div>
               </div>
-              <div className="pricebook-actions" style={{ marginTop: 16 }}>
-                <button className="pricebook-btn" onClick={() => runReportAction(selectedReportWindowAction)}>
-                  <Icon name="report" size={15} /> Preview renderer
+              <div className="pricebook-actions" style={{ marginTop: 16, flexWrap: 'wrap' }}>
+                <button className="pricebook-btn" onClick={() => previewReportWindowRoutePacket(selectedReportWindowPacket)}>
+                  <Icon name="report" size={15} /> Preview route packet
                 </button>
-                <button className="pricebook-btn" onClick={() => downloadActionPackage(selectedReportWindowAction)}>
-                  <Icon name="cash" size={15} /> Save renderer
+                <button className="pricebook-btn" onClick={() => stageReportWindowRouteHandoff(selectedReportWindowPacket)}>
+                  <Icon name="calendar" size={15} /> Stage handoff
                 </button>
-                <button className="pricebook-btn primary" onClick={() => exportReportWindowEvents('CSV')}>
-                  <Icon name="save" size={15} /> Export route log
+                <button className="pricebook-btn primary" onClick={() => saveReportWindowRoutePacket(selectedReportWindowPacket)}>
+                  <Icon name="cash" size={15} /> Save route packet
                 </button>
+              </div>
+              <div className="purchase-queue-list" style={{ marginTop: 12 }}>
+                {reportWindowPacketsForSelection.map((row) => (
+                  <div className="purchase-queue-row" key={row.id}>
+                    <div className="purchase-queue-top">
+                      <div>
+                        <div className="purchase-queue-title">{row.packet}</div>
+                        <div className="purchase-queue-meta">{row.window} · {row.focus} · {row.source}</div>
+                      </div>
+                      <button className="pricebook-btn soft" onClick={() => setSelectedReportWindowPacketId(row.id)}>Review</button>
+                    </div>
+                    <div className="purchase-queue-meta">{row.note}</div>
+                  </div>
+                ))}
               </div>
             </div>
 
             <div className="report-delivery-card">
               <div className="purchase-panel-head">
                 <div>
-                  <h3>Selected Renderer Review</h3>
+                  <h3>Selected Report Renderer Endpoint Review</h3>
                   <p>Owner-facing visibility for the chosen report window before the live renderer is connected.</p>
                 </div>
               </div>
               <div className="purchase-kv-list">
+                <div className="purchase-kv"><span>Packet</span><span>{selectedReportWindowPacket?.packet || 'Pending'}</span></div>
+                <div className="purchase-kv"><span>Window</span><span>{selectedReportWindowPacket?.window || 'Renderer review'}</span></div>
+                <div className="purchase-kv"><span>Focus</span><span>{selectedReportWindowPacket?.focus || 'Selected report renderer validation'}</span></div>
+                <div className="purchase-kv"><span>Source</span><span>{selectedReportWindowPacket?.source || 'Reports / Print Center'}</span></div>
+                <div className="purchase-kv"><span>Packet status</span><span>{selectedReportWindowPacket?.status || 'Pending'}</span></div>
                 <div className="purchase-kv"><span>Renderer</span><span>{selectedReportWindowOption.label}</span></div>
                 <div className="purchase-kv"><span>Report name</span><span>{reportWindowName}</span></div>
                 <div className="purchase-kv"><span>Route</span><span>{selectedReportWindowAction.route}</span></div>
                 <div className="purchase-kv"><span>Params</span><span>{selectedReportWindowAction.params}</span></div>
                 <div className="purchase-kv"><span>Print surface</span><span>{selectedReportWindowAction.surface}</span></div>
-                <div className="purchase-kv"><span>Latest event</span><span>{selectedReportWindowEvents[0]?.action || 'No events yet'}</span></div>
+                <div className="purchase-kv"><span>Latest route event</span><span>{selectedReportWindowEvents[0]?.action || 'No events yet'}</span></div>
               </div>
             </div>
 
@@ -23561,9 +23649,16 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
             <div className="report-delivery-card">
               <div className="purchase-panel-head">
                 <div>
-                  <h3>Report Renderer Events</h3>
+                  <h3>Report Renderer Route Events</h3>
                   <p>Owner-facing event visibility for the selected shared report-window handoff.</p>
                 </div>
+              </div>
+              <div className="pricebook-actions" style={{ marginBottom: 16, flexWrap: 'wrap' }}>
+                {['CSV', 'XLS', 'JSON'].map((format) => (
+                  <button key={format} className="pricebook-btn" onClick={() => exportReportWindowEvents(format)}>
+                    <Icon name="save" size={15} /> {format}
+                  </button>
+                ))}
               </div>
               <div className="report-delivery-list">
                 {selectedReportWindowEvents.length ? selectedReportWindowEvents.map((item) => (
@@ -23575,9 +23670,9 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
                       </div>
                       <span className={`purchase-tag${item.status === 'Needs review' ? ' amber' : ' blue'}`}>{item.status}</span>
                     </div>
-                    <div className="report-delivery-meta">{item.reportName} · {item.note}</div>
+                    <div className="report-delivery-meta">{selectedReportWindowPacket?.id || 'RWP-1'} · {item.note}</div>
                   </div>
-                )) : <div className="purchase-hint">No report-window events are recorded for the selected renderer yet.</div>}
+                )) : <div className="purchase-hint">No report-renderer route events are recorded for the selected packet yet.</div>}
               </div>
             </div>
 
