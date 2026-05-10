@@ -21920,7 +21920,7 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
     setSelectedSummaryPdfId(item.id);
     setSelectedSummaryPdfPacketId(packet.id);
     const action = buildSummaryPdfRouteAction(item, packet);
-    openReportSurface('Summary PDF Endpoint Depth', action.subtitle, action.previewRows);
+    openReportSurface('Summary PDF Endpoint Reconcile', action.subtitle, action.previewRows);
     pushSummaryPdfRouteEvent({
       packetId: packet.id,
       action: 'Previewed summary PDF route packet',
@@ -22426,7 +22426,7 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
             <div className="report-delivery-card">
               <div className="purchase-panel-head">
                 <div>
-                  <h3>Summary PDF Endpoint Depth</h3>
+                  <h3>Summary PDF Endpoint Reconcile</h3>
                   <p>Keep the `/shifts/createSummaryPdf` packet and monthly summary context visible with selected route follow-through before the live PDF renderer is connected.</p>
                 </div>
               </div>
@@ -22487,7 +22487,7 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
             <div className="report-delivery-card">
               <div className="purchase-panel-head">
                 <div>
-                  <h3>Selected Summary PDF Review</h3>
+                  <h3>Selected Summary PDF Endpoint Review</h3>
                   <p>Keep the chosen monthly summary response visible before the print-center route hands off.</p>
                 </div>
               </div>
