@@ -11838,6 +11838,11 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
     { id: 'RDD-1202', time: '2026-05-10 00:35', actor: 'Store manager', route: '/shifts/downloadShiftDayReport', action: 'Saved day download packet', status: 'Ready', note: 'Single-day download packet was exported before the live file handoff was connected.' },
     { id: 'RDD-1203', time: '2026-05-09 21:42', actor: 'StoreCheck demo', route: '/shifts/downloadShiftDayReport', action: 'Queued day download handoff', status: 'Queued', note: 'Previous day-download handoff remained visible in demo mode.' },
   ]);
+  const [monthDownloadEvents, setMonthDownloadEvents] = useState([
+    { id: 'RMD-1301', time: '2026-05-10 00:53', actor: 'Store manager', route: '/shifts/downloadShiftDayReport', action: 'Previewed month download packet', status: 'Opened', note: 'Month-range download packet was reviewed before the live file handoff was connected.' },
+    { id: 'RMD-1302', time: '2026-05-10 00:54', actor: 'Store manager', route: '/shifts/downloadShiftDayReport', action: 'Saved month download packet', status: 'Ready', note: 'Month-range download packet was exported before the live file handoff was connected.' },
+    { id: 'RMD-1303', time: '2026-05-09 20:58', actor: 'StoreCheck demo', route: '/shifts/downloadShiftDayReport', action: 'Queued month download handoff', status: 'Queued', note: 'Previous month-download handoff remained visible in demo mode.' },
+  ]);
   const [dailyPdfEvents, setDailyPdfEvents] = useState([
     { id: 'RDL-981', time: '2026-05-09 07:49', actor: 'Store manager', route: '/shifts/createDailyPdf', action: 'Opened daily PDF preview', status: 'Opened', note: 'Single-day packet preview opened for the custom-day review.' },
     { id: 'RDL-982', time: '2026-05-09 07:50', actor: 'Store manager', route: '/shifts/createDailyPdf', action: 'Saved daily PDF packet', status: 'Ready', note: 'Custom-day PDF packet exported before owner follow-through.' },
@@ -11962,6 +11967,7 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
   const selectedShiftEmailAction = reportActionMap.shiftEmail;
   const selectedDayReportEmailAction = reportActionMap.dayReportEmail;
   const selectedDayDownloadAction = reportActionMap.downloadDay;
+  const selectedMonthDownloadAction = reportActionMap.downloadMonth;
   const selectedDailyPdfAction = reportActionMap.dailyPdf;
   const selectedDaysPdfAction = reportActionMap.daysPdf;
   const selectedSummaryPdfAction = reportActionMap.summaryPdf;
@@ -11978,6 +11984,7 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
   const selectedShiftEmailEvents = shiftEmailEvents;
   const selectedDayReportEmailEvents = dayReportEmailEvents;
   const selectedDayDownloadEvents = dayDownloadEvents;
+  const selectedMonthDownloadEvents = monthDownloadEvents;
   const selectedDailyPdfEvents = dailyPdfEvents;
   const selectedDaysPdfEvents = daysPdfEvents;
   const selectedSummaryPdfEvents = summaryPdfEvents;
@@ -12015,6 +12022,20 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
     setDayDownloadEvents((current) => [
       {
         id: `RDD-${current.length + 1201}`,
+        time: buildReportStamp(),
+        actor: 'StoreCheck demo',
+        route: '/shifts/downloadShiftDayReport',
+        action,
+        status,
+        note,
+      },
+      ...current,
+    ]);
+  };
+  const pushMonthDownloadEvent = ({ action, status, note }) => {
+    setMonthDownloadEvents((current) => [
+      {
+        id: `RMD-${current.length + 1301}`,
         time: buildReportStamp(),
         actor: 'StoreCheck demo',
         route: '/shifts/downloadShiftDayReport',
@@ -12093,6 +12114,10 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
   const exportDayDownloadEvents = (format) => {
     downloadTableData(selectedDayDownloadEvents, format, 'storecheck-day-download-events');
     showDeliveryNotice(`${fmtN(selectedDayDownloadEvents.length)} day-download events exported in ${format} format.`);
+  };
+  const exportMonthDownloadEvents = (format) => {
+    downloadTableData(selectedMonthDownloadEvents, format, 'storecheck-month-download-events');
+    showDeliveryNotice(`${fmtN(selectedMonthDownloadEvents.length)} month-download events exported in ${format} format.`);
   };
   const exportDailyPdfEvents = (format) => {
     downloadTableData(selectedDailyPdfEvents, format, 'storecheck-daily-pdf-events');
@@ -12198,6 +12223,13 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
         action: 'Saved day download packet',
         status: 'Ready',
         note: 'Single-day download packet exported while the live file handoff remained demo-only.',
+      });
+    }
+    if (action.id === 'downloadMonth') {
+      pushMonthDownloadEvent({
+        action: 'Saved month download packet',
+        status: 'Ready',
+        note: 'Month-range download packet exported while the live file handoff remained demo-only.',
       });
     }
     if (action.id === 'dailyPdf') {
@@ -12596,6 +12628,29 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
             <div className="report-delivery-card">
               <div className="purchase-panel-head">
                 <div>
+                  <h3>Month download events</h3>
+                  <p>Owner-facing event visibility for the selected month-range download handoff.</p>
+                </div>
+              </div>
+              <div className="report-delivery-list">
+                {selectedMonthDownloadEvents.length ? selectedMonthDownloadEvents.map((item) => (
+                  <div className="report-delivery-row" key={item.id}>
+                    <div className="report-delivery-head">
+                      <div>
+                        <div className="report-delivery-title">{item.action}</div>
+                        <div className="report-delivery-meta">{item.time} · {item.actor} · {item.route}</div>
+                      </div>
+                      <span className={`purchase-tag${item.status === 'Needs review' ? ' amber' : ' blue'}`}>{item.status}</span>
+                    </div>
+                    <div className="report-delivery-meta">{item.note}</div>
+                  </div>
+                )) : <div className="purchase-hint">No month-download events are recorded yet.</div>}
+              </div>
+            </div>
+
+            <div className="report-delivery-card">
+              <div className="purchase-panel-head">
+                <div>
                   <h3>Daily PDF events</h3>
                   <p>Owner-facing event visibility for the daily PDF packet handoff.</p>
                 </div>
@@ -12747,6 +12802,41 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
                   <Icon name="cash" size={15} /> Save route packet
                 </button>
                 <button className="pricebook-btn primary" onClick={() => exportDayDownloadEvents('CSV')}>
+                  <Icon name="save" size={15} /> Export route log
+                </button>
+              </div>
+            </div>
+
+            <div className="report-delivery-card">
+              <div className="purchase-panel-head">
+                <div>
+                  <h3>Month download endpoint</h3>
+                  <p>Keep the `/shifts/downloadShiftDayReport` month-range handoff visible before the live file delivery route is connected.</p>
+                </div>
+              </div>
+              <div className="purchase-kv-list">
+                <div className="purchase-kv"><span>Route</span><span>{selectedMonthDownloadAction.route}</span></div>
+                <div className="purchase-kv"><span>Format</span><span>{selectedMonthDownloadAction.format}</span></div>
+                <div className="purchase-kv"><span>Params</span><span>{selectedMonthDownloadAction.params}</span></div>
+                <div className="purchase-kv"><span>Date range</span><span>{customFrom} to {customTo}</span></div>
+                <div className="purchase-kv"><span>Weeks in packet</span><span>{fmtN(monthlyRows.length)}</span></div>
+                <div className="purchase-kv"><span>Latest event</span><span>{selectedMonthDownloadEvents[0]?.action || 'No events yet'}</span></div>
+              </div>
+              <div className="pricebook-actions" style={{ marginTop: 16 }}>
+                <button className="pricebook-btn" onClick={() => {
+                  pushMonthDownloadEvent({
+                    action: 'Previewed month download packet',
+                    status: 'Opened',
+                    note: `Month-range download packet preview opened for ${customFrom} to ${customTo} before the live file handoff was connected.`,
+                  });
+                  openReportSurface(selectedMonthDownloadAction.label, selectedMonthDownloadAction.subtitle, selectedMonthDownloadAction.previewRows);
+                }}>
+                  <Icon name="report" size={15} /> Preview route packet
+                </button>
+                <button className="pricebook-btn" onClick={() => downloadActionPackage(selectedMonthDownloadAction)}>
+                  <Icon name="cash" size={15} /> Save route packet
+                </button>
+                <button className="pricebook-btn primary" onClick={() => exportMonthDownloadEvents('CSV')}>
                   <Icon name="save" size={15} /> Export route log
                 </button>
               </div>
