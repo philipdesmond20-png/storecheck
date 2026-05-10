@@ -12858,6 +12858,11 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
     { id: 'APS-2', packet: 'Save and add another handoff', window: 'Current draft + keep-open flow', focus: 'Add Another follow-through', source: 'Save & Add Another', status: 'Needs review', note: 'Keep-open purchase handoff still needs final owner review before the live route is connected.' },
   ]);
   const [selectedPurchaseSavePacketId, setSelectedPurchaseSavePacketId] = useState('APS-1');
+  const [expenseSavePacketRows, setExpenseSavePacketRows] = useState([
+    { id: 'AES-1', packet: 'Primary expense save handoff', window: 'Current expense draft', focus: 'Save expense follow-through', source: 'Add Expense', status: 'Queued', note: 'Primary expense-save handoff is staged for owner review before live Mercury wiring.' },
+    { id: 'AES-2', packet: 'Save and add another expense handoff', window: 'Current draft + keep-open flow', focus: 'Add Another follow-through', source: 'Save & Add Another', status: 'Needs review', note: 'Keep-open expense handoff still needs final owner review before the live route is connected.' },
+  ]);
+  const [selectedExpenseSavePacketId, setSelectedExpenseSavePacketId] = useState('AES-1');
   const [vendorOrderPacketRows, setVendorOrderPacketRows] = useState([
     { id: 'VO-1', packet: 'Primary vendor order handoff', window: '2026-05-01 to 2026-05-09', focus: 'Current vendor filter', source: 'Vendor Orders', status: 'Queued', note: 'Primary vendor-order handoff is staged for owner review before live Mercury wiring.' },
     { id: 'VO-2', packet: 'Delivered order review', window: 'Delivered orders only', focus: 'Delivered status focus', source: 'Order / Delivery', status: 'Needs review', note: 'Delivered-order handoff still needs final owner review before the live route is connected.' },
@@ -12904,6 +12909,11 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
     { id: 'APE-101', packetId: 'APS-1', time: '2026-05-10 13:04', actor: 'Store manager', route: '/storeExpenses/index', action: 'Previewed purchase save packet', status: 'Opened', note: 'Owner reviewed the primary purchase-save packet before the live Mercury route was connected.' },
     { id: 'APE-102', packetId: 'APS-1', time: '2026-05-10 13:05', actor: 'Store manager', route: '/storeExpenses/index', action: 'Saved purchase draft', status: 'Ready', note: 'Purchase draft packet was saved while the live Mercury route remained demo-only.' },
     { id: 'APE-103', packetId: 'APS-2', time: '2026-05-09 19:12', actor: 'StoreCheck demo', route: '/storeExpenses/index', action: 'Queued purchase save handoff', status: 'Queued', note: 'Keep-open purchase handoff remained visible in demo mode.' },
+  ]);
+  const [expenseSaveEvents, setExpenseSaveEvents] = useState([
+    { id: 'ESE-101', packetId: 'AES-1', time: '2026-05-10 13:24', actor: 'Store manager', route: '/storeExpenses/purchaseindex', action: 'Previewed expense save packet', status: 'Opened', note: 'Owner reviewed the primary expense-save packet before the live Mercury route was connected.' },
+    { id: 'ESE-102', packetId: 'AES-1', time: '2026-05-10 13:25', actor: 'Store manager', route: '/storeExpenses/purchaseindex', action: 'Saved expense draft', status: 'Ready', note: 'Expense draft packet was saved while the live Mercury route remained demo-only.' },
+    { id: 'ESE-103', packetId: 'AES-2', time: '2026-05-09 19:26', actor: 'StoreCheck demo', route: '/storeExpenses/purchaseindex', action: 'Queued expense save handoff', status: 'Queued', note: 'Keep-open expense handoff remained visible in demo mode.' },
   ]);
   const [vendorOrderEvents, setVendorOrderEvents] = useState([
     { id: 'VOE-101', packetId: 'VO-1', time: '2026-05-10 11:24', actor: 'Store manager', route: '/storeExpenses/index', action: 'Previewed vendor order packet', status: 'Opened', note: 'Owner reviewed the primary vendor-order packet before the live Mercury route was connected.' },
@@ -13033,6 +13043,7 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
   const selectedVendorCode = vendorCodeReferenceRows.find((row) => row.id === selectedVendorCodeId) || vendorCodeReferenceRows[0];
   const selectedPurchaseSummaryPacket = purchaseSummaryPacketRows.find((row) => row.id === selectedPurchaseSummaryPacketId) || purchaseSummaryPacketRows[0];
   const selectedPurchaseSavePacket = purchaseSavePacketRows.find((row) => row.id === selectedPurchaseSavePacketId) || purchaseSavePacketRows[0];
+  const selectedExpenseSavePacket = expenseSavePacketRows.find((row) => row.id === selectedExpenseSavePacketId) || expenseSavePacketRows[0];
   const selectedVendorOrderPacket = vendorOrderPacketRows.find((row) => row.id === selectedVendorOrderPacketId) || vendorOrderPacketRows[0];
   const selectedPurchaseLedgerPacket = purchaseLedgerPacketRows.find((row) => row.id === selectedPurchaseLedgerPacketId) || purchaseLedgerPacketRows[0];
   const selectedCostUpdatePacket = costUpdatePacketRows.find((row) => row.id === selectedCostUpdatePacketId) || costUpdatePacketRows[0];
@@ -13048,6 +13059,7 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
   const selectedExpenseType = expenseTypeRows.find((row) => row.id === selectedExpenseTypeId) || expenseTypeRows[0];
   const selectedPurchaseSummaryEvents = selectedPurchaseSummaryPacket ? purchaseSummaryEvents.filter((row) => row.packetId === selectedPurchaseSummaryPacket.id) : purchaseSummaryEvents;
   const selectedPurchaseSaveEvents = selectedPurchaseSavePacket ? purchaseSaveEvents.filter((row) => row.packetId === selectedPurchaseSavePacket.id) : purchaseSaveEvents;
+  const selectedExpenseSaveEvents = selectedExpenseSavePacket ? expenseSaveEvents.filter((row) => row.packetId === selectedExpenseSavePacket.id) : expenseSaveEvents;
   const selectedVendorOrderEvents = selectedVendorOrderPacket ? vendorOrderEvents.filter((row) => row.packetId === selectedVendorOrderPacket.id) : vendorOrderEvents;
   const selectedPurchaseLedgerEvents = selectedPurchaseLedgerPacket ? purchaseLedgerEvents.filter((row) => row.packetId === selectedPurchaseLedgerPacket.id) : purchaseLedgerEvents;
   const selectedCostUpdateEvents = selectedCostUpdatePacket ? costUpdateEvents.filter((row) => row.packetId === selectedCostUpdatePacket.id) : costUpdateEvents;
@@ -13059,6 +13071,7 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
   const stagedInactiveCount = deadInventoryRows.filter((row) => row.stage === 'Staged InActive').length;
   const selectedLibraryAttachment = attachments.find((row) => row.id === selectedLibraryAttachmentId) || attachments[0];
   const selectedPurchaseDraftAttachment = attachments.find((row) => row.module === 'Purchases' && row.record === purchaseDraft.vendor);
+  const selectedExpenseDraftAttachment = attachments.find((row) => row.module === 'Operating Expenses' && row.record === expenseDraft.vendor);
   const selectedAttachmentUploadEvents = selectedLibraryAttachment ? attachmentUploadEvents.filter((row) => row.attachmentId === selectedLibraryAttachment.id) : [];
   const selectedAttachmentDownloadEvents = selectedLibraryAttachment ? attachmentDownloadEvents.filter((row) => row.attachmentId === selectedLibraryAttachment.id) : [];
   const tabs = [
@@ -13730,6 +13743,110 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
     showNotice(packet.id === 'APS-2'
       ? 'Purchase draft saved and kept open for another invoice.'
       : `Purchase draft saved for ${purchaseDraft.vendor}. Endpoint connection is still pending.`);
+  };
+  const buildExpenseSavePacketRows = (packet = selectedExpenseSavePacket) => [
+    [
+      expenseDraft.date,
+      expenseDraft.shift,
+      expenseDraft.amount,
+      expenseDraft.paymentType,
+      expenseDraft.vendor,
+      expenseDraft.category,
+      expenseDraft.note || '-',
+      selectedExpenseDraftAttachment?.fileName || 'No invoice staged',
+      packet?.id === 'AES-2' ? 'Save & Add Another' : 'Save Expense',
+    ],
+  ];
+  const pushExpenseSaveEvent = ({ packetId = selectedExpenseSavePacket?.id, action, status, note }) => {
+    setExpenseSaveEvents((current) => [
+      {
+        id: `ESE-${current.length + 101}`,
+        packetId,
+        time: todayStr(),
+        actor: 'StoreCheck demo',
+        route: '/storeExpenses/purchaseindex',
+        action,
+        status,
+        note,
+      },
+      ...current,
+    ]);
+  };
+  const previewExpenseSaveDepth = (packet = selectedExpenseSavePacket) => {
+    if (!packet) return;
+    setSelectedExpenseSavePacketId(packet.id);
+    openPacketPreview({
+      title: 'Add Expense Save Depth',
+      subtitle: `${packet.window} · ${packet.focus} · /storeExpenses/purchaseindex`,
+      headers: ['Date', 'Shift', 'Amount', 'Payment', 'Vendor', 'Category', 'Note', 'Invoice', 'Mode'],
+      rows: buildExpenseSavePacketRows(packet),
+    });
+    pushExpenseSaveEvent({
+      packetId: packet.id,
+      action: 'Previewed expense save packet',
+      status: 'Opened',
+      note: `${packet.packet} preview opened before the live Mercury route was connected.`,
+    });
+  };
+  const saveExpenseSaveDepth = (packet = selectedExpenseSavePacket) => {
+    if (!packet) return;
+    setSelectedExpenseSavePacketId(packet.id);
+    savePacket({
+      title: `Add Expense Packet - ${packet.id}`,
+      subtitle: `${packet.window} · ${packet.focus}`,
+      route: '/storeExpenses/purchaseindex',
+      note: 'Add Expense save replacement shell',
+      headers: ['Date', 'Shift', 'Amount', 'Payment', 'Vendor', 'Category', 'Note', 'Invoice', 'Mode'],
+      rows: buildExpenseSavePacketRows(packet),
+      filename: `storecheck-add-expense-${packet.id.toLowerCase()}`,
+    });
+    pushExpenseSaveEvent({
+      packetId: packet.id,
+      action: 'Saved expense route packet',
+      status: 'Ready',
+      note: 'Add-expense route packet was exported while the live Mercury route remained demo-only.',
+    });
+    showNotice('Add expense route packet saved in demo mode.');
+  };
+  const stageExpenseSaveHandoff = (packet = selectedExpenseSavePacket) => {
+    if (!packet) return;
+    setSelectedExpenseSavePacketId(packet.id);
+    setExpenseSavePacketRows((current) => current.map((row) => (
+      row.id === packet.id ? { ...row, status: 'Queued', note: `Add-expense handoff is staged for ${packet.window}.` } : row
+    )));
+    pushExpenseSaveEvent({
+      packetId: packet.id,
+      action: 'Queued expense save handoff',
+      status: 'Queued',
+      note: `Mercury-style add-expense handoff accepted for ${packet.window}.`,
+    });
+    showNotice(`Add expense handoff for ${packet.window} staged in demo mode. Live \`/storeExpenses/purchaseindex\` endpoint still pending.`);
+  };
+  const submitExpenseDraft = (packet = selectedExpenseSavePacket) => {
+    if (!packet) return;
+    setSelectedExpenseSavePacketId(packet.id);
+    setExpenseSavePacketRows((current) => current.map((row) => (
+      row.id === packet.id
+        ? {
+            ...row,
+            status: 'Ready',
+            note: packet.id === 'AES-2'
+              ? 'Expense draft saved in demo mode and kept open for another entry.'
+              : `Expense draft saved in demo mode for ${expenseDraft.vendor}.`,
+          }
+        : row
+    )));
+    pushExpenseSaveEvent({
+      packetId: packet.id,
+      action: packet.id === 'AES-2' ? 'Saved expense draft and kept form open' : 'Saved expense draft',
+      status: 'Ready',
+      note: packet.id === 'AES-2'
+        ? 'Expense draft stayed open for another entry while the live route remained demo-only.'
+        : `Expense draft for ${expenseDraft.vendor} was saved while the live Mercury route remained demo-only.`,
+    });
+    showNotice(packet.id === 'AES-2'
+      ? 'Expense draft saved and kept open for another entry.'
+      : `Expense draft saved for ${expenseDraft.vendor}. Endpoint connection is still pending.`);
   };
   const buildVendorCodePacketRows = () =>
     vendorCodeReferenceRows.map((row) => [row.vendor]);
@@ -14426,6 +14543,10 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
     downloadTableData(selectedPurchaseSaveEvents, format, 'storecheck-add-purchase-events');
     showNotice(`${fmtN(selectedPurchaseSaveEvents.length)} add-purchase events exported in ${format} format.`);
   };
+  const exportExpenseSaveEvents = (format) => {
+    downloadTableData(selectedExpenseSaveEvents, format, 'storecheck-add-expense-events');
+    showNotice(`${fmtN(selectedExpenseSaveEvents.length)} add-expense events exported in ${format} format.`);
+  };
   const exportExpenseSummaryEvents = (format) => {
     downloadTableData(selectedExpenseSummaryEvents, format, 'storecheck-operating-expense-summary-events');
     showNotice(`${fmtN(selectedExpenseSummaryEvents.length)} operating-expense summary events exported in ${format} format.`);
@@ -15040,9 +15161,30 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
           <div className="purchase-note-card">
             <div className="purchase-panel-head">
               <div>
-                <h3>Add operating expense</h3>
-                <p>Date, shift, amount, payment type, vendor, note, and invoice upload cover the Mercury expense-entry pattern.</p>
+                <h3>Add Expense Save Depth</h3>
+                <p>Keep the `/storeExpenses/purchaseindex` expense-save handoff visible with selected packet context before the live Mercury route is connected.</p>
               </div>
+              <div className="pricebook-actions">
+                <button className="pricebook-btn" onClick={() => previewExpenseSaveDepth(selectedExpenseSavePacket)}>
+                  <Icon name="report" size={15} /> Preview route packet
+                </button>
+                <button className="pricebook-btn" onClick={() => stageExpenseSaveHandoff(selectedExpenseSavePacket)}>
+                  <Icon name="sync" size={15} /> Stage handoff
+                </button>
+                <button className="pricebook-btn" onClick={() => saveExpenseSaveDepth(selectedExpenseSavePacket)}>
+                  <Icon name="cash" size={15} /> Save route packet
+                </button>
+                <button className="pricebook-btn primary" onClick={() => exportExpenseSaveEvents('CSV')}>
+                  <Icon name="save" size={15} /> Export route log
+                </button>
+              </div>
+            </div>
+            <div className="purchase-kv-list" style={{ marginBottom: 18 }}>
+              <div className="purchase-kv"><span>Selected packet</span><span>{selectedExpenseSavePacket ? `${selectedExpenseSavePacket.packet} · ${selectedExpenseSavePacket.status}` : 'Pending'}</span></div>
+              <div className="purchase-kv"><span>Route</span><span>/storeExpenses/purchaseindex</span></div>
+              <div className="purchase-kv"><span>Focus</span><span>{selectedExpenseSavePacket?.focus || 'Save expense follow-through'}</span></div>
+              <div className="purchase-kv"><span>Current packet</span><span>{selectedExpenseSavePacket ? `${selectedExpenseSavePacket.window} · ${selectedExpenseSavePacket.source}` : 'Add Expense'}</span></div>
+              <div className="purchase-kv"><span>Latest event</span><span>{selectedExpenseSaveEvents[0]?.action || 'No events yet'}</span></div>
             </div>
             <div className="purchase-form-grid">
               <div className="purchase-form-field"><label>Date</label><input className="pricebook-input" type="date" value={expenseDraft.date} onChange={(e) => handleExpenseDraft('date', e.target.value)} /></div>
@@ -15055,19 +15197,88 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
               <div className="purchase-form-field full"><label>Invoice upload</label><input className="purchase-file" type="file" onChange={(e) => addAttachment(e.target.files?.[0], 'Operating Expenses', expenseDraft.vendor, 'Invoice')} /></div>
             </div>
             <div className="purchase-action-row" style={{ marginTop: 18 }}>
-              <span className="purchase-hint">Cash expenses stay visible in the dashboard even before the accounting/export layer is connected.</span>
+              <span className="purchase-hint">StoreCheck will save the expense draft locally first, then post to real expense endpoints in the data phase.</span>
               <div className="pricebook-actions">
-                <button className="pricebook-btn" onClick={() => showNotice('Expense draft saved and kept open for the next entry.')}>
+                <button className="pricebook-btn" onClick={() => submitExpenseDraft(expenseSavePacketRows.find((row) => row.id === 'AES-2') || selectedExpenseSavePacket)}>
                   <Icon name="save" size={15} /> Save & add another
                 </button>
-                <button className="pricebook-btn primary" onClick={() => showNotice(`Expense draft saved for ${expenseDraft.vendor}. Live save endpoint still missing.`)}>
+                <button className="pricebook-btn primary" onClick={() => submitExpenseDraft(expenseSavePacketRows.find((row) => row.id === 'AES-1') || selectedExpenseSavePacket)}>
                   <Icon name="cash" size={15} /> Save expense
                 </button>
               </div>
             </div>
+            <div className="purchase-queue-list" style={{ marginTop: 18 }}>
+              {expenseSavePacketRows.map((row) => (
+                <div className="purchase-queue-row" key={row.id}>
+                  <div className="purchase-queue-top">
+                    <div>
+                      <div className="purchase-queue-title">{row.packet}</div>
+                      <div className="purchase-queue-meta">{row.window} · {row.focus} · {row.source}</div>
+                    </div>
+                    <span className={`purchase-tag${toneClass(row.status)}`}>{row.status}</span>
+                  </div>
+                  <div className="purchase-queue-meta">{row.note}</div>
+                  <div className="pricebook-actions" style={{ marginTop: 12 }}>
+                    <button className="pricebook-btn" onClick={() => setSelectedExpenseSavePacketId(row.id)}>
+                      <Icon name="report" size={15} /> Review
+                    </button>
+                    <button className="pricebook-btn soft" onClick={() => previewExpenseSaveDepth(row)}>
+                      <Icon name="report" size={15} /> Preview
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
 
           <div className="purchase-stack">
+            <div className="purchase-note-card">
+              <h3>Selected Expense Save Review</h3>
+              <p>Owner-facing visibility for the chosen add-expense packet before the live Mercury route is connected.</p>
+              {selectedExpenseSavePacket ? (
+                <div className="purchase-kv-list">
+                  <div className="purchase-kv"><span>Packet</span><span>{selectedExpenseSavePacket.packet}</span></div>
+                  <div className="purchase-kv"><span>Window</span><span>{selectedExpenseSavePacket.window}</span></div>
+                  <div className="purchase-kv"><span>Focus</span><span>{selectedExpenseSavePacket.focus}</span></div>
+                  <div className="purchase-kv"><span>Source</span><span>{selectedExpenseSavePacket.source}</span></div>
+                  <div className="purchase-kv"><span>Status</span><span>{selectedExpenseSavePacket.status}</span></div>
+                  <div className="purchase-kv"><span>Note</span><span>{selectedExpenseSavePacket.note}</span></div>
+                </div>
+              ) : <div className="purchase-hint">No add-expense packet is selected right now.</div>}
+            </div>
+
+            <div className="purchase-note-card">
+              <h3>Expense Save Events</h3>
+              <p>Track route-specific `/storeExpenses/purchaseindex` expense-save activity before live Mercury wiring is connected.</p>
+              <div className="purchase-queue-list">
+                {selectedExpenseSaveEvents.length ? selectedExpenseSaveEvents.map((row) => (
+                  <div className="purchase-queue-row" key={row.id}>
+                    <div className="purchase-queue-top">
+                      <div>
+                        <div className="purchase-queue-title">{row.action}</div>
+                        <div className="purchase-queue-meta">{row.time} · {row.actor} · {row.route}</div>
+                      </div>
+                      <span className={`purchase-tag${toneClass(row.status)}`}>{row.status}</span>
+                    </div>
+                    <div className="purchase-queue-meta">{selectedExpenseSavePacket?.id || 'AES-1'} · {row.note}</div>
+                  </div>
+                )) : <div className="purchase-hint">No add-expense events are recorded yet.</div>}
+              </div>
+            </div>
+
+            <div className="purchase-note-card">
+              <h3>Current expense draft</h3>
+              <p>Keep the active draft visible while deciding whether to save, keep the form open, or export the route packet.</p>
+              <div className="purchase-kv-list">
+                <div className="purchase-kv"><span>Vendor</span><span>{expenseDraft.vendor}</span></div>
+                <div className="purchase-kv"><span>Shift / Date</span><span>{expenseDraft.shift} · {expenseDraft.date}</span></div>
+                <div className="purchase-kv"><span>Amount</span><span>{expenseDraft.amount}</span></div>
+                <div className="purchase-kv"><span>Payment</span><span>{expenseDraft.paymentType}</span></div>
+                <div className="purchase-kv"><span>Category</span><span>{expenseDraft.category}</span></div>
+                <div className="purchase-kv"><span>Invoice</span><span>{selectedExpenseDraftAttachment?.fileName || 'No invoice staged'}</span></div>
+              </div>
+            </div>
+
             <div className="purchase-note-card">
               <div className="pricebook-toolbar" style={{ padding: 0 }}>
                 <div>
