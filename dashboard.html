@@ -18412,9 +18412,16 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
   const [selectedRedirectStoreId, setSelectedRedirectStoreId] = useState(currentLocation.id);
   const [selectedCompareStoreId, setSelectedCompareStoreId] = useState(MULTI_STORE_COMPARE[0].store);
   const [selectedSwitchStoreId, setSelectedSwitchStoreId] = useState(currentLocation.id);
+  const [loginUserName, setLoginUserName] = useState('owner@mystorecheck.com');
+  const [loginPassword, setLoginPassword] = useState('StoreCheck!26');
   const [loginSearch, setLoginSearch] = useState('');
   const [loginLocationId, setLoginLocationId] = useState(currentLocation.id);
   const [launchTarget, setLaunchTarget] = useState('today');
+  const [loginSubmitPacketRows, setLoginSubmitPacketRows] = useState([
+    { id: 'LSP-1', packet: 'Primary login submit handoff', window: 'Credential submit review', focus: 'Username + password payload', source: 'Login page', status: 'Queued', note: 'Primary login submit handoff is staged for owner review before live Mercury auth wiring is connected.' },
+    { id: 'LSP-2', packet: 'Submit + picker follow-through', window: 'Credential submit to location picker', focus: 'Post-auth store selection handoff', source: 'Login redirect', status: 'Needs review', note: 'Credential submit follow-through still needs final owner review before the live Mercury auth route is connected.' },
+  ]);
+  const [selectedLoginSubmitPacketId, setSelectedLoginSubmitPacketId] = useState('LSP-1');
   const [locationPickerPacketRows, setLocationPickerPacketRows] = useState([
     { id: 'LPP-1', packet: 'Primary location picker handoff', window: 'Visible post-login store list', focus: 'Selected store review', source: 'Location Picker', status: 'Queued', note: 'Primary location-picker handoff is staged for owner review before live Mercury redirects are wired.' },
     { id: 'LPP-2', packet: 'Continue-to-home handoff', window: 'Selected store + redirect follow-through', focus: 'Open home reconciliation', source: 'Post-Login Continue', status: 'Needs review', note: 'Continue-to-home handoff still needs final owner review before the live Mercury route is connected.' },
@@ -18423,6 +18430,11 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
   const [authFlowRows, setAuthFlowRows] = useState([
     { id: 'AUTH-1', time: '08:42', step: 'Location picker opened', route: '/user/viewLocations', store: 'Main Street Gas & Go', status: 'Ready' },
     { id: 'AUTH-2', time: '08:43', step: 'Redirect to dashboard', route: '/user/openHomePage', store: 'Main Street Gas & Go', status: 'Complete' },
+  ]);
+  const [loginSubmitEvents, setLoginSubmitEvents] = useState([
+    { id: 'LSE-3901', packetId: 'LSP-1', time: '2026-05-10 14:42', actor: 'Store manager', route: 'POST /user/authenticateLogin/loginForm', action: 'Previewed login submit packet', status: 'Opened', note: 'Owner reviewed the credential submit packet before the live Mercury auth route was connected.' },
+    { id: 'LSE-3902', packetId: 'LSP-1', time: '2026-05-10 14:45', actor: 'Store manager', route: 'POST /user/authenticateLogin/loginForm', action: 'Saved login submit route packet', status: 'Ready', note: 'Credential submit packet was exported while the live Mercury auth route remained demo-only.' },
+    { id: 'LSE-3903', packetId: 'LSP-2', time: '2026-05-10 14:47', actor: 'StoreCheck demo', route: 'POST /user/authenticateLogin/loginForm', action: 'Queued login submit handoff', status: 'Queued', note: 'Post-auth location-picker handoff remained visible inside StoreCheck while Mercury auth stayed demo-only.' },
   ]);
   const [pickerActionEvents, setPickerActionEvents] = useState([
     { id: 'LPR-3601', rowId: 'main-street', time: '2026-05-09 22:52', actor: 'Store manager', route: '/user/viewLocations', action: 'Previewed location-picker packet', status: 'Opened', note: 'Owner reviewed the post-login location picker packet before the live Mercury route was connected.' },
@@ -18503,6 +18515,15 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
     selectedLocationPickerPacket
       ? locationPickerRouteEvents.filter((row) => row.packetId === selectedLocationPickerPacket.id)
       : locationPickerRouteEvents;
+  const maskedLoginPassword = loginPassword ? '•'.repeat(Math.max(8, Math.min(loginPassword.length, 14))) : '—';
+  const selectedLoginSubmitPacket =
+    loginSubmitPacketRows.find((row) => row.id === selectedLoginSubmitPacketId) ||
+    loginSubmitPacketRows[0];
+  const selectedLoginSubmitEvents =
+    selectedLoginSubmitPacket
+      ? loginSubmitEvents.filter((row) => row.packetId === selectedLoginSubmitPacket.id)
+      : loginSubmitEvents;
+  const loginSubmitContextLabel = `${loginUserName || 'No username'} · ${selectedLoginLocation.name}`;
   const loginContextLabel = `${selectedLoginLocation.name} · ${selectedLoginLocation.location}`;
   const launcherTargets = [
     { id: 'today', label: "Today's Summary", icon: 'home', note: 'Open dashboard after login redirect' },
@@ -18543,6 +18564,14 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
     CashDiff: row.cashDiff.toFixed(2),
   }));
   const comparePacketRows = filteredCompare.map((row) => [row.store, compareDate, fmt(row.fuel), fmt(row.shop), fmt(row.lottery), fmt(row.total), fmtN(row.gallons, 0), fmt(Math.abs(row.cashDiff))]);
+  const buildLoginSubmitRows = (packet = selectedLoginSubmitPacket) => [[
+    loginUserName || '—',
+    maskedLoginPassword,
+    selectedLoginLocation.name,
+    packet?.id === 'LSP-2' ? 'Location picker follow-through' : selectedLoginLocation.manager,
+    'POST /user/authenticateLogin/loginForm',
+    packet?.id === 'LSP-2' ? 'Post-auth store selection stays in StoreCheck' : 'Credential submit review only',
+  ]];
   const loginPickerPacketRows = filteredLoginLocations.map((item) => [
     item.id,
     item.name,
@@ -18634,6 +18663,90 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
       { id: `AUTH-${Date.now()}`, time, step, route, store, status },
       ...current,
     ].slice(0, 6));
+  };
+  const pushLoginSubmitEvent = ({ packetId = selectedLoginSubmitPacket?.id, action, status, note }) => {
+    const time = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    setLoginSubmitEvents((current) => [
+      {
+        id: `LSE-${Date.now()}`,
+        packetId,
+        time,
+        actor: 'Store manager',
+        route: 'POST /user/authenticateLogin/loginForm',
+        action,
+        status,
+        note,
+      },
+      ...current,
+    ].slice(0, 24));
+  };
+  const previewLoginSubmitPacket = (packet = selectedLoginSubmitPacket) =>
+    (setSelectedLoginSubmitPacketId(packet.id),
+    openMultiStorePacket({
+      title: 'Login Submit Endpoint Depth',
+      subtitle: `${packet.window} · POST /user/authenticateLogin/loginForm`,
+      headers: ['Username', 'Password', 'Selected store', 'Context', 'Route', 'Mode'],
+      rows: buildLoginSubmitRows(packet),
+    }),
+    pushLoginSubmitEvent({
+      packetId: packet.id,
+      action: 'Previewed login submit packet',
+      status: 'Opened',
+      note: `${packet.packet} preview opened before the live Mercury auth route was connected.`,
+    }),
+    showNotice('Login submit packet preview opened in demo mode.'));
+  const saveLoginSubmitPacket = (packet = selectedLoginSubmitPacket) => {
+    setSelectedLoginSubmitPacketId(packet.id);
+    saveMultiStorePacket({
+      title: 'Login Submit Endpoint Depth',
+      subtitle: `${packet.window} · POST /user/authenticateLogin/loginForm`,
+      route: 'POST /user/authenticateLogin/loginForm',
+      note: 'Login submit replacement shell before live Mercury auth wiring',
+      headers: ['Username', 'Password', 'Selected store', 'Context', 'Route', 'Mode'],
+      rows: buildLoginSubmitRows(packet),
+      filename: `storecheck-login-submit-${packet.id.toLowerCase()}`,
+    });
+    pushLoginSubmitEvent({
+      packetId: packet.id,
+      action: 'Saved login submit route packet',
+      status: 'Ready',
+      note: 'Login submit route packet was exported while the live Mercury auth route remained demo-only.',
+    });
+    showNotice('Login submit route packet saved in demo mode.');
+  };
+  const stageLoginSubmitHandoff = (packet = selectedLoginSubmitPacket) => {
+    setSelectedLoginSubmitPacketId(packet.id);
+    setLoginSubmitPacketRows((current) => current.map((row) => (
+      row.id === packet.id
+        ? { ...row, status: 'Queued', note: `Login submit handoff is staged for ${packet.window.toLowerCase()}.` }
+        : row
+    )));
+    pushLoginSubmitEvent({
+      packetId: packet.id,
+      action: 'Queued login submit handoff',
+      status: 'Queued',
+      note: `Mercury-style login submit handoff accepted for ${packet.window}.`,
+    });
+    showNotice(`Login submit review for ${packet.window} staged in demo mode. Live \`POST /user/authenticateLogin/loginForm\` route still pending.`);
+  };
+  const submitLoginCredentials = () => {
+    setSelectedLoginSubmitPacketId('LSP-2');
+    setSelectedLocationPickerPacketId('LPP-1');
+    setLoginSubmitPacketRows((current) => current.map((row) => (
+      row.id === 'LSP-1'
+        ? { ...row, status: 'Submitted', note: `Credentials were submitted for ${loginUserName || 'the selected operator'} while the live Mercury auth route remained pending.` }
+        : row.id === 'LSP-2'
+          ? { ...row, status: 'Ready', note: `Post-auth location-picker handoff is ready for ${selectedLoginLocation.name}.` }
+          : row
+    )));
+    pushLoginSubmitEvent({
+      packetId: 'LSP-1',
+      action: 'Submitted login credentials',
+      status: 'Submitted',
+      note: `Credentials were submitted for ${selectedLoginLocation.name} inside StoreCheck while the live Mercury auth route remained pending.`,
+    });
+    stampAuthFlow('Credentials submitted', 'POST /user/authenticateLogin/loginForm', selectedLoginLocation.name, 'Submitted');
+    showNotice(`Login credentials submitted for ${selectedLoginLocation.name} in demo mode.`);
   };
   const pushPickerActionEvent = ({ rowId, action, status, note }) => {
     const time = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
@@ -18846,6 +18959,10 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
   const exportModuleLauncherEvents = (format) => {
     if (!selectedModuleLauncherEvents.length) return;
     downloadTableData(selectedModuleLauncherEvents, format, `storecheck-module-launcher-events-${slugify(selectedLoginLocation.name)}-${slugify(selectedLaunchTarget.label)}`);
+  };
+  const exportLoginSubmitEvents = (format) => {
+    if (!selectedLoginSubmitEvents.length) return;
+    downloadTableData(selectedLoginSubmitEvents, format, `storecheck-login-submit-events-${slugify(loginUserName || selectedLoginLocation.name)}-${slugify(selectedLoginSubmitPacket?.packet || 'review')}`);
   };
   const exportCompare = (format) => downloadTableData(filteredCompare, format, 'storecheck-multi-store-compare');
   const pushRedirectActionEvent = ({ rowId, action, status, note }) => {
@@ -19493,6 +19610,68 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
             <div className="purchase-surface">
               <div className="pricebook-toolbar" style={{ padding: '20px 20px 0' }}>
                 <div>
+                  <div className="pricebook-detail-title">Login Submit Endpoint Depth</div>
+                  <div className="pricebook-detail-sub">Mercury route: <strong>POST /user/authenticateLogin/loginForm</strong></div>
+                </div>
+                <div className="pricebook-actions">
+                  <button className="pricebook-btn" onClick={() => previewLoginSubmitPacket(selectedLoginSubmitPacket)}>
+                    <Icon name="report" size={15} /> Preview route packet
+                  </button>
+                  <button className="pricebook-btn" onClick={() => stageLoginSubmitHandoff(selectedLoginSubmitPacket)}>
+                    <Icon name="calendar" size={15} /> Stage handoff
+                  </button>
+                  <button className="pricebook-btn" onClick={() => saveLoginSubmitPacket(selectedLoginSubmitPacket)}>
+                    <Icon name="cash" size={15} /> Save route packet
+                  </button>
+                  <button className="pricebook-btn primary" onClick={() => exportLoginSubmitEvents('CSV')}>
+                    <Icon name="save" size={15} /> Export route log
+                  </button>
+                </div>
+              </div>
+              <div className="pricebook-filters" style={{ padding: '0 20px 16px' }}>
+                <input className="pricebook-input" value={loginUserName} onChange={(e) => setLoginUserName(e.target.value)} placeholder="Username" />
+                <input className="pricebook-input" type="password" value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} placeholder="Password" />
+                <select className="pricebook-select" value={loginLocationId} onChange={(e) => setLoginLocationId(e.target.value)}>
+                  {STORE_LOCATIONS.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+                </select>
+                <button className="pricebook-btn primary" onClick={() => submitLoginCredentials()}>
+                  <Icon name="connect" size={15} /> Submit credentials
+                </button>
+              </div>
+              <div className="purchase-kv-list" style={{ padding: '0 20px 16px' }}>
+                <div className="purchase-kv"><span>Selected packet</span><span>{selectedLoginSubmitPacket ? `${selectedLoginSubmitPacket.packet} · ${selectedLoginSubmitPacket.status}` : 'Pending'}</span></div>
+                <div className="purchase-kv"><span>Selected store</span><span>{selectedLoginLocation.name}</span></div>
+                <div className="purchase-kv"><span>Next step</span><span>/user/viewLocations</span></div>
+                <div className="purchase-kv"><span>Route</span><span>POST /user/authenticateLogin/loginForm</span></div>
+                <div className="purchase-kv"><span>Latest event</span><span>{selectedLoginSubmitEvents[0]?.action || 'No events yet'}</span></div>
+              </div>
+              <div className="purchase-queue-list" style={{ padding: '0 20px 20px' }}>
+                {loginSubmitPacketRows.map((row) => (
+                  <div className="purchase-queue-row" key={row.id}>
+                    <div className="purchase-queue-top">
+                      <div>
+                        <div className="purchase-queue-title">{row.packet}</div>
+                        <div className="purchase-queue-meta">{row.window} · {row.focus} · {row.source}</div>
+                      </div>
+                      <span className={`purchase-tag${row.status === 'Needs review' ? ' amber' : row.status === 'Queued' || row.status === 'Submitted' ? ' blue' : ''}`}>{row.status}</span>
+                    </div>
+                    <div className="purchase-queue-meta">{row.note}</div>
+                    <div className="pricebook-actions" style={{ marginTop: 12 }}>
+                      <button className="pricebook-btn" onClick={() => setSelectedLoginSubmitPacketId(row.id)}>
+                        <Icon name="report" size={15} /> Review
+                      </button>
+                      <button className="pricebook-btn soft" onClick={() => previewLoginSubmitPacket(row)}>
+                        <Icon name="report" size={15} /> Preview
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="purchase-surface">
+              <div className="pricebook-toolbar" style={{ padding: '20px 20px 0' }}>
+                <div>
                   <div className="pricebook-detail-title">Location Picker Endpoint Reconcile</div>
                   <div className="pricebook-detail-sub">Mercury route: <strong>/user/viewLocations</strong></div>
                 </div>
@@ -19573,6 +19752,112 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
           </div>
 
           <div className="purchase-stack">
+            <div className="purchase-note-card">
+              <div className="purchase-panel-head">
+                <div>
+                  <h3>Login Submit Endpoint Depth</h3>
+                  <p>{loginSubmitContextLabel} · POST /user/authenticateLogin/loginForm</p>
+                </div>
+                <span className="purchase-tag amber">Partial</span>
+              </div>
+              <div className="purchase-kv-list">
+                <div className="purchase-kv"><span>Username</span><span>{loginUserName || '—'}</span></div>
+                <div className="purchase-kv"><span>Selected store</span><span>{selectedLoginLocation.name}</span></div>
+                <div className="purchase-kv"><span>Auth route</span><span>POST /user/authenticateLogin/loginForm</span></div>
+                <div className="purchase-kv"><span>Next step</span><span>/user/viewLocations</span></div>
+                <div className="purchase-kv"><span>Latest event</span><span>{selectedLoginSubmitEvents[0]?.action || 'No events yet'}</span></div>
+              </div>
+              <div className="pricebook-actions" style={{ marginTop: 16, flexWrap: 'wrap' }}>
+                <button className="pricebook-btn" onClick={() => previewLoginSubmitPacket(selectedLoginSubmitPacket)}>
+                  <Icon name="report" size={15} /> Preview route packet
+                </button>
+                <button className="pricebook-btn" onClick={() => stageLoginSubmitHandoff(selectedLoginSubmitPacket)}>
+                  <Icon name="calendar" size={15} /> Stage handoff
+                </button>
+                <button className="pricebook-btn" onClick={() => saveLoginSubmitPacket(selectedLoginSubmitPacket)}>
+                  <Icon name="cash" size={15} /> Save route packet
+                </button>
+                <button className="pricebook-btn primary" onClick={() => submitLoginCredentials()}>
+                  <Icon name="connect" size={15} /> Submit credentials
+                </button>
+              </div>
+            </div>
+
+            <div className="purchase-note-card">
+              <div className="purchase-panel-head">
+                <div>
+                  <h3>Selected auth payload</h3>
+                  <p>{selectedLoginLocation.name} · {selectedLoginLocation.location}</p>
+                </div>
+                <span className={`purchase-tag${selectedLoginSubmitPacket?.status === 'Submitted' ? ' blue' : ' amber'}`}>{selectedLoginSubmitPacket?.status || 'Pending'}</span>
+              </div>
+              <div className="purchase-kv-list">
+                <div className="purchase-kv"><span>Username</span><span>{loginUserName || '—'}</span></div>
+                <div className="purchase-kv"><span>Password</span><span>{maskedLoginPassword}</span></div>
+                <div className="purchase-kv"><span>Manager</span><span>{selectedLoginLocation.manager}</span></div>
+                <div className="purchase-kv"><span>Post-auth route</span><span>/user/viewLocations</span></div>
+                <div className="purchase-kv"><span>Flow status</span><span>{authFlowRows[0]?.step || 'Ready for review'}</span></div>
+              </div>
+            </div>
+
+            <div className="purchase-note-card">
+              <div className="purchase-panel-head">
+                <div>
+                  <h3>Selected Login Submit Review</h3>
+                  <p>{selectedLoginSubmitPacket ? `${selectedLoginSubmitPacket.packet} · POST /user/authenticateLogin/loginForm` : 'POST /user/authenticateLogin/loginForm'}</p>
+                </div>
+                <span className="purchase-tag amber">Partial</span>
+              </div>
+              {selectedLoginSubmitPacket ? (
+                <div className="purchase-kv-list">
+                  <div className="purchase-kv"><span>Packet</span><span>{selectedLoginSubmitPacket.packet}</span></div>
+                  <div className="purchase-kv"><span>Window</span><span>{selectedLoginSubmitPacket.window}</span></div>
+                  <div className="purchase-kv"><span>Focus</span><span>{selectedLoginSubmitPacket.focus}</span></div>
+                  <div className="purchase-kv"><span>Source</span><span>{selectedLoginSubmitPacket.source}</span></div>
+                  <div className="purchase-kv"><span>Status</span><span>{selectedLoginSubmitPacket.status}</span></div>
+                  <div className="purchase-kv"><span>Note</span><span>{selectedLoginSubmitPacket.note}</span></div>
+                </div>
+              ) : (
+                <div className="pricebook-detail-sub">No login-submit packet is selected right now.</div>
+              )}
+            </div>
+
+            <div className="purchase-note-card">
+              <div className="purchase-panel-head">
+                <div>
+                  <h3>Login Submit Events</h3>
+                  <p>{selectedLoginSubmitPacket ? `${selectedLoginSubmitPacket.packet} · POST /user/authenticateLogin/loginForm` : 'POST /user/authenticateLogin/loginForm'}</p>
+                </div>
+                <span className="purchase-tag amber">Partial</span>
+              </div>
+              <div className="pricebook-actions" style={{ marginBottom: 16, flexWrap: 'wrap' }}>
+                {['CSV', 'XLS', 'JSON'].map((format) => (
+                  <button key={format} className="pricebook-btn" onClick={() => exportLoginSubmitEvents(format)}>
+                    <Icon name="cash" size={15} /> {format}
+                  </button>
+                ))}
+              </div>
+              <div className="alerts-list">
+                {selectedLoginSubmitEvents.length ? selectedLoginSubmitEvents.map((row) => (
+                  <div key={row.id} className="alert-item" style={{ alignItems: 'flex-start' }}>
+                    <Icon
+                      name={row.action.includes('Saved') ? 'cash' : row.action.includes('Previewed') ? 'report' : row.action.includes('Queued') ? 'calendar' : 'connect'}
+                      size={18}
+                      bg={row.action.includes('Saved') ? iconDefaults.green.bg : row.action.includes('Previewed') ? iconDefaults.blue.bg : row.action.includes('Queued') ? iconDefaults.slate.bg : iconDefaults.green.bg}
+                      fg={row.action.includes('Saved') ? '#15803D' : row.action.includes('Previewed') ? '#3B82F6' : row.action.includes('Queued') ? '#64748B' : '#15803D'}
+                    />
+                    <div className="alert-copy">
+                      <div className="alert-text">{row.action}</div>
+                      <div className="pricebook-detail-sub">{row.time} · {row.actor} · {row.status}</div>
+                      <div className="pricebook-detail-sub">{row.note}</div>
+                    </div>
+                  </div>
+                )) : (
+                  <div className="pricebook-detail-sub">No login-submit route history is visible for this packet yet.</div>
+                )}
+              </div>
+            </div>
+
             <div className="purchase-note-card">
               <div className="purchase-panel-head">
                 <div>
