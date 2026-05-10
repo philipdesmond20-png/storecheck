@@ -20514,6 +20514,11 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
     { id: 'DD-2', shiftDate: '2026-05-08', packet: 'Shift Closeout Digest PDF', window: '2026-05-08 only', format: 'Download handoff', source: 'Day Report', status: 'Needs review', note: 'Previous day-download packet still needs a final owner review.' },
   ]);
   const [selectedDayDownloadId, setSelectedDayDownloadId] = useState('DD-1');
+  const [dayDownloadPacketRows, setDayDownloadPacketRows] = useState([
+    { id: 'DDP-1', packet: 'Primary day-download handoff', window: 'Owner daily download review', focus: 'Single-day owner packet', source: 'Reports / Export Center', status: 'Queued', note: 'Primary day-download handoff is staged for owner review before the live Mercury file route is connected.' },
+    { id: 'DDP-2', packet: 'Back-office rerun handoff', window: 'Accounting day rerun review', focus: 'Prior-day rerun packet', source: 'Reports / Delivery', status: 'Needs review', note: 'Previous day-download rerun still needs final owner review before the live Mercury file route is connected.' },
+  ]);
+  const [selectedDayDownloadPacketId, setSelectedDayDownloadPacketId] = useState('DDP-1');
   const [monthDownloadRows, setMonthDownloadRows] = useState([
     { id: 'MD-1', startDate: '2026-05-01', endDate: '2026-05-09', packet: 'Month-to-date owner pack', window: 'May 1 to May 9', format: 'Download handoff', source: 'Monthly Summary', status: 'Queued', note: 'Month-range owner packet is staged for Mercury-style download review.' },
     { id: 'MD-2', startDate: '2026-04-01', endDate: '2026-04-30', packet: 'Prior month closeout pack', window: 'Apr 1 to Apr 30', format: 'Download handoff', source: 'Month Download', status: 'Needs review', note: 'Previous month-download packet still needs a final accounting review.' },
@@ -20553,6 +20558,11 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
     { id: 'RDD-1201', sendId: 'DD-1', time: '2026-05-10 00:34', actor: 'Store manager', route: '/shifts/downloadShiftDayReport', action: 'Previewed day download packet', status: 'Opened', note: 'Single-day download packet was reviewed before the live file handoff was connected.' },
     { id: 'RDD-1202', sendId: 'DD-1', time: '2026-05-10 00:35', actor: 'Store manager', route: '/shifts/downloadShiftDayReport', action: 'Saved day download packet', status: 'Ready', note: 'Single-day download packet was exported before the live file handoff was connected.' },
     { id: 'RDD-1203', sendId: 'DD-2', time: '2026-05-09 21:42', actor: 'StoreCheck demo', route: '/shifts/downloadShiftDayReport', action: 'Queued day download handoff', status: 'Queued', note: 'Previous day-download handoff remained visible in demo mode.' },
+  ]);
+  const [dayDownloadRouteEvents, setDayDownloadRouteEvents] = useState([
+    { id: 'RDX-1201', packetId: 'DDP-1', time: '2026-05-10 00:34', actor: 'Store manager', route: 'POST /shifts/downloadShiftDayReport', action: 'Queued day download route handoff', status: 'Queued', note: 'Single-day route handoff was accepted for the owner daily download review.' },
+    { id: 'RDX-1202', packetId: 'DDP-1', time: '2026-05-10 00:35', actor: 'Store manager', route: 'POST /shifts/downloadShiftDayReport', action: 'Saved day download route packet', status: 'Ready', note: 'Single-day route packet was exported before the live file handoff was connected.' },
+    { id: 'RDX-1203', packetId: 'DDP-2', time: '2026-05-09 21:43', actor: 'StoreCheck demo', route: 'POST /shifts/downloadShiftDayReport', action: 'Previewed day download route packet', status: 'Opened', note: 'Previous day-download route preview stayed visible in demo mode.' },
   ]);
   const [monthDownloadEvents, setMonthDownloadEvents] = useState([
     { id: 'RMD-1301', sendId: 'MD-1', time: '2026-05-10 00:53', actor: 'Store manager', route: '/shifts/downloadShiftDayReport', action: 'Previewed month download packet', status: 'Opened', note: 'Month-range download packet was reviewed before the live file handoff was connected.' },
@@ -20765,6 +20775,10 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
     dayReportEmailPacketRows[0] ||
     null;
   const selectedDayDownload = dayDownloadRows.find((item) => item.id === selectedDayDownloadId) || dayDownloadRows[0];
+  const selectedDayDownloadPacket =
+    dayDownloadPacketRows.find((item) => item.id === selectedDayDownloadPacketId) ||
+    dayDownloadPacketRows[0] ||
+    null;
   const selectedMonthDownload = monthDownloadRows.find((item) => item.id === selectedMonthDownloadId) || monthDownloadRows[0];
   const selectedQuickbooks = quickbooksRows.find((item) => item.id === selectedQuickbooksId) || quickbooksRows[0];
   const selectedXmlExport = xmlExportRows.find((item) => item.id === selectedXmlExportId) || xmlExportRows[0];
@@ -20790,6 +20804,8 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
   const selectedDayReportEmailRouteEvents =
     selectedDayReportEmailPacket ? dayReportEmailRouteEvents.filter((item) => item.packetId === selectedDayReportEmailPacket.id) : dayReportEmailRouteEvents;
   const selectedDayDownloadEvents = selectedDayDownload ? dayDownloadEvents.filter((item) => item.sendId === selectedDayDownload.id) : dayDownloadEvents;
+  const selectedDayDownloadRouteEvents =
+    selectedDayDownloadPacket ? dayDownloadRouteEvents.filter((item) => item.packetId === selectedDayDownloadPacket.id) : dayDownloadRouteEvents;
   const selectedMonthDownloadEvents = selectedMonthDownload ? monthDownloadEvents.filter((item) => item.sendId === selectedMonthDownload.id) : monthDownloadEvents;
   const selectedQuickbooksEvents = selectedQuickbooks ? quickbooksEvents.filter((item) => item.sendId === selectedQuickbooks.id) : quickbooksEvents;
   const selectedXmlExportEvents = selectedXmlExport ? xmlExportEvents.filter((item) => item.sendId === selectedXmlExport.id) : xmlExportEvents;
@@ -21080,6 +21096,21 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
       ...current,
     ]);
   };
+  const pushDayDownloadRouteEvent = ({ packetId = selectedDayDownloadPacket?.id, action, status, note }) => {
+    setDayDownloadRouteEvents((current) => [
+      {
+        id: `RDX-${current.length + 1201}`,
+        packetId,
+        time: buildReportStamp(),
+        actor: 'StoreCheck demo',
+        route: 'POST /shifts/downloadShiftDayReport',
+        action,
+        status,
+        note,
+      },
+      ...current,
+    ]);
+  };
   const previewDayDownloadPacket = (item = selectedDayDownload) => {
     if (!item) return;
     setSelectedDayDownloadId(item.id);
@@ -21126,6 +21157,63 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
       note: `Mercury-style single-day download handoff accepted for ${item.shiftDate}.`,
     });
     showDeliveryNotice(`Day download for ${item.shiftDate} staged in demo mode. Live \`${selectedDayDownloadAction.route}\` endpoint still pending.`);
+  };
+  const buildDayDownloadRouteAction = (item = selectedDayDownload, packet = selectedDayDownloadPacket) => ({
+    ...selectedDayDownloadAction,
+    route: 'POST /shifts/downloadShiftDayReport',
+    params: `date=${item?.shiftDate || customTo}; isDay=true; isDownload=true`,
+    subtitle: `${packet?.window || 'Owner daily download review'} · POST /shifts/downloadShiftDayReport`,
+    fileName: `storecheck-day-download-route-${String(packet?.id || 'route').toLowerCase()}`,
+  });
+  const previewDayDownloadRoutePacket = (item = selectedDayDownload, packet = selectedDayDownloadPacket) => {
+    if (!item || !packet) return;
+    setSelectedDayDownloadId(item.id);
+    setSelectedDayDownloadPacketId(packet.id);
+    const action = buildDayDownloadRouteAction(item, packet);
+    openReportSurface('Day Download Endpoint Reconcile', action.subtitle, action.previewRows);
+    pushDayDownloadRouteEvent({
+      packetId: packet.id,
+      action: 'Previewed day download route packet',
+      status: 'Opened',
+      note: `${packet.packet} preview opened before the live file handoff was connected.`,
+    });
+    showDeliveryNotice(`${item.id} day-download route packet preview opened in demo mode.`);
+  };
+  const stageDayDownloadRouteHandoff = (item = selectedDayDownload, packet = selectedDayDownloadPacket) => {
+    if (!item || !packet) return;
+    setSelectedDayDownloadId(item.id);
+    setSelectedDayDownloadPacketId(packet.id);
+    setDayDownloadPacketRows((current) => current.map((row) => (
+      row.id === packet.id
+        ? { ...row, status: 'Queued', note: `Day-download route handoff is staged for ${packet.window.toLowerCase()}.` }
+        : row
+    )));
+    pushDayDownloadRouteEvent({
+      packetId: packet.id,
+      action: 'Queued day download route handoff',
+      status: 'Queued',
+      note: `Mercury-style day-download handoff accepted for ${packet.window}.`,
+    });
+    showDeliveryNotice(`${item.id} day-download route handoff staged in demo mode. Live \`POST /shifts/downloadShiftDayReport\` endpoint still pending.`);
+  };
+  const saveDayDownloadRoutePacket = (item = selectedDayDownload, packet = selectedDayDownloadPacket) => {
+    if (!item || !packet) return;
+    setSelectedDayDownloadId(item.id);
+    setSelectedDayDownloadPacketId(packet.id);
+    const action = buildDayDownloadRouteAction(item, packet);
+    const html = buildReportPackageHtml(action);
+    downloadTextData(html, 'text/html', action.fileName, 'html');
+    pushDayDownloadRouteEvent({
+      packetId: packet.id,
+      action: 'Saved day download route packet',
+      status: 'Ready',
+      note: 'Single-day route packet was exported while the live file handoff remained demo-only.',
+    });
+    showDeliveryNotice(`${item.id} day-download route packet saved in demo mode.`);
+  };
+  const exportDayDownloadRouteEvents = (format) => {
+    downloadTableData(selectedDayDownloadRouteEvents, format, `storecheck-day-download-route-events-${String(selectedDayDownloadPacket?.id || 'route').toLowerCase()}`);
+    showDeliveryNotice(`${fmtN(selectedDayDownloadRouteEvents.length)} day-download route events exported in ${format} format.`);
   };
   const pushMonthDownloadEvent = ({ sendId = selectedMonthDownload?.id, action, status, note }) => {
     setMonthDownloadEvents((current) => [
@@ -22713,47 +22801,60 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
             <div className="report-delivery-card">
               <div className="purchase-panel-head">
                 <div>
-                  <h3>Day Download Endpoint Depth</h3>
-                  <p>Keep the `/shifts/downloadShiftDayReport` single-day handoff visible with selected packet context before the live file delivery route is connected.</p>
+                  <h3>Day Download Endpoint Reconcile</h3>
+                  <p>Keep the `POST /shifts/downloadShiftDayReport` single-day packet visible with selected download and route follow-through context before the live file delivery route is connected.</p>
                 </div>
               </div>
               <div className="purchase-kv-list">
-                <div className="purchase-kv"><span>Selected packet</span><span>{selectedDayDownload ? `${selectedDayDownload.shiftDate} · ${selectedDayDownload.status}` : 'Pending'}</span></div>
-                <div className="purchase-kv"><span>Route</span><span>{selectedDayDownloadAction.route}</span></div>
+                <div className="purchase-kv"><span>Selected route packet</span><span>{selectedDayDownloadPacket ? `${selectedDayDownloadPacket.packet} · ${selectedDayDownloadPacket.status}` : 'Pending'}</span></div>
+                <div className="purchase-kv"><span>Selected download</span><span>{selectedDayDownload ? `${selectedDayDownload.shiftDate} · ${selectedDayDownload.status}` : 'Pending'}</span></div>
+                <div className="purchase-kv"><span>Route</span><span>POST /shifts/downloadShiftDayReport</span></div>
                 <div className="purchase-kv"><span>Format</span><span>{selectedDayDownload?.format || selectedDayDownloadAction.format}</span></div>
                 <div className="purchase-kv"><span>Params</span><span>{`date=${selectedDayDownload?.shiftDate || customTo}; isDay=true; isDownload=true`}</span></div>
+                <div className="purchase-kv"><span>Packet window</span><span>{selectedDayDownloadPacket?.window || 'Owner daily download review'}</span></div>
                 <div className="purchase-kv"><span>Current day</span><span>{selectedDayDownload ? `${selectedDayDownload.shiftDate} · ${selectedDayDownload.packet}` : `${customTo} · Day download`}</span></div>
-                <div className="purchase-kv"><span>Latest event</span><span>{selectedDayDownloadEvents[0]?.action || 'No events yet'}</span></div>
+                <div className="purchase-kv"><span>Latest route event</span><span>{selectedDayDownloadRouteEvents[0]?.action || 'No events yet'}</span></div>
               </div>
               <div className="pricebook-actions" style={{ marginTop: 16, flexWrap: 'wrap' }}>
-                <button className="pricebook-btn" onClick={() => previewDayDownloadPacket(selectedDayDownload)}>
+                <button className="pricebook-btn" onClick={() => previewDayDownloadRoutePacket(selectedDayDownload, selectedDayDownloadPacket)}>
                   <Icon name="report" size={15} /> Preview route packet
                 </button>
-                <button className="pricebook-btn" onClick={() => stageDayDownloadHandoff(selectedDayDownload)}>
+                <button className="pricebook-btn" onClick={() => stageDayDownloadRouteHandoff(selectedDayDownload, selectedDayDownloadPacket)}>
                   <Icon name="cash" size={15} /> Stage handoff
                 </button>
-                <button className="pricebook-btn" onClick={() => saveDayDownloadPacket(selectedDayDownload)}>
+                <button className="pricebook-btn primary" onClick={() => saveDayDownloadRoutePacket(selectedDayDownload, selectedDayDownloadPacket)}>
                   <Icon name="cash" size={15} /> Save route packet
                 </button>
-                <button className="pricebook-btn primary" onClick={() => exportDayDownloadEvents('CSV')}>
-                  <Icon name="save" size={15} /> Export route log
-                </button>
               </div>
-              <div className="report-delivery-list" style={{ marginTop: 18 }}>
+              <div className="purchase-queue-list" style={{ marginTop: 16 }}>
                 {dayDownloadRows.map((row) => (
-                  <div className="report-delivery-row" key={row.id}>
-                    <div className="report-delivery-head">
+                  <div className="purchase-queue-row" key={row.id}>
+                    <div className="purchase-queue-top">
                       <div>
-                        <div className="report-delivery-title">{row.packet}</div>
-                        <div className="report-delivery-meta">{row.shiftDate} · {row.window} · {row.source}</div>
+                        <div className="purchase-queue-title">{row.packet}</div>
+                        <div className="purchase-queue-meta">{row.shiftDate} · {row.window} · {row.source}</div>
                       </div>
-                      <span className={`purchase-tag${row.status === 'Needs review' ? ' amber' : ' blue'}`}>{row.status}</span>
+                      <div className="pricebook-actions" style={{ gap: 8 }}>
+                        <span className={`purchase-tag${row.status === 'Needs review' ? ' amber' : ' blue'}`}>{row.status}</span>
+                        <button className="pricebook-btn soft" onClick={() => setSelectedDayDownloadId(row.id)}>
+                          Review
+                        </button>
+                      </div>
                     </div>
-                    <div className="report-delivery-actions">
-                      <button className="pricebook-btn" onClick={() => setSelectedDayDownloadId(row.id)}>
-                        <Icon name="report" size={15} /> Review
-                      </button>
+                  </div>
+                ))}
+              </div>
+              <div className="purchase-queue-list" style={{ marginTop: 12 }}>
+                {dayDownloadPacketRows.map((row) => (
+                  <div className="purchase-queue-row" key={row.id}>
+                    <div className="purchase-queue-top">
+                      <div>
+                        <div className="purchase-queue-title">{row.packet}</div>
+                        <div className="purchase-queue-meta">{row.window} · {row.focus} · {row.source}</div>
+                      </div>
+                      <button className="pricebook-btn soft" onClick={() => setSelectedDayDownloadPacketId(row.id)}>Review</button>
                     </div>
+                    <div className="purchase-queue-meta">{row.note}</div>
                   </div>
                 ))}
               </div>
@@ -22762,20 +22863,55 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
             <div className="report-delivery-card">
               <div className="purchase-panel-head">
                 <div>
-                  <h3>Selected Day Download Review</h3>
-                  <p>Owner-facing visibility for the chosen single-day download handoff before the live file route is connected.</p>
+                  <h3>Selected Day Download Endpoint Review</h3>
+                  <p>Owner-facing visibility for the chosen single-day download route packet before the live file route is connected.</p>
                 </div>
               </div>
               {selectedDayDownload ? (
                 <div className="purchase-kv-list">
+                  <div className="purchase-kv"><span>Packet</span><span>{selectedDayDownloadPacket?.packet || 'Pending'}</span></div>
+                  <div className="purchase-kv"><span>Window</span><span>{selectedDayDownloadPacket?.window || 'Owner daily download review'}</span></div>
+                  <div className="purchase-kv"><span>Focus</span><span>{selectedDayDownloadPacket?.focus || 'Single-day owner packet'}</span></div>
+                  <div className="purchase-kv"><span>Packet status</span><span>{selectedDayDownloadPacket?.status || 'Pending'}</span></div>
                   <div className="purchase-kv"><span>Shift date</span><span>{selectedDayDownload.shiftDate}</span></div>
                   <div className="purchase-kv"><span>Packet</span><span>{selectedDayDownload.packet}</span></div>
                   <div className="purchase-kv"><span>Window</span><span>{selectedDayDownload.window}</span></div>
                   <div className="purchase-kv"><span>Source</span><span>{selectedDayDownload.source}</span></div>
+                  <div className="purchase-kv"><span>Route</span><span>POST /shifts/downloadShiftDayReport</span></div>
                   <div className="purchase-kv"><span>Status</span><span>{selectedDayDownload.status}</span></div>
                   <div className="purchase-kv"><span>Note</span><span>{selectedDayDownload.note}</span></div>
                 </div>
               ) : <div className="purchase-hint">No day-download handoff is selected right now.</div>}
+            </div>
+
+            <div className="report-delivery-card">
+              <div className="purchase-panel-head">
+                <div>
+                  <h3>Day Download Route Events</h3>
+                  <p>Track route-specific `POST /shifts/downloadShiftDayReport` packet activity before the live file route is connected.</p>
+                </div>
+              </div>
+              <div className="pricebook-actions" style={{ marginBottom: 16, flexWrap: 'wrap' }}>
+                {['CSV', 'XLS', 'JSON'].map((format) => (
+                  <button key={format} className="pricebook-btn" onClick={() => exportDayDownloadRouteEvents(format)}>
+                    <Icon name="save" size={15} /> {format}
+                  </button>
+                ))}
+              </div>
+              <div className="report-delivery-list">
+                {selectedDayDownloadRouteEvents.length ? selectedDayDownloadRouteEvents.map((item) => (
+                  <div className="report-delivery-row" key={item.id}>
+                    <div className="report-delivery-head">
+                      <div>
+                        <div className="report-delivery-title">{item.action}</div>
+                        <div className="report-delivery-meta">{item.time} · {item.actor} · {item.route}</div>
+                      </div>
+                      <span className={`purchase-tag${item.status === 'Needs review' ? ' amber' : ' blue'}`}>{item.status}</span>
+                    </div>
+                    <div className="report-delivery-meta">{selectedDayDownloadPacket?.id || 'DDP-1'} · {item.note}</div>
+                  </div>
+                )) : <div className="purchase-hint">No day-download route events are recorded for the selected packet yet.</div>}
+              </div>
             </div>
 
             <div className="report-delivery-card">
