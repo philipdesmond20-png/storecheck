@@ -12899,6 +12899,11 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
   ]);
   const [selectedExpenseLedgerPacketId, setSelectedExpenseLedgerPacketId] = useState('OEL-1');
   const [selectedSetupVendorId, setSelectedSetupVendorId] = useState(VENDOR_MASTER[0].vendor);
+  const [vendorSetupPacketRows, setVendorSetupPacketRows] = useState([
+    { id: 'AVS-1', packet: 'Primary vendor setup handoff', window: 'Current vendor master', focus: 'Selected vendor review', source: 'Vendor Master', status: 'Queued', note: 'Primary vendor-setup handoff is staged for owner review before live Mercury wiring.' },
+    { id: 'AVS-2', packet: 'Add vendor save handoff', window: 'Vendor Name draft + create flow', focus: 'Add Vendor follow-through', source: 'Add Vendor', status: 'Needs review', note: 'Add-vendor handoff still needs final owner review before the live route is connected.' },
+  ]);
+  const [selectedVendorSetupPacketId, setSelectedVendorSetupPacketId] = useState('AVS-1');
   const [selectedExpenseTypeId, setSelectedExpenseTypeId] = useState('ET-1');
   const [expenseTypePacketRows, setExpenseTypePacketRows] = useState([
     { id: 'AET-1', packet: 'Primary expense type setup handoff', window: 'Current operating expense categories', focus: 'Selected category review', source: 'Expense Type Setup', status: 'Queued', note: 'Primary expense-type setup handoff is staged for owner review before live Mercury wiring.' },
@@ -12959,6 +12964,11 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
     { id: 'ETE-101', packetId: 'AET-1', time: '2026-05-10 13:44', actor: 'Store manager', route: '/administration/manageOperatingExpenses', action: 'Previewed expense type packet', status: 'Opened', note: 'Owner reviewed the operating-expense category packet before the live Mercury route was connected.' },
     { id: 'ETE-102', packetId: 'AET-1', time: '2026-05-10 13:45', actor: 'Store manager', route: '/administration/manageOperatingExpenses', action: 'Saved expense type route packet', status: 'Ready', note: 'Expense-type setup packet was exported while the live Mercury route remained demo-only.' },
     { id: 'ETE-103', packetId: 'AET-2', time: '2026-05-09 19:42', actor: 'StoreCheck demo', route: '/administration/manageOperatingExpenses', action: 'Queued expense type handoff', status: 'Queued', note: 'Add-expense-type handoff remained visible in demo mode.' },
+  ]);
+  const [vendorSetupEvents, setVendorSetupEvents] = useState([
+    { id: 'VSE-101', packetId: 'AVS-1', time: '2026-05-10 14:04', actor: 'Store manager', route: '/administration/manageOperatingExpenses', action: 'Previewed vendor setup packet', status: 'Opened', note: 'Owner reviewed the vendor-master packet before the live Mercury route was connected.' },
+    { id: 'VSE-102', packetId: 'AVS-1', time: '2026-05-10 14:05', actor: 'Store manager', route: '/administration/manageOperatingExpenses', action: 'Saved vendor route packet', status: 'Ready', note: 'Vendor-setup packet was exported while the live Mercury route remained demo-only.' },
+    { id: 'VSE-103', packetId: 'AVS-2', time: '2026-05-09 19:56', actor: 'StoreCheck demo', route: '/administration/manageOperatingExpenses', action: 'Queued vendor setup handoff', status: 'Queued', note: 'Add-vendor handoff remained visible in demo mode.' },
   ]);
   const [showVendorCreate, setShowVendorCreate] = useState(false);
   const [showExpenseTypeCreate, setShowExpenseTypeCreate] = useState(false);
@@ -13062,6 +13072,7 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
   const selectedExpenseSummaryPacket = expenseSummaryPacketRows.find((row) => row.id === selectedExpenseSummaryPacketId) || expenseSummaryPacketRows[0];
   const selectedExpenseLedgerPacket = expenseLedgerPacketRows.find((row) => row.id === selectedExpenseLedgerPacketId) || expenseLedgerPacketRows[0];
   const selectedExpenseTypePacket = expenseTypePacketRows.find((row) => row.id === selectedExpenseTypePacketId) || expenseTypePacketRows[0];
+  const selectedVendorSetupPacket = vendorSetupPacketRows.find((row) => row.id === selectedVendorSetupPacketId) || vendorSetupPacketRows[0];
   const selectedSetupVendor =
     filteredVendorMasterRows.find((row) => row.vendor === selectedSetupVendorId) ||
     vendorMasterRows.find((row) => row.vendor === selectedSetupVendorId) ||
@@ -13079,6 +13090,7 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
   const selectedExpenseSummaryEvents = selectedExpenseSummaryPacket ? expenseSummaryEvents.filter((row) => row.packetId === selectedExpenseSummaryPacket.id) : expenseSummaryEvents;
   const selectedExpenseLedgerEvents = selectedExpenseLedgerPacket ? expenseLedgerEvents.filter((row) => row.packetId === selectedExpenseLedgerPacket.id) : expenseLedgerEvents;
   const selectedExpenseTypeEvents = selectedExpenseTypePacket ? expenseTypeEvents.filter((row) => row.packetId === selectedExpenseTypePacket.id) : expenseTypeEvents;
+  const selectedVendorSetupEvents = selectedVendorSetupPacket ? vendorSetupEvents.filter((row) => row.packetId === selectedVendorSetupPacket.id) : vendorSetupEvents;
   const selectedDeadRows = deadInventoryRows.filter((row) => deadSelected.includes(row.id));
   const stagedInactiveCount = deadInventoryRows.filter((row) => row.stage === 'Staged InActive').length;
   const selectedLibraryAttachment = attachments.find((row) => row.id === selectedLibraryAttachmentId) || attachments[0];
@@ -14447,8 +14459,20 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
     };
     setVendorMasterRows((current) => [nextRow, ...current]);
     setSelectedSetupVendorId(label);
+    setSelectedVendorSetupPacketId('AVS-2');
+    setVendorSetupPacketRows((current) => current.map((row) => (
+      row.id === 'AVS-2'
+        ? { ...row, status: 'Ready', note: `Vendor draft saved in demo mode for ${label}.` }
+        : row
+    )));
     setVendorDraftName('');
     setShowVendorCreate(false);
+    pushVendorSetupEvent({
+      packetId: 'AVS-2',
+      action: 'Saved vendor draft',
+      status: 'Ready',
+      note: `Vendor draft for ${label} was saved while the live Mercury route remained demo-only.`,
+    });
     showNotice(`${label} added to the demo vendor master. Live create endpoint is still pending.`);
   };
   const toggleSetupVendor = (vendor) => {
@@ -14484,6 +14508,87 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
     setExpenseDraft((current) => ({ ...current, vendor }));
     setSelectedSetupVendorId(vendor);
     showNotice(`${vendor} staged into purchase and expense entry drafts.`);
+  };
+  const buildVendorSetupPacketRows = (packet = selectedVendorSetupPacket) => {
+    if (packet?.id === 'AVS-2') {
+      const draftVendor = vendorDraftName.trim() || selectedSetupVendor?.vendor || 'Pending vendor name';
+      const draftAgent = selectedSetupVendor?.agent || 'Ops';
+      const draftTerminal = selectedSetupVendor?.terminal || 'Back Office';
+      return [[draftVendor, draftAgent, draftTerminal, 'Draft', 'Add Vendor', 'Create flow']];
+    }
+    return vendorMasterRows.map((row) => [
+      row.vendor,
+      row.agent,
+      row.terminal,
+      row.active ? 'Active' : 'Inactive',
+      row.lastOrder,
+      row.vendor === selectedSetupVendor?.vendor ? 'Selected' : 'Available',
+    ]);
+  };
+  const pushVendorSetupEvent = ({ packetId = selectedVendorSetupPacket?.id, action, status, note }) => {
+    setVendorSetupEvents((current) => [
+      {
+        id: `VSE-${current.length + 101}`,
+        packetId,
+        time: todayStr(),
+        actor: 'StoreCheck demo',
+        route: '/administration/manageOperatingExpenses',
+        action,
+        status,
+        note,
+      },
+      ...current,
+    ]);
+  };
+  const previewVendorSetupDepth = (packet = selectedVendorSetupPacket) => {
+    if (!packet) return;
+    setSelectedVendorSetupPacketId(packet.id);
+    openPacketPreview({
+      title: 'Vendor Setup Endpoint Depth',
+      subtitle: `${packet.window} · ${packet.focus} · /administration/manageOperatingExpenses`,
+      headers: ['Vendor', 'Agent', 'Terminal', 'Status', 'Last Order', 'Mode'],
+      rows: buildVendorSetupPacketRows(packet),
+    });
+    pushVendorSetupEvent({
+      packetId: packet.id,
+      action: 'Previewed vendor setup packet',
+      status: 'Opened',
+      note: `${packet.packet} preview opened before the live Mercury route was connected.`,
+    });
+  };
+  const saveVendorSetupDepth = (packet = selectedVendorSetupPacket) => {
+    if (!packet) return;
+    setSelectedVendorSetupPacketId(packet.id);
+    savePacket({
+      title: `Vendor Setup Packet - ${packet.id}`,
+      subtitle: `${packet.window} · ${packet.focus}`,
+      route: '/administration/manageOperatingExpenses',
+      note: 'Vendor master setup replacement shell',
+      headers: ['Vendor', 'Agent', 'Terminal', 'Status', 'Last Order', 'Mode'],
+      rows: buildVendorSetupPacketRows(packet),
+      filename: `storecheck-vendor-setup-${packet.id.toLowerCase()}`,
+    });
+    pushVendorSetupEvent({
+      packetId: packet.id,
+      action: 'Saved vendor route packet',
+      status: 'Ready',
+      note: 'Vendor-setup packet was exported while the live Mercury route remained demo-only.',
+    });
+    showNotice('Vendor setup route packet saved in demo mode.');
+  };
+  const stageVendorSetupHandoff = (packet = selectedVendorSetupPacket) => {
+    if (!packet) return;
+    setSelectedVendorSetupPacketId(packet.id);
+    setVendorSetupPacketRows((current) => current.map((row) => (
+      row.id === packet.id ? { ...row, status: 'Queued', note: `Vendor-setup handoff is staged for ${packet.window}.` } : row
+    )));
+    pushVendorSetupEvent({
+      packetId: packet.id,
+      action: 'Queued vendor setup handoff',
+      status: 'Queued',
+      note: `Mercury-style vendor-setup handoff accepted for ${packet.window}.`,
+    });
+    showNotice(`Vendor setup for ${packet.window} staged in demo mode. Live \`/administration/manageOperatingExpenses\` endpoint still pending.`);
   };
   const createExpenseTypeRow = () => {
     const label = expenseTypeDraftName.trim();
@@ -14659,6 +14764,10 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
   const exportExpenseTypeEvents = (format) => {
     downloadTableData(selectedExpenseTypeEvents, format, 'storecheck-expense-type-setup-events');
     showNotice(`${fmtN(selectedExpenseTypeEvents.length)} expense-type setup events exported in ${format} format.`);
+  };
+  const exportVendorSetupEvents = (format) => {
+    downloadTableData(selectedVendorSetupEvents, format, 'storecheck-vendor-setup-events');
+    showNotice(`${fmtN(selectedVendorSetupEvents.length)} vendor-setup events exported in ${format} format.`);
   };
 
   const renderExportButtons = (rows, filename) => (
@@ -16510,12 +16619,38 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
             <div className="purchase-setup-card">
               <div className="purchase-panel-head">
                 <div>
-                  <h3>Vendor master</h3>
-                  <p>Owner-facing vendor setup with active visibility, terminal assignments, and last-order context.</p>
+                  <h3>Vendor Setup Endpoint Depth</h3>
+                  <p>Keep the `/administration/manageOperatingExpenses` vendor-setup handoff visible with selected packet context before the live Mercury route is connected.</p>
                 </div>
-                <button className="pricebook-btn primary" onClick={() => { setShowVendorCreate(true); setVendorDraftName(''); }}>
-                  <Icon name="connect" size={15} /> Add vendor
-                </button>
+                <div className="pricebook-actions">
+                  <button className="pricebook-btn primary" onClick={() => { setSelectedVendorSetupPacketId('AVS-2'); setShowVendorCreate(true); setVendorDraftName(''); }}>
+                    <Icon name="connect" size={15} /> Add vendor
+                  </button>
+                </div>
+              </div>
+              <div className="purchase-kv-list" style={{ marginBottom: 16 }}>
+                <div className="purchase-kv"><span>Selected packet</span><span>{selectedVendorSetupPacket ? `${selectedVendorSetupPacket.packet} · ${selectedVendorSetupPacket.status}` : 'Pending'}</span></div>
+                <div className="purchase-kv"><span>Route</span><span>/administration/manageOperatingExpenses</span></div>
+                <div className="purchase-kv"><span>Focus</span><span>{selectedVendorSetupPacket?.focus || 'Selected vendor review'}</span></div>
+                <div className="purchase-kv"><span>Current packet</span><span>{selectedVendorSetupPacket ? `${selectedVendorSetupPacket.window} · ${selectedVendorSetupPacket.source}` : 'Vendor Master'}</span></div>
+                <div className="purchase-kv"><span>Latest event</span><span>{selectedVendorSetupEvents[0]?.action || 'No events yet'}</span></div>
+              </div>
+              <div className="purchase-action-row" style={{ marginBottom: 16 }}>
+                <span className="purchase-hint">Mercury keeps vendor setup on the same admin route. StoreCheck keeps the review, create, and export flow in the same owner-facing workspace.</span>
+                <div className="pricebook-actions">
+                  <button className="pricebook-btn" onClick={() => previewVendorSetupDepth(selectedVendorSetupPacket)}>
+                    <Icon name="report" size={15} /> Preview route packet
+                  </button>
+                  <button className="pricebook-btn" onClick={() => stageVendorSetupHandoff(selectedVendorSetupPacket)}>
+                    <Icon name="sync" size={15} /> Stage handoff
+                  </button>
+                  <button className="pricebook-btn" onClick={() => saveVendorSetupDepth(selectedVendorSetupPacket)}>
+                    <Icon name="cash" size={15} /> Save route packet
+                  </button>
+                  <button className="pricebook-btn primary" onClick={() => exportVendorSetupEvents('CSV')}>
+                    <Icon name="save" size={15} /> Export route log
+                  </button>
+                </div>
               </div>
               {showVendorCreate ? (
                 <div className="purchase-form-grid" style={{ marginBottom: 16 }}>
@@ -16530,7 +16665,7 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
                         <Icon name="close" size={15} /> Cancel
                       </button>
                       <button className="pricebook-btn primary" onClick={() => createVendorRow()}>
-                        <Icon name="save" size={15} /> Create
+                        <Icon name="save" size={15} /> Save vendor
                       </button>
                     </div>
                   </div>
@@ -16556,6 +16691,28 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
                       </button>
                       <span className={`purchase-status-dot${row.active ? '' : ' off'}`}></span>
                       <span className={`purchase-tag${row.active ? '' : ' red'}`}>{row.active ? 'Active' : 'Inactive'}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="purchase-queue-list" style={{ marginTop: 18 }}>
+                {vendorSetupPacketRows.map((row) => (
+                  <div className="purchase-queue-row" key={row.id}>
+                    <div className="purchase-queue-top">
+                      <div>
+                        <div className="purchase-queue-title">{row.packet}</div>
+                        <div className="purchase-queue-meta">{row.window} · {row.focus} · {row.source}</div>
+                      </div>
+                      <span className={`purchase-tag${toneClass(row.status)}`}>{row.status}</span>
+                    </div>
+                    <div className="purchase-queue-meta">{row.note}</div>
+                    <div className="pricebook-actions" style={{ marginTop: 12 }}>
+                      <button className="pricebook-btn" onClick={() => setSelectedVendorSetupPacketId(row.id)}>
+                        <Icon name="report" size={15} /> Review
+                      </button>
+                      <button className="pricebook-btn soft" onClick={() => previewVendorSetupDepth(row)}>
+                        <Icon name="report" size={15} /> Preview
+                      </button>
                     </div>
                   </div>
                 ))}
@@ -16675,14 +16832,48 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
                     <button className="pricebook-btn" onClick={() => useVendorInDrafts(selectedSetupVendor.vendor)}>
                       <Icon name="connect" size={15} /> Use in drafts
                     </button>
-                    <button className="pricebook-btn primary" onClick={() => toggleSetupVendor(selectedSetupVendor.vendor)}>
-                      <Icon name="sync" size={15} /> {selectedSetupVendor.active ? 'Set inactive' : 'Set active'}
+                    <button className="pricebook-btn primary" onClick={() => { setSelectedVendorSetupPacketId('AVS-2'); setShowVendorCreate(true); setVendorDraftName(selectedSetupVendor.vendor); }}>
+                      <Icon name="save" size={15} /> Open draft
                     </button>
                   </div>
                 </>
               ) : (
                 <div className="purchase-hint">No vendor is visible for the current setup filter.</div>
               )}
+            </div>
+
+            <div className="purchase-note-card">
+              <h3>Selected Vendor Setup Review</h3>
+              <p>Owner-facing visibility for the chosen vendor-setup packet before the live Mercury route is connected.</p>
+              {selectedVendorSetupPacket ? (
+                <div className="purchase-kv-list">
+                  <div className="purchase-kv"><span>Packet</span><span>{selectedVendorSetupPacket.packet}</span></div>
+                  <div className="purchase-kv"><span>Window</span><span>{selectedVendorSetupPacket.window}</span></div>
+                  <div className="purchase-kv"><span>Focus</span><span>{selectedVendorSetupPacket.focus}</span></div>
+                  <div className="purchase-kv"><span>Source</span><span>{selectedVendorSetupPacket.source}</span></div>
+                  <div className="purchase-kv"><span>Status</span><span>{selectedVendorSetupPacket.status}</span></div>
+                  <div className="purchase-kv"><span>Note</span><span>{selectedVendorSetupPacket.note}</span></div>
+                </div>
+              ) : <div className="purchase-hint">No vendor-setup packet is selected right now.</div>}
+            </div>
+
+            <div className="purchase-note-card">
+              <h3>Vendor Setup Events</h3>
+              <p>Track route-specific `/administration/manageOperatingExpenses` vendor activity before live Mercury wiring is connected.</p>
+              <div className="purchase-queue-list">
+                {selectedVendorSetupEvents.length ? selectedVendorSetupEvents.map((row) => (
+                  <div className="purchase-queue-row" key={row.id}>
+                    <div className="purchase-queue-top">
+                      <div>
+                        <div className="purchase-queue-title">{row.action}</div>
+                        <div className="purchase-queue-meta">{row.time} · {row.actor} · {row.route}</div>
+                      </div>
+                      <span className={`purchase-tag${toneClass(row.status)}`}>{row.status}</span>
+                    </div>
+                    <div className="purchase-queue-meta">{selectedVendorSetupPacket?.id || 'AVS-1'} · {row.note}</div>
+                  </div>
+                )) : <div className="purchase-hint">No vendor-setup events are recorded yet.</div>}
+              </div>
             </div>
 
             <div className="purchase-note-card">
