@@ -12845,6 +12845,11 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
   const [selectedReviewId, setSelectedReviewId] = useState(PURCHASE_REVIEW_QUEUE[0].id);
   const [selectedLedgerId, setSelectedLedgerId] = useState(PURCHASE_LEDGER.find((row) => row.status !== 'Cleared')?.id || PURCHASE_LEDGER[0].id);
   const [selectedExpenseId, setSelectedExpenseId] = useState(OPERATING_EXPENSES.find((row) => row.paymentType === 'Cash')?.id || OPERATING_EXPENSES[0].id);
+  const [purchaseSummaryPacketRows, setPurchaseSummaryPacketRows] = useState([
+    { id: 'PS-1', packet: 'Month-to-date grocery summary', window: '2026-05-01 to 2026-05-09', focus: 'Category and retail mix', source: 'Purchases Summary', status: 'Queued', note: 'Primary grocery purchases summary is staged for owner review before live Mercury wiring.' },
+    { id: 'PS-2', packet: 'Payment method purchases recap', window: '2026-05-01 to 2026-05-09', focus: 'Cash / Check / EFT split', source: 'Payment Methods', status: 'Needs review', note: 'Payment-method rollup still needs final owner review before the live route is connected.' },
+  ]);
+  const [selectedPurchaseSummaryPacketId, setSelectedPurchaseSummaryPacketId] = useState('PS-1');
   const [expenseSummaryPacketRows, setExpenseSummaryPacketRows] = useState([
     { id: 'OES-1', packet: 'Month-to-date operating summary', window: '2026-05-01 to 2026-05-09', focus: 'Current category mix', source: 'Summary tab', status: 'Queued', note: 'Primary operating-expense summary is staged for owner review before live Mercury wiring.' },
     { id: 'OES-2', packet: 'Cash expense recap', window: '2026-05-09 only', focus: 'Cash expenses only', source: 'Cash visibility', status: 'Needs review', note: 'Cash-only summary needs final reconciliation before the live route is connected.' },
@@ -12857,6 +12862,11 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
   const [selectedExpenseLedgerPacketId, setSelectedExpenseLedgerPacketId] = useState('OEL-1');
   const [selectedSetupVendorId, setSelectedSetupVendorId] = useState(VENDOR_MASTER[0].vendor);
   const [selectedExpenseTypeId, setSelectedExpenseTypeId] = useState('ET-1');
+  const [purchaseSummaryEvents, setPurchaseSummaryEvents] = useState([
+    { id: 'PSE-101', packetId: 'PS-1', time: '2026-05-10 11:04', actor: 'Store manager', route: '/storeExpenses/index', action: 'Previewed purchases summary packet', status: 'Opened', note: 'Owner reviewed the month-to-date grocery summary before the live Mercury route was connected.' },
+    { id: 'PSE-102', packetId: 'PS-1', time: '2026-05-10 11:05', actor: 'Store manager', route: '/storeExpenses/index', action: 'Saved purchases summary packet', status: 'Ready', note: 'Purchases summary packet exported while the live Mercury route remained demo-only.' },
+    { id: 'PSE-103', packetId: 'PS-2', time: '2026-05-09 16:42', actor: 'StoreCheck demo', route: '/storeExpenses/index', action: 'Queued purchases summary handoff', status: 'Queued', note: 'Payment-method purchases handoff remained visible in demo mode.' },
+  ]);
   const [expenseSummaryEvents, setExpenseSummaryEvents] = useState([
     { id: 'OES-101', packetId: 'OES-1', time: '2026-05-10 10:31', actor: 'Store manager', route: '/storeExpenses/purchaseindex', action: 'Previewed operating expense summary packet', status: 'Opened', note: 'Owner reviewed the month-to-date operating summary before the live Mercury route was connected.' },
     { id: 'OES-102', packetId: 'OES-1', time: '2026-05-10 10:33', actor: 'Store manager', route: '/storeExpenses/purchaseindex', action: 'Saved operating expense summary packet', status: 'Ready', note: 'Operating-expense summary packet exported while the live Mercury route remained demo-only.' },
@@ -12954,6 +12964,7 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
   const selectedInvoiceReview = invoiceReviewRows.find((row) => row.id === selectedReviewId) || invoiceReviewRows[0];
   const selectedLedger = filteredPurchaseLedger.find((row) => row.id === selectedLedgerId) || filteredPurchaseLedger[0] || purchaseLedgerRows[0];
   const selectedExpense = filteredExpenses.find((row) => row.id === selectedExpenseId) || filteredExpenses[0] || expenseRows[0];
+  const selectedPurchaseSummaryPacket = purchaseSummaryPacketRows.find((row) => row.id === selectedPurchaseSummaryPacketId) || purchaseSummaryPacketRows[0];
   const selectedExpenseSummaryPacket = expenseSummaryPacketRows.find((row) => row.id === selectedExpenseSummaryPacketId) || expenseSummaryPacketRows[0];
   const selectedExpenseLedgerPacket = expenseLedgerPacketRows.find((row) => row.id === selectedExpenseLedgerPacketId) || expenseLedgerPacketRows[0];
   const selectedSetupVendor =
@@ -12962,6 +12973,7 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
     filteredVendorMasterRows[0] ||
     vendorMasterRows[0];
   const selectedExpenseType = expenseTypeRows.find((row) => row.id === selectedExpenseTypeId) || expenseTypeRows[0];
+  const selectedPurchaseSummaryEvents = selectedPurchaseSummaryPacket ? purchaseSummaryEvents.filter((row) => row.packetId === selectedPurchaseSummaryPacket.id) : purchaseSummaryEvents;
   const selectedExpenseSummaryEvents = selectedExpenseSummaryPacket ? expenseSummaryEvents.filter((row) => row.packetId === selectedExpenseSummaryPacket.id) : expenseSummaryEvents;
   const selectedExpenseLedgerEvents = selectedExpenseLedgerPacket ? expenseLedgerEvents.filter((row) => row.packetId === selectedExpenseLedgerPacket.id) : expenseLedgerEvents;
   const selectedDeadRows = deadInventoryRows.filter((row) => deadSelected.includes(row.id));
@@ -13334,24 +13346,84 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
     });
     showNotice('Dead inventory inactivation packet saved in demo mode.');
   };
+  const buildPurchaseSummaryPacketRows = (packet = selectedPurchaseSummaryPacket) => {
+    if (packet?.id === 'PS-2') {
+      return PURCHASE_PAYMENT_METHODS.map((row) => ['Payment Method', row.method, fmt(row.amount), row.note, '-']);
+    }
+    return PURCHASE_CATEGORY_SUMMARY.map((row) => ['Groceries', row.category, fmt(row.expenses), row.retail ? fmt(row.retail) : '-', row.mix]);
+  };
+  const pushPurchaseSummaryEvent = ({ packetId = selectedPurchaseSummaryPacket?.id, action, status, note }) => {
+    setPurchaseSummaryEvents((current) => [
+      {
+        id: `PSE-${current.length + 101}`,
+        packetId,
+        time: todayStr(),
+        actor: 'StoreCheck demo',
+        route: '/storeExpenses/index',
+        action,
+        status,
+        note,
+      },
+      ...current,
+    ]);
+  };
+  const previewPurchaseSummaryDepth = (packet = selectedPurchaseSummaryPacket) => {
+    if (!packet) return;
+    setSelectedPurchaseSummaryPacketId(packet.id);
+    openPacketPreview({
+      title: 'Purchases Summary Endpoint Depth',
+      subtitle: `${packet.window} · ${packet.focus} · /storeExpenses/index`,
+      headers: ['Panel', 'Name', 'Amount', 'Retail / Notes', 'Mix'],
+      rows: buildPurchaseSummaryPacketRows(packet),
+    });
+    pushPurchaseSummaryEvent({
+      packetId: packet.id,
+      action: 'Previewed purchases summary packet',
+      status: 'Opened',
+      note: `${packet.packet} preview opened before the live Mercury route was connected.`,
+    });
+  };
   const printPurchaseSummaryPacket = () =>
     openPacketPreview({
-      title: 'Purchases Summary',
-      subtitle: 'StoreCheck demo grocery purchase summary',
-      headers: ['Category', 'Expenses', 'Retail', 'Mix'],
-      rows: PURCHASE_CATEGORY_SUMMARY.map((row) => [row.category, fmt(row.expenses), row.retail ? fmt(row.retail) : '-', row.mix]),
+      title: 'Purchases Summary Endpoint Depth',
+      subtitle: `${selectedPurchaseSummaryPacket?.window || 'Current summary'} · ${selectedPurchaseSummaryPacket?.focus || 'Category and retail mix'} · /storeExpenses/index`,
+      headers: ['Panel', 'Name', 'Amount', 'Retail / Notes', 'Mix'],
+      rows: buildPurchaseSummaryPacketRows(selectedPurchaseSummaryPacket),
     });
   const savePurchaseSummaryPacket = () => {
+    const packet = selectedPurchaseSummaryPacket;
+    if (!packet) return;
+    setSelectedPurchaseSummaryPacketId(packet.id);
     savePacket({
-      title: 'Purchases Summary Packet',
-      subtitle: `${PURCHASE_CATEGORY_SUMMARY.length} summary categories`,
+      title: `Purchases Summary Packet - ${packet.id}`,
+      subtitle: `${packet.window} · ${packet.focus}`,
       route: '/storeExpenses/index',
       note: 'Purchases Summary print replacement shell',
-      headers: ['Category', 'Expenses', 'Retail', 'Mix'],
-      rows: PURCHASE_CATEGORY_SUMMARY.map((row) => [row.category, fmt(row.expenses), row.retail ? fmt(row.retail) : '-', row.mix]),
-      filename: 'storecheck-purchases-summary-packet',
+      headers: ['Panel', 'Name', 'Amount', 'Retail / Notes', 'Mix'],
+      rows: buildPurchaseSummaryPacketRows(packet),
+      filename: `storecheck-purchases-summary-${packet.id.toLowerCase()}`,
+    });
+    pushPurchaseSummaryEvent({
+      packetId: packet.id,
+      action: 'Saved purchases summary packet',
+      status: 'Ready',
+      note: 'Purchases summary packet exported while the live Mercury route remained demo-only.',
     });
     showNotice('Purchases summary packet saved in demo mode.');
+  };
+  const stagePurchaseSummaryHandoff = (packet = selectedPurchaseSummaryPacket) => {
+    if (!packet) return;
+    setSelectedPurchaseSummaryPacketId(packet.id);
+    setPurchaseSummaryPacketRows((current) => current.map((row) => (
+      row.id === packet.id ? { ...row, status: 'Queued', note: `Purchases summary handoff is staged for ${packet.window}.` } : row
+    )));
+    pushPurchaseSummaryEvent({
+      packetId: packet.id,
+      action: 'Queued purchases summary handoff',
+      status: 'Queued',
+      note: `Mercury-style purchases summary handoff accepted for ${packet.window}.`,
+    });
+    showNotice(`Purchases summary for ${packet.window} staged in demo mode. Live \`/storeExpenses/index\` endpoint still pending.`);
   };
   const printPaymentMethodPacket = () =>
     openPacketPreview({
@@ -13710,6 +13782,10 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
     showNotice(`${row.label} staged into the operating-expense draft.`);
   };
   const exportRows = (rows, format, filename) => downloadTableData(rows, format, filename);
+  const exportPurchaseSummaryEvents = (format) => {
+    downloadTableData(selectedPurchaseSummaryEvents, format, 'storecheck-purchases-summary-events');
+    showNotice(`${fmtN(selectedPurchaseSummaryEvents.length)} purchases-summary events exported in ${format} format.`);
+  };
   const exportExpenseSummaryEvents = (format) => {
     downloadTableData(selectedExpenseSummaryEvents, format, 'storecheck-operating-expense-summary-events');
     showNotice(`${fmtN(selectedExpenseSummaryEvents.length)} operating-expense summary events exported in ${format} format.`);
@@ -13760,20 +13836,33 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
               <div className="purchase-surface">
                 <div className="pricebook-toolbar" style={{ padding: '20px 20px 0' }}>
                   <div>
-                    <div className="pricebook-detail-title">Purchases summary</div>
-                    <div className="pricebook-detail-sub">Mercury-style category and retail rollup, adapted into the StoreCheck card layout.</div>
+                    <div className="pricebook-detail-title">Purchases Summary Endpoint Depth</div>
+                    <div className="pricebook-detail-sub">Keep the `/storeExpenses/index` summary handoff visible with selected packet context before the live Mercury route is connected.</div>
                   </div>
                   <div className="pricebook-actions">
-                    <button className="pricebook-btn" onClick={() => printPurchaseSummaryPacket()}>
-                      <Icon name="report" size={15} /> Print
+                    <button className="pricebook-btn" onClick={() => previewPurchaseSummaryDepth(selectedPurchaseSummaryPacket)}>
+                      <Icon name="report" size={15} /> Preview route packet
+                    </button>
+                    <button className="pricebook-btn" onClick={() => stagePurchaseSummaryHandoff(selectedPurchaseSummaryPacket)}>
+                      <Icon name="sync" size={15} /> Stage handoff
                     </button>
                     <button className="pricebook-btn" onClick={() => savePurchaseSummaryPacket()}>
-                      <Icon name="cash" size={15} /> Save packet
+                      <Icon name="cash" size={15} /> Save route packet
+                    </button>
+                    <button className="pricebook-btn" onClick={() => exportPurchaseSummaryEvents('CSV')}>
+                      <Icon name="save" size={15} /> Export route log
                     </button>
                     <button className="pricebook-btn primary" onClick={() => setPurchasePage('purchase')}>
                       <Icon name="pricebook" size={15} /> Add Purchase
                     </button>
                   </div>
+                </div>
+                <div className="purchase-kv-list" style={{ padding: '0 20px 16px' }}>
+                  <div className="purchase-kv"><span>Selected packet</span><span>{selectedPurchaseSummaryPacket ? `${selectedPurchaseSummaryPacket.packet} · ${selectedPurchaseSummaryPacket.status}` : 'Pending'}</span></div>
+                  <div className="purchase-kv"><span>Route</span><span>/storeExpenses/index</span></div>
+                  <div className="purchase-kv"><span>Focus</span><span>{selectedPurchaseSummaryPacket?.focus || 'Category and retail mix'}</span></div>
+                  <div className="purchase-kv"><span>Current packet</span><span>{selectedPurchaseSummaryPacket ? `${selectedPurchaseSummaryPacket.window} · ${selectedPurchaseSummaryPacket.source}` : 'Purchases Summary'}</span></div>
+                  <div className="purchase-kv"><span>Latest event</span><span>{selectedPurchaseSummaryEvents[0]?.action || 'No events yet'}</span></div>
                 </div>
                 <div className="pricebook-filters" style={{ padding: '0 20px 16px' }}>
                   {renderExportButtons(PURCHASE_CATEGORY_SUMMARY, 'storecheck-purchases-summary')}
@@ -13791,6 +13880,28 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
                       ))}
                     </tbody>
                   </table>
+                </div>
+                <div className="purchase-queue-list" style={{ padding: '16px 20px 20px' }}>
+                  {purchaseSummaryPacketRows.map((row) => (
+                    <div className="purchase-queue-row" key={row.id}>
+                      <div className="purchase-queue-top">
+                        <div>
+                          <div className="purchase-queue-title">{row.packet}</div>
+                          <div className="purchase-queue-meta">{row.window} · {row.focus} · {row.source}</div>
+                        </div>
+                        <span className={`purchase-tag${toneClass(row.status)}`}>{row.status}</span>
+                      </div>
+                      <div className="purchase-queue-meta">{row.note}</div>
+                      <div className="pricebook-actions" style={{ marginTop: 12 }}>
+                        <button className="pricebook-btn" onClick={() => setSelectedPurchaseSummaryPacketId(row.id)}>
+                          <Icon name="report" size={15} /> Review
+                        </button>
+                        <button className="pricebook-btn soft" onClick={() => previewPurchaseSummaryDepth(row)}>
+                          <Icon name="report" size={15} /> Preview
+                        </button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
 
@@ -13900,6 +14011,40 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
           </div>
 
           <div className="purchase-stack">
+            <div className="purchase-note-card">
+              <h3>Selected Purchases Summary Review</h3>
+              <p>Owner-facing visibility for the chosen purchases-summary packet before the live Mercury route is connected.</p>
+              {selectedPurchaseSummaryPacket ? (
+                <div className="purchase-kv-list">
+                  <div className="purchase-kv"><span>Packet</span><span>{selectedPurchaseSummaryPacket.packet}</span></div>
+                  <div className="purchase-kv"><span>Window</span><span>{selectedPurchaseSummaryPacket.window}</span></div>
+                  <div className="purchase-kv"><span>Focus</span><span>{selectedPurchaseSummaryPacket.focus}</span></div>
+                  <div className="purchase-kv"><span>Source</span><span>{selectedPurchaseSummaryPacket.source}</span></div>
+                  <div className="purchase-kv"><span>Status</span><span>{selectedPurchaseSummaryPacket.status}</span></div>
+                  <div className="purchase-kv"><span>Note</span><span>{selectedPurchaseSummaryPacket.note}</span></div>
+                </div>
+              ) : <div className="purchase-hint">No purchases-summary packet is selected right now.</div>}
+            </div>
+
+            <div className="purchase-note-card">
+              <h3>Purchases Summary Events</h3>
+              <p>Track route-specific `/storeExpenses/index` summary activity before live Mercury wiring is connected.</p>
+              <div className="purchase-queue-list">
+                {selectedPurchaseSummaryEvents.length ? selectedPurchaseSummaryEvents.map((row) => (
+                  <div className="purchase-queue-row" key={row.id}>
+                    <div className="purchase-queue-top">
+                      <div>
+                        <div className="purchase-queue-title">{row.action}</div>
+                        <div className="purchase-queue-meta">{row.time} · {row.actor} · {row.route}</div>
+                      </div>
+                      <span className={`purchase-tag${toneClass(row.status)}`}>{row.status}</span>
+                    </div>
+                    <div className="purchase-queue-meta">{selectedPurchaseSummaryPacket?.id || 'PS-1'} · {row.note}</div>
+                  </div>
+                )) : <div className="purchase-hint">No purchases-summary events are recorded yet.</div>}
+              </div>
+            </div>
+
             <div className="purchase-note-card">
               <h3>Cash visibility</h3>
               <p>Quick visibility for the cash-only transactions Mercury owners usually chase at closeout.</p>
