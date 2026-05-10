@@ -22705,10 +22705,20 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
     { id: 'EML-2', time: '18:42', login: 'ops@storecheck-demo.com', reports: 'reports@storecheck-demo.com', alerts: 'alerts@storecheck-demo.com', actor: 'Owner session', status: 'Reviewed', note: 'Alternate contact routing was reviewed during shift handoff.' },
   ]);
   const [selectedAccountSettingsId, setSelectedAccountSettingsId] = useState('EML-1');
+  const [accountSettingsPacketRows, setAccountSettingsPacketRows] = useState([
+    { id: 'AEP-1', packet: 'Primary email route handoff', window: 'Account email review', focus: 'Owner account-routing validation', source: 'Admin account settings', status: 'Queued', note: 'Primary email route handoff is staged for owner review before the live Mercury route is connected.' },
+    { id: 'AEP-2', packet: 'Alerts fallback follow-through', window: 'Alert routing follow-up', focus: 'Notifications and escalation review', source: 'Session alerts', status: 'Needs review', note: 'Fallback alert routing still needs final owner review before the live Mercury route is connected.' },
+  ]);
+  const [selectedAccountSettingsPacketId, setSelectedAccountSettingsPacketId] = useState('AEP-1');
   const [accountSettingsEvents, setAccountSettingsEvents] = useState([
     { id: 'ASEM-4001', rowId: 'EML-1', time: '07:09', actor: 'Owner session', route: '/administration/email', action: 'Previewed email settings', status: 'Opened', note: 'Owner reviewed the email-routing packet before the live Mercury route was connected.' },
     { id: 'ASEM-4002', rowId: 'EML-1', time: '07:10', actor: 'Owner session', route: '/administration/email', action: 'Saved email settings packet', status: 'Ready', note: 'Email-settings packet exported while the live Mercury route remained demo-only.' },
     { id: 'ASEM-4003', rowId: 'EML-2', time: '18:43', actor: 'Owner session', route: '/administration/email', action: 'Saved email settings state', status: 'Reviewed', note: 'Alternate contact routing was captured during shift handoff review.' },
+  ]);
+  const [accountSettingsRouteEvents, setAccountSettingsRouteEvents] = useState([
+    { id: 'AER-4001', packetId: 'AEP-1', time: '07:09', actor: 'Owner session', route: '/administration/email', action: 'Previewed email route packet', status: 'Opened', note: 'Owner reviewed the route-level email packet before the live Mercury route was connected.' },
+    { id: 'AER-4002', packetId: 'AEP-1', time: '07:10', actor: 'Owner session', route: '/administration/email', action: 'Saved email route packet', status: 'Ready', note: 'Email route packet exported while the live Mercury route remained demo-only.' },
+    { id: 'AER-4003', packetId: 'AEP-2', time: '18:44', actor: 'StoreCheck demo', route: '/administration/email', action: 'Queued email route handoff', status: 'Queued', note: 'Alert-routing follow-through remained visible inside StoreCheck while the live Mercury route stayed demo-only.' },
   ]);
   const [licenceCheckRows, setLicenceCheckRows] = useState([
     { id: 'LIC-1', time: '07:52', store: 'Main Street Gas & Go', agreement: 'Accepted', register: 'Connected', result: 'Passed', note: 'Morning session opened with an accepted agreement.' },
@@ -22876,6 +22886,12 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
     accountSettingsRows[0] ||
     null;
   const selectedAccountSettingsEvents = selectedAccountSettings ? accountSettingsEvents.filter((item) => item.rowId === selectedAccountSettings.id) : [];
+  const selectedAccountSettingsPacket =
+    accountSettingsPacketRows.find((item) => item.id === selectedAccountSettingsPacketId) ||
+    accountSettingsPacketRows[0] ||
+    null;
+  const selectedAccountSettingsRouteEvents =
+    selectedAccountSettingsPacket ? accountSettingsRouteEvents.filter((item) => item.packetId === selectedAccountSettingsPacket.id) : [];
   const selectedLicenceCheck =
     licenceCheckRows.find((item) => item.id === selectedLicenceCheckId) ||
     licenceCheckRows[0] ||
@@ -22953,6 +22969,7 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
   const latestRelease = releaseRows[0];
   const latestReleasePacket = releasePacketRows[0];
   const latestAccountSettings = accountSettingsRows[0];
+  const latestAccountSettingsPacket = accountSettingsPacketRows[0];
   const latestLogoutQueue = logoutQueue[0];
   const latestLogoutPacket = logoutPacketRows[0];
   const latestTempSession = tempSessionRows[0];
@@ -23040,9 +23057,72 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
       ...current,
     ].slice(0, 24));
   };
+  const pushAccountSettingsRouteEvent = ({ packetId = selectedAccountSettingsPacket?.id, action, status, note }) => {
+    if (!packetId) return;
+    const time = stampSessionTime();
+    setAccountSettingsRouteEvents((current) => [
+      {
+        id: `AER-${Date.now()}`,
+        packetId,
+        time,
+        actor: 'Owner session',
+        route: '/administration/email',
+        action,
+        status,
+        note,
+      },
+      ...current,
+    ].slice(0, 24));
+  };
   const exportAccountSettingsEvents = (format) => {
     if (!selectedAccountSettingsEvents.length) return;
     downloadTableData(selectedAccountSettingsEvents, format, `storecheck-email-events-${String(selectedAccountSettings?.id || 'session').toLowerCase()}`);
+  };
+  const buildAccountSettingsRouteRows = (item = selectedAccountSettings || latestAccountSettings, packet = selectedAccountSettingsPacket || latestAccountSettingsPacket) => {
+    if (!item) return [];
+    return [[
+      item.login,
+      item.reports,
+      item.alerts,
+      item.status,
+      'GET /administration/email',
+      packet?.id === 'AEP-2' ? 'Alert routing follow-through' : 'Admin account review',
+    ]];
+  };
+  const previewAccountSettingsRoutePacket = (item = selectedAccountSettings || latestAccountSettings, packet = selectedAccountSettingsPacket || latestAccountSettingsPacket) => {
+    if (!item || !packet) return;
+    setSelectedAccountSettingsId(item.id);
+    setSelectedAccountSettingsPacketId(packet.id);
+    openSettingsPacket({
+      title: 'Email Endpoint Depth',
+      subtitle: `${packet.window} · GET /administration/email`,
+      headers: ['Login', 'Reports', 'Alerts', 'Status', 'Route', 'Mode'],
+      rows: buildAccountSettingsRouteRows(item, packet),
+    });
+    pushAccountSettingsRouteEvent({
+      packetId: packet.id,
+      action: 'Previewed email route packet',
+      status: 'Opened',
+      note: `${packet.packet} preview opened before the live Mercury route was connected.`,
+    });
+    showSessionNotice(`${item.id} email route packet preview opened in demo mode.`);
+  };
+  const stageAccountSettingsRouteHandoff = (item = selectedAccountSettings || latestAccountSettings, packet = selectedAccountSettingsPacket || latestAccountSettingsPacket) => {
+    if (!item || !packet) return;
+    setSelectedAccountSettingsId(item.id);
+    setSelectedAccountSettingsPacketId(packet.id);
+    setAccountSettingsPacketRows((current) => current.map((row) => (
+      row.id === packet.id
+        ? { ...row, status: 'Queued', note: `Email route handoff is staged for ${packet.window.toLowerCase()}.` }
+        : row
+    )));
+    pushAccountSettingsRouteEvent({
+      packetId: packet.id,
+      action: 'Queued email route handoff',
+      status: 'Queued',
+      note: `Mercury-style email handoff accepted for ${packet.window}.`,
+    });
+    showSessionNotice(`${item.id} email route handoff staged in demo mode. Live \`/administration/email\` route still pending.`);
   };
   const previewAccountSettings = (item = selectedAccountSettings || latestAccountSettings) => {
     if (!item) return;
@@ -23087,6 +23167,31 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
       note: 'Email-settings packet exported while the live Mercury route remained demo-only.',
     });
     showSessionNotice('Admin account settings packet saved in demo mode.');
+  };
+  const saveAccountSettingsRoutePacket = (item = selectedAccountSettings || latestAccountSettings, packet = selectedAccountSettingsPacket || latestAccountSettingsPacket) => {
+    if (!item || !packet) return;
+    setSelectedAccountSettingsId(item.id);
+    setSelectedAccountSettingsPacketId(packet.id);
+    saveSettingsPacket({
+      title: 'Email Endpoint Depth',
+      subtitle: `${packet.window} · GET /administration/email`,
+      route: 'GET /administration/email',
+      note: 'Admin account and email settings replacement shell',
+      headers: ['Login', 'Reports', 'Alerts', 'Status', 'Route', 'Mode'],
+      rows: buildAccountSettingsRouteRows(item, packet),
+      filename: `storecheck-email-route-${String(packet.id).toLowerCase()}`,
+    });
+    pushAccountSettingsRouteEvent({
+      packetId: packet.id,
+      action: 'Saved email route packet',
+      status: 'Ready',
+      note: 'Email route packet exported while the live Mercury route remained demo-only.',
+    });
+    showSessionNotice(`${item.id} email route packet saved in demo mode.`);
+  };
+  const exportAccountSettingsRouteEvents = (format) => {
+    if (!selectedAccountSettingsRouteEvents.length) return;
+    downloadTableData(selectedAccountSettingsRouteEvents, format, `storecheck-email-route-events-${String(selectedAccountSettingsPacket?.id || 'route').toLowerCase()}`);
   };
   const saveAccountSettingsState = () => {
     const time = stampSessionTime();
@@ -25168,7 +25273,7 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
 
         <div className="settings-card">
           <div className="settings-title">Email Endpoint Depth</div>
-          <div className="settings-sub">Owner-facing `/administration/email` review with selected save visibility and routing-surface context.</div>
+          <div className="settings-sub">Owner-facing `GET /administration/email` review with selected packet, account-email visibility, and staged route follow-through.</div>
           <label className="form-label">Login / Account Email</label>
           <input className="form-input" value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} />
           <label className="form-label">Report Delivery Email</label>
@@ -25176,16 +25281,23 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
           <label className="form-label">Alerts Email</label>
           <input className="form-input" value={alertsEmail} onChange={(e) => setAlertsEmail(e.target.value)} />
           <div className="purchase-kv-list">
+            <div className="purchase-kv"><span>Selected packet</span><span>{selectedAccountSettingsPacket ? `${selectedAccountSettingsPacket.packet} · ${selectedAccountSettingsPacket.status}` : 'Pending'}</span></div>
             <div className="purchase-kv"><span>Selected save</span><span>{selectedAccountSettings ? `${selectedAccountSettings.time} · ${selectedAccountSettings.status}` : 'Pending'}</span></div>
-            <div className="purchase-kv"><span>Login route</span><span>{selectedAccountSettings?.login || loginEmail}</span></div>
-            <div className="purchase-kv"><span>Endpoint</span><span>/administration/email</span></div>
+            <div className="purchase-kv"><span>Login email</span><span>{selectedAccountSettings?.login || loginEmail}</span></div>
+            <div className="purchase-kv"><span>Reports email</span><span>{selectedAccountSettings?.reports || reportEmail}</span></div>
+            <div className="purchase-kv"><span>Alerts email</span><span>{selectedAccountSettings?.alerts || alertsEmail}</span></div>
+            <div className="purchase-kv"><span>Route</span><span>GET /administration/email</span></div>
+            <div className="purchase-kv"><span>Latest route event</span><span>{selectedAccountSettingsRouteEvents[0]?.action || 'No events yet'}</span></div>
           </div>
           <div className="pricebook-actions" style={{ marginTop: 16, flexWrap: 'wrap' }}>
-            <button className="pricebook-btn" onClick={() => previewAccountSettings(selectedAccountSettings || latestAccountSettings)}>
-              <Icon name="report" size={15} /> Preview email
+            <button className="pricebook-btn" onClick={() => previewAccountSettingsRoutePacket(selectedAccountSettings || latestAccountSettings, selectedAccountSettingsPacket || latestAccountSettingsPacket)}>
+              <Icon name="report" size={15} /> Preview route packet
             </button>
-            <button className="pricebook-btn" onClick={() => saveAccountSettingsPacket(selectedAccountSettings || latestAccountSettings)}>
-              <Icon name="cash" size={15} /> Save email
+            <button className="pricebook-btn" onClick={() => stageAccountSettingsRouteHandoff(selectedAccountSettings || latestAccountSettings, selectedAccountSettingsPacket || latestAccountSettingsPacket)}>
+              <Icon name="calendar" size={15} /> Stage handoff
+            </button>
+            <button className="pricebook-btn primary" onClick={() => saveAccountSettingsRoutePacket(selectedAccountSettings || latestAccountSettings, selectedAccountSettingsPacket || latestAccountSettingsPacket)}>
+              <Icon name="cash" size={15} /> Save route packet
             </button>
           </div>
           <div className="purchase-queue-list" style={{ marginTop: 16 }}>
@@ -25204,6 +25316,20 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
               </div>
             ))}
           </div>
+          <div className="purchase-queue-list" style={{ marginTop: 12 }}>
+            {accountSettingsPacketRows.map((item) => (
+              <div className="purchase-queue-row" key={item.id}>
+                <div className="purchase-queue-top">
+                  <div>
+                    <div className="purchase-queue-title">{item.packet}</div>
+                    <div className="purchase-queue-meta">{item.window} · {item.focus} · {item.source}</div>
+                  </div>
+                  <button className="pricebook-btn soft" onClick={() => setSelectedAccountSettingsPacketId(item.id)}>Review</button>
+                </div>
+                <div className="purchase-queue-meta">{item.note}</div>
+              </div>
+            ))}
+          </div>
           <button className="connect-btn" onClick={() => saveAccountSettingsState()}>
             <Icon name="save" size={16} bg="rgba(255,255,255,0.12)" fg="#86EFAC" />
             <span>Save Account Settings</span>
@@ -25211,14 +25337,22 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
         </div>
 
         <div className="settings-card">
-          <div className="settings-title">Selected Email Review</div>
-          <div className="settings-sub">Keep the chosen email-routing response visible before admin settings proceed.</div>
+          <div className="settings-title">Selected Email Endpoint Review</div>
+          <div className="settings-sub">Keep the chosen account-email route response visible before admin settings proceed.</div>
           {selectedAccountSettings ? (
             <div className="purchase-kv-list">
+              <div className="purchase-kv"><span>Packet</span><span>{selectedAccountSettingsPacket?.packet || 'Pending'}</span></div>
+              <div className="purchase-kv"><span>Window</span><span>{selectedAccountSettingsPacket?.window || 'Account email review'}</span></div>
+              <div className="purchase-kv"><span>Focus</span><span>{selectedAccountSettingsPacket?.focus || 'Owner account-routing validation'}</span></div>
+              <div className="purchase-kv"><span>Source</span><span>{selectedAccountSettingsPacket?.source || 'Admin account settings'}</span></div>
+              <div className="purchase-kv"><span>Packet status</span><span>{selectedAccountSettingsPacket?.status || 'Pending'}</span></div>
+              <div className="purchase-kv"><span>Time</span><span>{selectedAccountSettings.time}</span></div>
               <div className="purchase-kv"><span>Login</span><span>{selectedAccountSettings.login}</span></div>
               <div className="purchase-kv"><span>Reports</span><span>{selectedAccountSettings.reports}</span></div>
               <div className="purchase-kv"><span>Alerts</span><span>{selectedAccountSettings.alerts}</span></div>
+              <div className="purchase-kv"><span>Actor</span><span>{selectedAccountSettings.actor}</span></div>
               <div className="purchase-kv"><span>Status</span><span>{selectedAccountSettings.status}</span></div>
+              <div className="purchase-kv"><span>Route</span><span>GET /administration/email</span></div>
               <div className="purchase-kv"><span>Note</span><span>{selectedAccountSettings.note}</span></div>
             </div>
           ) : (
@@ -25227,20 +25361,20 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
         </div>
 
         <div className="settings-card">
-          <div className="settings-title">Email Endpoint Events</div>
-          <div className="settings-sub">Track route-specific `/administration/email` activity before live wiring is connected.</div>
+          <div className="settings-title">Email Route Events</div>
+          <div className="settings-sub">Track route-specific `/administration/email` packet activity before live wiring is connected.</div>
           <div className="pricebook-actions" style={{ marginBottom: 16, flexWrap: 'wrap' }}>
             {['CSV', 'XLS', 'JSON'].map((format) => (
-              <button key={format} className="pricebook-btn" onClick={() => exportAccountSettingsEvents(format)}>
+              <button key={format} className="pricebook-btn" onClick={() => exportAccountSettingsRouteEvents(format)}>
                 <Icon name="cash" size={15} /> {format}
               </button>
             ))}
           </div>
           <div className="alerts-list">
-            {selectedAccountSettingsEvents.length ? selectedAccountSettingsEvents.map((item) => (
+            {selectedAccountSettingsRouteEvents.length ? selectedAccountSettingsRouteEvents.map((item) => (
               <div key={item.id} className="alert-item" style={{ alignItems: 'flex-start' }}>
                 <Icon
-                  name={item.action.includes('Saved') ? 'cash' : item.action.includes('Previewed') ? 'report' : 'save'}
+                  name={item.action.includes('Saved') ? 'cash' : item.action.includes('Previewed') ? 'report' : item.action.includes('Queued') ? 'calendar' : 'save'}
                   size={18}
                   bg={item.action.includes('Saved') ? iconDefaults.green.bg : item.action.includes('Previewed') ? iconDefaults.blue.bg : iconDefaults.slate.bg}
                   fg={item.action.includes('Saved') ? '#15803D' : item.action.includes('Previewed') ? '#3B82F6' : '#64748B'}
@@ -25252,7 +25386,7 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
                 </div>
               </div>
             )) : (
-              <div className="pricebook-detail-sub">No email-endpoint event history is visible for this selected save yet.</div>
+              <div className="pricebook-detail-sub">No email route history is visible for this selected packet yet.</div>
             )}
           </div>
         </div>
