@@ -17438,6 +17438,11 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
     { id: 'DD-2', shiftDate: '2026-05-08', packet: 'Shift Closeout Digest PDF', window: '2026-05-08 only', format: 'Download handoff', source: 'Day Report', status: 'Needs review', note: 'Previous day-download packet still needs a final owner review.' },
   ]);
   const [selectedDayDownloadId, setSelectedDayDownloadId] = useState('DD-1');
+  const [monthDownloadRows, setMonthDownloadRows] = useState([
+    { id: 'MD-1', startDate: '2026-05-01', endDate: '2026-05-09', packet: 'Month-to-date owner pack', window: 'May 1 to May 9', format: 'Download handoff', source: 'Monthly Summary', status: 'Queued', note: 'Month-range owner packet is staged for Mercury-style download review.' },
+    { id: 'MD-2', startDate: '2026-04-01', endDate: '2026-04-30', packet: 'Prior month closeout pack', window: 'Apr 1 to Apr 30', format: 'Download handoff', source: 'Month Download', status: 'Needs review', note: 'Previous month-download packet still needs a final accounting review.' },
+  ]);
+  const [selectedMonthDownloadId, setSelectedMonthDownloadId] = useState('MD-1');
   const [shiftEmailEvents, setShiftEmailEvents] = useState([
     { id: 'RSE-1001', sendId: 'SE-1', time: '2026-05-09 08:06', actor: 'Store manager', route: '/shifts/sendShiftEmail', action: 'Confirmed shift email', status: 'Queued', note: 'Shift email confirmation accepted for the configured store address.' },
     { id: 'RSE-1002', sendId: 'SE-1', time: '2026-05-09 08:07', actor: 'Store manager', route: '/shifts/sendShiftEmail', action: 'Saved shift email packet', status: 'Ready', note: 'Shift email packet exported before the live send endpoint was connected.' },
@@ -17454,9 +17459,9 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
     { id: 'RDD-1203', sendId: 'DD-2', time: '2026-05-09 21:42', actor: 'StoreCheck demo', route: '/shifts/downloadShiftDayReport', action: 'Queued day download handoff', status: 'Queued', note: 'Previous day-download handoff remained visible in demo mode.' },
   ]);
   const [monthDownloadEvents, setMonthDownloadEvents] = useState([
-    { id: 'RMD-1301', time: '2026-05-10 00:53', actor: 'Store manager', route: '/shifts/downloadShiftDayReport', action: 'Previewed month download packet', status: 'Opened', note: 'Month-range download packet was reviewed before the live file handoff was connected.' },
-    { id: 'RMD-1302', time: '2026-05-10 00:54', actor: 'Store manager', route: '/shifts/downloadShiftDayReport', action: 'Saved month download packet', status: 'Ready', note: 'Month-range download packet was exported before the live file handoff was connected.' },
-    { id: 'RMD-1303', time: '2026-05-09 20:58', actor: 'StoreCheck demo', route: '/shifts/downloadShiftDayReport', action: 'Queued month download handoff', status: 'Queued', note: 'Previous month-download handoff remained visible in demo mode.' },
+    { id: 'RMD-1301', sendId: 'MD-1', time: '2026-05-10 00:53', actor: 'Store manager', route: '/shifts/downloadShiftDayReport', action: 'Previewed month download packet', status: 'Opened', note: 'Month-range download packet was reviewed before the live file handoff was connected.' },
+    { id: 'RMD-1302', sendId: 'MD-1', time: '2026-05-10 00:54', actor: 'Store manager', route: '/shifts/downloadShiftDayReport', action: 'Saved month download packet', status: 'Ready', note: 'Month-range download packet was exported before the live file handoff was connected.' },
+    { id: 'RMD-1303', sendId: 'MD-2', time: '2026-05-09 20:58', actor: 'StoreCheck demo', route: '/shifts/downloadShiftDayReport', action: 'Queued month download handoff', status: 'Queued', note: 'Previous month-download handoff remained visible in demo mode.' },
   ]);
   const [quickbooksEvents, setQuickbooksEvents] = useState([
     { id: 'RQB-1401', time: '2026-05-10 01:07', actor: 'Store manager', route: '/shifts/eportQuickBookDays', action: 'Previewed QuickBooks export packet', status: 'Opened', note: 'QuickBooks export packet was reviewed before the live accounting handoff was connected.' },
@@ -17611,10 +17616,11 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
   const selectedShiftEmail = shiftEmailRows.find((item) => item.id === selectedShiftEmailId) || shiftEmailRows[0];
   const selectedDayReportEmail = dayReportEmailRows.find((item) => item.id === selectedDayReportEmailId) || dayReportEmailRows[0];
   const selectedDayDownload = dayDownloadRows.find((item) => item.id === selectedDayDownloadId) || dayDownloadRows[0];
+  const selectedMonthDownload = monthDownloadRows.find((item) => item.id === selectedMonthDownloadId) || monthDownloadRows[0];
   const selectedShiftEmailEvents = selectedShiftEmail ? shiftEmailEvents.filter((item) => item.sendId === selectedShiftEmail.id) : shiftEmailEvents;
   const selectedDayReportEmailEvents = selectedDayReportEmail ? dayReportEmailEvents.filter((item) => item.sendId === selectedDayReportEmail.id) : dayReportEmailEvents;
   const selectedDayDownloadEvents = selectedDayDownload ? dayDownloadEvents.filter((item) => item.sendId === selectedDayDownload.id) : dayDownloadEvents;
-  const selectedMonthDownloadEvents = monthDownloadEvents;
+  const selectedMonthDownloadEvents = selectedMonthDownload ? monthDownloadEvents.filter((item) => item.sendId === selectedMonthDownload.id) : monthDownloadEvents;
   const selectedQuickbooksEvents = quickbooksEvents;
   const selectedXmlExportEvents = xmlExportEvents;
   const selectedDailyPdfEvents = dailyPdfEvents;
@@ -17795,10 +17801,11 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
     });
     showDeliveryNotice(`Day download for ${item.shiftDate} staged in demo mode. Live \`${selectedDayDownloadAction.route}\` endpoint still pending.`);
   };
-  const pushMonthDownloadEvent = ({ action, status, note }) => {
+  const pushMonthDownloadEvent = ({ sendId = selectedMonthDownload?.id, action, status, note }) => {
     setMonthDownloadEvents((current) => [
       {
         id: `RMD-${current.length + 1301}`,
+        sendId,
         time: buildReportStamp(),
         actor: 'StoreCheck demo',
         route: '/shifts/downloadShiftDayReport',
@@ -17808,6 +17815,53 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
       },
       ...current,
     ]);
+  };
+  const previewMonthDownloadPacket = (item = selectedMonthDownload) => {
+    if (!item) return;
+    setSelectedMonthDownloadId(item.id);
+    openReportSurface(
+      'Month Download Endpoint Depth',
+      `${currentLocation.name} · ${item.window} · ${item.packet}`,
+      selectedMonthDownloadAction.previewRows
+    );
+    pushMonthDownloadEvent({
+      sendId: item.id,
+      action: 'Previewed month download packet',
+      status: 'Opened',
+      note: `${item.packet} preview opened before the live file handoff was connected.`,
+    });
+  };
+  const saveMonthDownloadPacket = (item = selectedMonthDownload) => {
+    if (!item) return;
+    setSelectedMonthDownloadId(item.id);
+    const action = {
+      ...selectedMonthDownloadAction,
+      params: `startDate=${item.startDate}; endDate=${item.endDate}; isMonth=true; isDownload=true`,
+      subtitle: `${currentLocation.name} · ${item.packet.toLowerCase()}`,
+    };
+    const html = buildReportPackageHtml(action);
+    downloadTextData(html, 'text/html', action.fileName, 'html');
+    pushMonthDownloadEvent({
+      sendId: item.id,
+      action: 'Saved month download packet',
+      status: 'Ready',
+      note: 'Month-range download packet was exported before the live file handoff was connected.',
+    });
+    showDeliveryNotice(`${action.label} saved as a demo package. Live \`${action.route}\` endpoint still pending.`);
+  };
+  const stageMonthDownloadHandoff = (item = selectedMonthDownload) => {
+    if (!item) return;
+    setSelectedMonthDownloadId(item.id);
+    setMonthDownloadRows((current) => current.map((row) => (
+      row.id === item.id ? { ...row, status: 'Queued', note: `Month-range download handoff is staged for ${item.window}.` } : row
+    )));
+    pushMonthDownloadEvent({
+      sendId: item.id,
+      action: 'Queued month download handoff',
+      status: 'Queued',
+      note: `Mercury-style month-range download handoff accepted for ${item.window}.`,
+    });
+    showDeliveryNotice(`Month download for ${item.window} staged in demo mode. Live \`${selectedMonthDownloadAction.route}\` endpoint still pending.`);
   };
   const pushQuickbooksEvent = ({ action, status, note }) => {
     setQuickbooksEvents((current) => [
@@ -18456,7 +18510,7 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
             <div className="report-delivery-card">
               <div className="purchase-panel-head">
                 <div>
-                  <h3>Month download events</h3>
+                  <h3>Month Download Events</h3>
                   <p>Owner-facing event visibility for the selected month-range download handoff.</p>
                 </div>
               </div>
@@ -18470,7 +18524,7 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
                       </div>
                       <span className={`purchase-tag${item.status === 'Needs review' ? ' amber' : ' blue'}`}>{item.status}</span>
                     </div>
-                    <div className="report-delivery-meta">{item.note}</div>
+                    <div className="report-delivery-meta">{selectedMonthDownload?.id || 'MD-1'} · {item.note}</div>
                   </div>
                 )) : <div className="purchase-hint">No month-download events are recorded yet.</div>}
               </div>
@@ -18844,36 +18898,70 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
             <div className="report-delivery-card">
               <div className="purchase-panel-head">
                 <div>
-                  <h3>Month download endpoint</h3>
-                  <p>Keep the `/shifts/downloadShiftDayReport` month-range handoff visible before the live file delivery route is connected.</p>
+                  <h3>Month Download Endpoint Depth</h3>
+                  <p>Keep the `/shifts/downloadShiftDayReport` month-range handoff visible with selected packet context before the live file delivery route is connected.</p>
                 </div>
               </div>
               <div className="purchase-kv-list">
+                <div className="purchase-kv"><span>Selected packet</span><span>{selectedMonthDownload ? `${selectedMonthDownload.window} · ${selectedMonthDownload.status}` : 'Pending'}</span></div>
                 <div className="purchase-kv"><span>Route</span><span>{selectedMonthDownloadAction.route}</span></div>
-                <div className="purchase-kv"><span>Format</span><span>{selectedMonthDownloadAction.format}</span></div>
-                <div className="purchase-kv"><span>Params</span><span>{selectedMonthDownloadAction.params}</span></div>
-                <div className="purchase-kv"><span>Date range</span><span>{customFrom} to {customTo}</span></div>
-                <div className="purchase-kv"><span>Weeks in packet</span><span>{fmtN(monthlyRows.length)}</span></div>
+                <div className="purchase-kv"><span>Format</span><span>{selectedMonthDownload?.format || selectedMonthDownloadAction.format}</span></div>
+                <div className="purchase-kv"><span>Params</span><span>{`startDate=${selectedMonthDownload?.startDate || customFrom}; endDate=${selectedMonthDownload?.endDate || customTo}; isMonth=true; isDownload=true`}</span></div>
+                <div className="purchase-kv"><span>Current range</span><span>{selectedMonthDownload ? `${selectedMonthDownload.window} · ${selectedMonthDownload.packet}` : `${customFrom} to ${customTo} · Month download`}</span></div>
                 <div className="purchase-kv"><span>Latest event</span><span>{selectedMonthDownloadEvents[0]?.action || 'No events yet'}</span></div>
               </div>
-              <div className="pricebook-actions" style={{ marginTop: 16 }}>
-                <button className="pricebook-btn" onClick={() => {
-                  pushMonthDownloadEvent({
-                    action: 'Previewed month download packet',
-                    status: 'Opened',
-                    note: `Month-range download packet preview opened for ${customFrom} to ${customTo} before the live file handoff was connected.`,
-                  });
-                  openReportSurface(selectedMonthDownloadAction.label, selectedMonthDownloadAction.subtitle, selectedMonthDownloadAction.previewRows);
-                }}>
+              <div className="pricebook-actions" style={{ marginTop: 16, flexWrap: 'wrap' }}>
+                <button className="pricebook-btn" onClick={() => previewMonthDownloadPacket(selectedMonthDownload)}>
                   <Icon name="report" size={15} /> Preview route packet
                 </button>
-                <button className="pricebook-btn" onClick={() => downloadActionPackage(selectedMonthDownloadAction)}>
+                <button className="pricebook-btn" onClick={() => stageMonthDownloadHandoff(selectedMonthDownload)}>
+                  <Icon name="cash" size={15} /> Stage handoff
+                </button>
+                <button className="pricebook-btn" onClick={() => saveMonthDownloadPacket(selectedMonthDownload)}>
                   <Icon name="cash" size={15} /> Save route packet
                 </button>
                 <button className="pricebook-btn primary" onClick={() => exportMonthDownloadEvents('CSV')}>
                   <Icon name="save" size={15} /> Export route log
                 </button>
               </div>
+              <div className="report-delivery-list" style={{ marginTop: 18 }}>
+                {monthDownloadRows.map((row) => (
+                  <div className="report-delivery-row" key={row.id}>
+                    <div className="report-delivery-head">
+                      <div>
+                        <div className="report-delivery-title">{row.packet}</div>
+                        <div className="report-delivery-meta">{row.window} · {row.source} · {row.startDate} to {row.endDate}</div>
+                      </div>
+                      <span className={`purchase-tag${row.status === 'Needs review' ? ' amber' : ' blue'}`}>{row.status}</span>
+                    </div>
+                    <div className="report-delivery-actions">
+                      <button className="pricebook-btn" onClick={() => setSelectedMonthDownloadId(row.id)}>
+                        <Icon name="report" size={15} /> Review
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="report-delivery-card">
+              <div className="purchase-panel-head">
+                <div>
+                  <h3>Selected Month Download Review</h3>
+                  <p>Owner-facing visibility for the chosen month-range download handoff before the live file route is connected.</p>
+                </div>
+              </div>
+              {selectedMonthDownload ? (
+                <div className="purchase-kv-list">
+                  <div className="purchase-kv"><span>Start date</span><span>{selectedMonthDownload.startDate}</span></div>
+                  <div className="purchase-kv"><span>End date</span><span>{selectedMonthDownload.endDate}</span></div>
+                  <div className="purchase-kv"><span>Packet</span><span>{selectedMonthDownload.packet}</span></div>
+                  <div className="purchase-kv"><span>Window</span><span>{selectedMonthDownload.window}</span></div>
+                  <div className="purchase-kv"><span>Source</span><span>{selectedMonthDownload.source}</span></div>
+                  <div className="purchase-kv"><span>Status</span><span>{selectedMonthDownload.status}</span></div>
+                  <div className="purchase-kv"><span>Note</span><span>{selectedMonthDownload.note}</span></div>
+                </div>
+              ) : <div className="purchase-hint">No month-download handoff is selected right now.</div>}
             </div>
 
             <div className="report-delivery-card">
