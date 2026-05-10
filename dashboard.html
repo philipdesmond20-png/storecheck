@@ -25540,7 +25540,7 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
     setSelectedTempSessionId(item.id);
     setSelectedTempSessionPacketId(packet.id);
     openSettingsPacket({
-      title: 'Temp Session Endpoint Depth',
+      title: 'Temp Session Endpoint Reconcile',
       subtitle: `${packet.window} · POST /administration/openTempSession`,
       headers: ['Time', 'State', 'Actor', 'Status', 'Route', 'Mode'],
       rows: buildTempSessionRouteRows(item, packet),
@@ -25574,7 +25574,7 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
     if (!item) return;
     setSelectedTempSessionId(item.id);
     openSettingsPacket({
-      title: 'Temp Session Endpoint Review',
+      title: 'Selected Temp Session Endpoint Review',
       subtitle: `${currentLocation.name} · ${item.time}`,
       headers: ['State', 'Actor', 'Source', 'Status', 'Route', 'Note'],
       rows: [[item.state, item.actor, item.source, item.status, '/administration/openTempSession', item.note]],
@@ -25590,7 +25590,7 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
     if (!item) return;
     setSelectedTempSessionId(item.id);
     saveSettingsPacket({
-      title: 'Temp Session Endpoint Depth',
+      title: 'Temp Session Endpoint Reconcile',
       subtitle: `${currentLocation.name} · ${item.time}`,
       route: '/administration/openTempSession',
       note: 'Temp-session control replacement shell',
@@ -25611,7 +25611,7 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
     setSelectedTempSessionId(item.id);
     setSelectedTempSessionPacketId(packet.id);
     saveSettingsPacket({
-      title: 'Temp Session Endpoint Depth',
+      title: 'Temp Session Endpoint Reconcile',
       subtitle: `${packet.window} · POST /administration/openTempSession`,
       route: '/administration/openTempSession',
       note: 'Temp-session control replacement shell',
@@ -26353,7 +26353,7 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
         </div>
 
         <div className="settings-card">
-          <div className="settings-title">Temp Session Endpoint Depth</div>
+          <div className="settings-title">Temp Session Endpoint Reconcile</div>
           <div className="settings-sub">Owner-facing `POST /administration/openTempSession` review with selected packet, control visibility, and session-start context.</div>
           <div className="purchase-kv-list">
             <div className="purchase-kv"><span>Selected packet</span><span>{selectedTempSessionPacket ? `${selectedTempSessionPacket.packet} · ${selectedTempSessionPacket.status}` : 'Pending'}</span></div>
