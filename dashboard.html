@@ -18938,7 +18938,7 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
   const previewHomeRedirectPacket = (packet = selectedHomeRedirectPacket) =>
     (setSelectedHomeRedirectPacketId(packet.id),
     openMultiStorePacket({
-      title: 'Post-Auth Redirect Endpoint Depth',
+      title: 'Post-Auth Redirect Endpoint Reconcile',
       subtitle: `${packet.window} · /user/openHomePage`,
       headers: ['LocationId', 'Store', 'Manager', 'Destination', 'Route', 'Mode'],
       rows: buildHomeRedirectRows(packet),
@@ -19002,7 +19002,7 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
   const saveHomeRedirectPacket = (packet = selectedHomeRedirectPacket) => {
     setSelectedHomeRedirectPacketId(packet.id);
     saveMultiStorePacket({
-      title: 'Post-Auth Redirect Endpoint Depth',
+      title: 'Post-Auth Redirect Endpoint Reconcile',
       subtitle: `${packet.window} · /user/openHomePage`,
       route: '/user/openHomePage',
       note: 'Post-login redirect replacement shell',
@@ -20040,7 +20040,7 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
             <div className="purchase-note-card">
               <div className="purchase-panel-head">
                 <div>
-                  <h3>Post-Auth Redirect Endpoint Depth</h3>
+                  <h3>Post-Auth Redirect Endpoint Reconcile</h3>
                   <p>{homeRedirectContextLabel} · /user/openHomePage</p>
                 </div>
                 <span className="purchase-tag amber">Partial</span>
@@ -20125,7 +20125,7 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
             <div className="purchase-note-card">
               <div className="purchase-panel-head">
                 <div>
-                  <h3>Selected Post-Auth Redirect Review</h3>
+                  <h3>Selected Post-Auth Redirect Endpoint Review</h3>
                   <p>{selectedHomeRedirectPacket ? `${selectedHomeRedirectPacket.packet} · /user/openHomePage` : '/user/openHomePage'}</p>
                 </div>
                 <span className="purchase-tag amber">Partial</span>
@@ -20147,7 +20147,7 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
             <div className="purchase-note-card">
               <div className="purchase-panel-head">
                 <div>
-                  <h3>Post-Auth Redirect Events</h3>
+                  <h3>Post-Auth Redirect Route Events</h3>
                   <p>{selectedHomeRedirectPacket ? `${selectedHomeRedirectPacket.packet} · /user/openHomePage` : '/user/openHomePage'}</p>
                 </div>
                 <span className="purchase-tag amber">Partial</span>
