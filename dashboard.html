@@ -25328,7 +25328,7 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
     setSelectedReleaseId(item.id);
     setSelectedReleasePacketId(packet.id);
     openSettingsPacket({
-      title: 'Release Page Endpoint Depth',
+      title: 'Release Page Endpoint Reconcile',
       subtitle: `${packet.window} · GET /user/openReleasePage`,
       headers: ['Date', 'Title', 'Status', 'Audience', 'Route', 'Mode'],
       rows: buildReleaseRouteRows(item, packet),
@@ -25362,7 +25362,7 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
     if (!item) return;
     setSelectedReleaseId(item.id);
     openSettingsPacket({
-      title: 'Release Page Endpoint Review',
+      title: 'Selected Release Endpoint Review',
       subtitle: `${currentLocation.name} · ${item.title}`,
       headers: ['Date', 'Title', 'Status', 'Audience', 'Route', 'Note'],
       rows: [[item.date, item.title, item.status, item.audience, '/user/openReleasePage', item.note]],
@@ -25381,7 +25381,7 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
       row.id === item.id && row.status === 'Needs review' ? { ...row, status: 'Opened' } : row
     )));
     openSettingsPacket({
-      title: 'Release Note Review',
+      title: 'Selected Release Endpoint Review',
       subtitle: `${currentLocation.name} · ${item.title}`,
       headers: ['Date', 'Title', 'Status', 'Audience', 'Note'],
       rows: [[item.date, item.title, item.status, item.audience, item.note]],
@@ -25396,7 +25396,7 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
   };
   const saveReleaseNotesPacket = (item = selectedRelease || latestRelease) => {
     saveSettingsPacket({
-      title: 'Release Page Endpoint Depth',
+      title: 'Release Page Endpoint Reconcile',
       subtitle: `${currentLocation.name} · ${item ? item.title : 'StoreCheck updates'}`,
       route: '/user/openReleasePage',
       note: 'Release notes and updates replacement shell',
@@ -25420,7 +25420,7 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
     setSelectedReleaseId(item.id);
     setSelectedReleasePacketId(packet.id);
     saveSettingsPacket({
-      title: 'Release Page Endpoint Depth',
+      title: 'Release Page Endpoint Reconcile',
       subtitle: `${packet.window} · GET /user/openReleasePage`,
       route: '/user/openReleasePage',
       note: 'Release notes and updates replacement shell',
@@ -25444,7 +25444,7 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
     if (!item) return;
     setSelectedReleaseId(item.id);
     saveSettingsPacket({
-      title: 'Selected Release Packet',
+      title: 'Selected Release Endpoint Review',
       subtitle: `${currentLocation.name} · ${item.title}`,
       route: '/user/openReleasePage',
       note: 'Release-note review replacement shell',
@@ -26780,7 +26780,7 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
         </div>
 
         <div className="settings-card">
-          <div className="settings-title">Release Page Endpoint Depth</div>
+          <div className="settings-title">Release Page Endpoint Reconcile</div>
           <div className="settings-sub">Owner-facing `GET /user/openReleasePage` review with selected packet, release visibility, and logout tie-in.</div>
           <div className="pricebook-actions" style={{ marginBottom: 16, flexWrap: 'wrap' }}>
             <input className="pricebook-input" value={releaseSearch} onChange={(e) => setReleaseSearch(e.target.value)} placeholder="Search updates" />
