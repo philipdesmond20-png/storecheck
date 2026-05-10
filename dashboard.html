@@ -11848,6 +11848,11 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
     { id: 'RQB-1402', time: '2026-05-10 01:08', actor: 'Store manager', route: '/shifts/eportQuickBookDays', action: 'Saved QuickBooks export packet', status: 'Ready', note: 'QuickBooks IIF packet was exported before the live accounting handoff was connected.' },
     { id: 'RQB-1403', time: '2026-05-09 19:44', actor: 'StoreCheck demo', route: '/shifts/eportQuickBookDays', action: 'Queued QuickBooks export handoff', status: 'Queued', note: 'Previous QuickBooks export handoff remained visible in demo mode.' },
   ]);
+  const [xmlExportEvents, setXmlExportEvents] = useState([
+    { id: 'RXML-1501', time: '2026-05-10 01:27', actor: 'Store manager', route: '/shifts/getDayInfoForXml', action: 'Previewed XML export packet', status: 'Opened', note: 'XML export packet was reviewed before the live file handoff was connected.' },
+    { id: 'RXML-1502', time: '2026-05-10 01:28', actor: 'Store manager', route: '/shifts/getDayInfoForXml', action: 'Saved XML export packet', status: 'Ready', note: 'XML export packet was downloaded before the live file handoff was connected.' },
+    { id: 'RXML-1503', time: '2026-05-09 18:36', actor: 'StoreCheck demo', route: '/shifts/getDayInfoForXml', action: 'Queued XML export handoff', status: 'Queued', note: 'Previous XML export handoff remained visible in demo mode.' },
+  ]);
   const [dailyPdfEvents, setDailyPdfEvents] = useState([
     { id: 'RDL-981', time: '2026-05-09 07:49', actor: 'Store manager', route: '/shifts/createDailyPdf', action: 'Opened daily PDF preview', status: 'Opened', note: 'Single-day packet preview opened for the custom-day review.' },
     { id: 'RDL-982', time: '2026-05-09 07:50', actor: 'Store manager', route: '/shifts/createDailyPdf', action: 'Saved daily PDF packet', status: 'Ready', note: 'Custom-day PDF packet exported before owner follow-through.' },
@@ -11966,7 +11971,7 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
     { id: 'downloadDay', label: 'Day PDF Download', shortLabel: 'Day Download', group: 'download', route: '/shifts/downloadShiftDayReport', surface: 'Reports / Export Center', format: 'Download Handoff', note: 'Direct day report download replacement', params: `date=${customTo}; isDay=true; isDownload=true`, previewRows: customPreviewRows, subtitle: `${currentLocation.name} · day download package`, fileName: 'storecheck-day-download' },
     { id: 'downloadMonth', label: 'Month Range Download', shortLabel: 'Month Download', group: 'download', route: '/shifts/downloadShiftDayReport', surface: 'Reports / Export Center', format: 'Download Handoff', note: 'Month range download replacement', params: `startDate=${customFrom}; endDate=${customTo}; isMonth=true; isDownload=true`, previewRows: monthPreviewRows, subtitle: `${currentLocation.name} · month download package`, fileName: 'storecheck-month-download' },
     { id: 'quickbooks', label: 'QuickBooks Export', shortLabel: 'QuickBooks', group: 'export', route: '/shifts/eportQuickBookDays', surface: 'Reports / Export Center', format: 'IIF Download', note: 'Accounting handoff export', params: 'searchDayForm', previewRows: weekPreviewRows, subtitle: `${currentLocation.name} · QuickBooks export`, fileName: 'storecheck-quickbooks-export' },
-    { id: 'xml', label: 'XML Export', shortLabel: 'XML Export', group: 'export', route: '/shifts/getDayInfoForXml', surface: 'Reports / Export Center', format: 'XML Download', note: 'POS / accounting XML handoff', params: `date=${customTo}`, previewRows: weekPreviewRows, subtitle: `${currentLocation.name} · XML export`, fileName: 'storecheck-sales-report' },
+    { id: 'xml', label: 'XML Export', shortLabel: 'XML Export', group: 'export', route: '/shifts/getDayInfoForXml', surface: 'Reports / Export Center', format: 'XML Download', note: 'POS / accounting XML handoff', params: `date=${customTo}`, previewRows: customPreviewRows, subtitle: `${currentLocation.name} · XML export`, fileName: 'storecheck-sales-report' },
   ];
   const reportActionMap = Object.fromEntries(reportActionPresets.map((action) => [action.id, action]));
   const selectedShiftEmailAction = reportActionMap.shiftEmail;
@@ -11974,6 +11979,7 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
   const selectedDayDownloadAction = reportActionMap.downloadDay;
   const selectedMonthDownloadAction = reportActionMap.downloadMonth;
   const selectedQuickbooksAction = reportActionMap.quickbooks;
+  const selectedXmlAction = reportActionMap.xml;
   const selectedDailyPdfAction = reportActionMap.dailyPdf;
   const selectedDaysPdfAction = reportActionMap.daysPdf;
   const selectedSummaryPdfAction = reportActionMap.summaryPdf;
@@ -11992,6 +11998,7 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
   const selectedDayDownloadEvents = dayDownloadEvents;
   const selectedMonthDownloadEvents = monthDownloadEvents;
   const selectedQuickbooksEvents = quickbooksEvents;
+  const selectedXmlExportEvents = xmlExportEvents;
   const selectedDailyPdfEvents = dailyPdfEvents;
   const selectedDaysPdfEvents = daysPdfEvents;
   const selectedSummaryPdfEvents = summaryPdfEvents;
@@ -12060,6 +12067,20 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
         time: buildReportStamp(),
         actor: 'StoreCheck demo',
         route: '/shifts/eportQuickBookDays',
+        action,
+        status,
+        note,
+      },
+      ...current,
+    ]);
+  };
+  const pushXmlExportEvent = ({ action, status, note }) => {
+    setXmlExportEvents((current) => [
+      {
+        id: `RXML-${current.length + 1501}`,
+        time: buildReportStamp(),
+        actor: 'StoreCheck demo',
+        route: '/shifts/getDayInfoForXml',
         action,
         status,
         note,
@@ -12144,6 +12165,10 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
     downloadTableData(selectedQuickbooksEvents, format, 'storecheck-quickbooks-events');
     showDeliveryNotice(`${fmtN(selectedQuickbooksEvents.length)} QuickBooks export events exported in ${format} format.`);
   };
+  const exportXmlExportEvents = (format) => {
+    downloadTableData(selectedXmlExportEvents, format, 'storecheck-xml-export-events');
+    showDeliveryNotice(`${fmtN(selectedXmlExportEvents.length)} XML export events exported in ${format} format.`);
+  };
   const exportDailyPdfEvents = (format) => {
     downloadTableData(selectedDailyPdfEvents, format, 'storecheck-daily-pdf-events');
     showDeliveryNotice(`${fmtN(selectedDailyPdfEvents.length)} daily PDF events exported in ${format} format.`);
@@ -12164,7 +12189,7 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
 
   const exportDeliveryData = (kind) => {
     if (kind === 'xml') {
-      const xml = `<report><store>${currentLocation.name}</store><weekTotal>${totals.total.toFixed(2)}</weekTotal><days>${rows.map((r) => `<day name="${r.day}" total="${r.total}" fuel="${r.fuel}" shop="${r.shop}" lottery="${r.lottery}" gallons="${r.gallons}" />`).join('')}</days></report>`;
+      const xml = `<report><store>${currentLocation.name}</store><date>${customTo}</date><dayTotal>${customTotals.total.toFixed(2)}</dayTotal><windows>${customSnapshots.map((r) => `<window name="${r.label}" period="${r.time}" total="${r.total}" fuel="${r.fuel}" shop="${r.shop}" lottery="${r.lottery}" gallons="${r.gallons}" />`).join('')}</windows></report>`;
       downloadTextData(xml, 'application/xml', 'storecheck-sales-report', 'xml');
       return;
     }
@@ -12229,6 +12254,11 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
     }
     if (action.id === 'xml') {
       exportDeliveryData('xml');
+      pushXmlExportEvent({
+        action: 'Saved XML export packet',
+        status: 'Ready',
+        note: 'XML export packet downloaded while the live file handoff remained demo-only.',
+      });
       showDeliveryNotice(`${action.label} downloaded in demo mode. Live \`${action.route}\` endpoint still pending.`);
       return;
     }
@@ -12704,6 +12734,29 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
             <div className="report-delivery-card">
               <div className="purchase-panel-head">
                 <div>
+                  <h3>XML export events</h3>
+                  <p>Owner-facing event visibility for the XML export handoff.</p>
+                </div>
+              </div>
+              <div className="report-delivery-list">
+                {selectedXmlExportEvents.length ? selectedXmlExportEvents.map((item) => (
+                  <div className="report-delivery-row" key={item.id}>
+                    <div className="report-delivery-head">
+                      <div>
+                        <div className="report-delivery-title">{item.action}</div>
+                        <div className="report-delivery-meta">{item.time} · {item.actor} · {item.route}</div>
+                      </div>
+                      <span className={`purchase-tag${item.status === 'Needs review' ? ' amber' : ' blue'}`}>{item.status}</span>
+                    </div>
+                    <div className="report-delivery-meta">{item.note}</div>
+                  </div>
+                )) : <div className="purchase-hint">No XML export events are recorded yet.</div>}
+              </div>
+            </div>
+
+            <div className="report-delivery-card">
+              <div className="purchase-panel-head">
+                <div>
                   <h3>Daily PDF events</h3>
                   <p>Owner-facing event visibility for the daily PDF packet handoff.</p>
                 </div>
@@ -12925,6 +12978,41 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
                   <Icon name="cash" size={15} /> Save route packet
                 </button>
                 <button className="pricebook-btn primary" onClick={() => exportQuickbooksEvents('CSV')}>
+                  <Icon name="save" size={15} /> Export route log
+                </button>
+              </div>
+            </div>
+
+            <div className="report-delivery-card">
+              <div className="purchase-panel-head">
+                <div>
+                  <h3>XML export endpoint</h3>
+                  <p>Keep the `/shifts/getDayInfoForXml` XML handoff visible before the live file delivery route is connected.</p>
+                </div>
+              </div>
+              <div className="purchase-kv-list">
+                <div className="purchase-kv"><span>Route</span><span>{selectedXmlAction.route}</span></div>
+                <div className="purchase-kv"><span>Format</span><span>{selectedXmlAction.format}</span></div>
+                <div className="purchase-kv"><span>Params</span><span>{selectedXmlAction.params}</span></div>
+                <div className="purchase-kv"><span>Selected day</span><span>{customTo}</span></div>
+                <div className="purchase-kv"><span>Source rows</span><span>{fmtN(rows.length)}</span></div>
+                <div className="purchase-kv"><span>Latest event</span><span>{selectedXmlExportEvents[0]?.action || 'No events yet'}</span></div>
+              </div>
+              <div className="pricebook-actions" style={{ marginTop: 16 }}>
+                <button className="pricebook-btn" onClick={() => {
+                  pushXmlExportEvent({
+                    action: 'Previewed XML export packet',
+                    status: 'Opened',
+                    note: `XML export packet preview opened for ${customTo} before the live file handoff was connected.`,
+                  });
+                  openReportSurface(selectedXmlAction.label, selectedXmlAction.subtitle, selectedXmlAction.previewRows);
+                }}>
+                  <Icon name="report" size={15} /> Preview route packet
+                </button>
+                <button className="pricebook-btn" onClick={() => downloadActionPackage(selectedXmlAction)}>
+                  <Icon name="cash" size={15} /> Save route packet
+                </button>
+                <button className="pricebook-btn primary" onClick={() => exportXmlExportEvents('CSV')}>
                   <Icon name="save" size={15} /> Export route log
                 </button>
               </div>
