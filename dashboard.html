@@ -19067,6 +19067,12 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
     { id: 'AGR-1', time: '07:53', store: 'Main Street Gas & Go', value: 'Accepted', actor: 'Owner session', status: 'Saved', note: 'Agreement captured before dashboard open.' },
     { id: 'AGR-0', time: '06:12', store: 'Sandy Cross Fuel Center', value: 'Accepted', actor: 'Owner session', status: 'Saved', note: 'Agreement saved during early shift startup.' },
   ]);
+  const [selectedAgreementSaveId, setSelectedAgreementSaveId] = useState('AGR-1');
+  const [agreementSaveEvents, setAgreementSaveEvents] = useState([
+    { id: 'ASE-3901', rowId: 'AGR-1', time: '07:53', actor: 'Owner session', route: '/user/saveAgreementDetails', action: 'Previewed agreement save', status: 'Opened', note: 'Owner reviewed the agreement-save packet before the live Mercury route was connected.' },
+    { id: 'ASE-3902', rowId: 'AGR-1', time: '07:54', actor: 'Owner session', route: '/user/saveAgreementDetails', action: 'Saved agreement packet', status: 'Ready', note: 'Agreement-save packet exported while the live Mercury route remained demo-only.' },
+    { id: 'ASE-3903', rowId: 'AGR-0', time: '06:12', actor: 'Owner session', route: '/user/saveAgreementDetails', action: 'Saved agreement state', status: 'Saved', note: 'Agreement acceptance was captured during early session startup.' },
+  ]);
   const [registerRefreshRows, setRegisterRefreshRows] = useState([
     { id: 'REG-1', time: '07:54', store: 'Main Street Gas & Go', previous: 'Refresh Needed', current: 'Connected', source: 'Session start', status: 'Updated', note: 'Main register came online after refresh.' },
     { id: 'REG-0', time: '06:14', store: 'Sandy Cross Fuel Center', previous: 'Connected', current: 'Connected', source: 'Session start', status: 'Reviewed', note: 'No register change was needed at open.' },
@@ -19102,6 +19108,11 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
     licenceCheckRows[0] ||
     null;
   const selectedLicenceEvents = selectedLicenceCheck ? licenceCheckEvents.filter((item) => item.rowId === selectedLicenceCheck.id) : [];
+  const selectedAgreementSave =
+    agreementSaveRows.find((item) => item.id === selectedAgreementSaveId) ||
+    agreementSaveRows[0] ||
+    null;
+  const selectedAgreementSaveEvents = selectedAgreementSave ? agreementSaveEvents.filter((item) => item.rowId === selectedAgreementSave.id) : [];
   const latestLicenceCheck = licenceCheckRows[0];
   const latestAgreementSave = agreementSaveRows[0];
   const latestRegisterRefresh = registerRefreshRows[0];
@@ -19243,6 +19254,43 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
     if (!selectedLicenceEvents.length) return;
     downloadTableData(selectedLicenceEvents, format, `storecheck-licence-events-${String(selectedLicenceCheck?.id || 'session').toLowerCase()}`);
   };
+  const pushAgreementSaveEvent = ({ rowId = selectedAgreementSave?.id, action, status, note }) => {
+    if (!rowId) return;
+    const time = stampSessionTime();
+    setAgreementSaveEvents((current) => [
+      {
+        id: `ASE-${Date.now()}`,
+        rowId,
+        time,
+        actor: 'Owner session',
+        route: '/user/saveAgreementDetails',
+        action,
+        status,
+        note,
+      },
+      ...current,
+    ].slice(0, 24));
+  };
+  const previewAgreementSave = (item = selectedAgreementSave || latestAgreementSave) => {
+    if (!item) return;
+    setSelectedAgreementSaveId(item.id);
+    openSettingsPacket({
+      title: 'Agreement Save Review',
+      subtitle: `${item.store} · ${item.time}`,
+      headers: ['Store', 'Value', 'Actor', 'Status', 'Note'],
+      rows: [[item.store, item.value, item.actor, item.status, item.note]],
+    });
+    pushAgreementSaveEvent({
+      rowId: item.id,
+      action: 'Previewed agreement save',
+      status: 'Opened',
+      note: `Owner reviewed the ${item.store} agreement-save packet before the live Mercury route was connected.`,
+    });
+  };
+  const exportAgreementSaveEvents = (format) => {
+    if (!selectedAgreementSaveEvents.length) return;
+    downloadTableData(selectedAgreementSaveEvents, format, `storecheck-agreement-save-events-${String(selectedAgreementSave?.id || 'session').toLowerCase()}`);
+  };
   const saveAgreementState = () => {
     const time = stampSessionTime();
     const value = agreementAccepted ? 'Accepted' : 'Pending';
@@ -19265,8 +19313,15 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
       note: agreementAccepted ? 'Licence review updated after agreement save.' : 'Agreement must be accepted before the licence review can pass.',
     };
     setAgreementSaveRows((current) => [agreementRow, ...current].slice(0, 6));
+    setSelectedAgreementSaveId(agreementRow.id);
     setLicenceCheckRows((current) => [licenceRow, ...current].slice(0, 6));
     setSelectedLicenceCheckId(licenceRow.id);
+    pushAgreementSaveEvent({
+      rowId: agreementRow.id,
+      action: agreementAccepted ? 'Saved agreement state' : 'Blocked agreement save',
+      status: agreementRow.status,
+      note: agreementAccepted ? 'Agreement acceptance was captured before the session moved forward.' : 'Agreement still needs acceptance before the session can proceed.',
+    });
     pushLicenceCheckEvent({
       rowId: licenceRow.id,
       action: 'Updated licence review from agreement save',
@@ -19276,15 +19331,25 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
     showSessionNotice(agreementAccepted ? 'Agreement acceptance saved in demo mode. Real `/user/saveAgreementDetails` wiring still pending.' : 'Enable agreement acceptance before saving the demo session state.');
   };
   const saveAgreementHistoryPacket = () => {
+    const item = selectedAgreementSave || latestAgreementSave;
     saveSettingsPacket({
-      title: 'Agreement Save History',
-      subtitle: `${currentLocation.name} · session init`,
+      title: 'Agreement Save Depth',
+      subtitle: `${item ? `${item.store} · ${item.time}` : `${currentLocation.name} · session init`}`,
       route: '/user/saveAgreementDetails',
       note: 'Agreement save history replacement shell',
       headers: ['Time', 'Store', 'Value', 'Actor', 'Status', 'Note'],
       rows: agreementSaveRows.map((item) => [item.time, item.store, item.value, item.actor, item.status, item.note]),
       filename: 'storecheck-agreement-history',
     });
+    if (item) {
+      setSelectedAgreementSaveId(item.id);
+      pushAgreementSaveEvent({
+        rowId: item.id,
+        action: 'Saved agreement packet',
+        status: 'Ready',
+        note: 'Agreement-save packet exported while the live Mercury route remained demo-only.',
+      });
+    }
     showSessionNotice('Agreement-history packet saved in demo mode.');
   };
   const refreshRegisterReview = () => {
@@ -19540,8 +19605,21 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
         </div>
 
         <div className="settings-card">
-          <div className="settings-title">Agreement Save History</div>
-          <div className="settings-sub">Track agreement-save decisions before the live session-start endpoint is connected.</div>
+          <div className="settings-title">Agreement Save Depth</div>
+          <div className="settings-sub">Owner-facing `/user/saveAgreementDetails` review with acceptance state and session-start gate visibility.</div>
+          <div className="purchase-kv-list">
+            <div className="purchase-kv"><span>Selected save</span><span>{selectedAgreementSave ? `${selectedAgreementSave.time} · ${selectedAgreementSave.status}` : 'Pending'}</span></div>
+            <div className="purchase-kv"><span>Agreement state</span><span>{selectedAgreementSave?.value || 'Pending'}</span></div>
+            <div className="purchase-kv"><span>Save route</span><span>/user/saveAgreementDetails</span></div>
+          </div>
+          <div className="pricebook-actions" style={{ marginTop: 16, flexWrap: 'wrap' }}>
+            <button className="pricebook-btn" onClick={() => previewAgreementSave(selectedAgreementSave)}>
+              <Icon name="report" size={15} /> Preview agreement
+            </button>
+            <button className="pricebook-btn" onClick={() => saveAgreementHistoryPacket()}>
+              <Icon name="cash" size={15} /> Save agreement
+            </button>
+          </div>
           <div className="purchase-queue-list">
             {agreementSaveRows.map((item) => (
               <div className="purchase-queue-row" key={item.id}>
@@ -19550,10 +19628,60 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
                     <div className="purchase-queue-title">{item.value}</div>
                     <div className="purchase-queue-meta">{item.time} · {item.store} · {item.actor}</div>
                   </div>
-                  <span className={`purchase-tag${item.status === 'Saved' ? ' blue' : ' amber'}`}>{item.status}</span>
+                  <div className="pricebook-actions" style={{ gap: 8 }}>
+                    <span className={`purchase-tag${item.status === 'Saved' ? ' blue' : ' amber'}`}>{item.status}</span>
+                    <button className="pricebook-btn soft" onClick={() => setSelectedAgreementSaveId(item.id)}>Review</button>
+                  </div>
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+
+        <div className="settings-card">
+          <div className="settings-title">Selected Agreement Save</div>
+          <div className="settings-sub">Keep the chosen agreement response visible before session init proceeds.</div>
+          {selectedAgreementSave ? (
+            <div className="purchase-kv-list">
+              <div className="purchase-kv"><span>Store</span><span>{selectedAgreementSave.store}</span></div>
+              <div className="purchase-kv"><span>Value</span><span>{selectedAgreementSave.value}</span></div>
+              <div className="purchase-kv"><span>Actor</span><span>{selectedAgreementSave.actor}</span></div>
+              <div className="purchase-kv"><span>Status</span><span>{selectedAgreementSave.status}</span></div>
+              <div className="purchase-kv"><span>Note</span><span>{selectedAgreementSave.note}</span></div>
+            </div>
+          ) : (
+            <div className="pricebook-detail-sub">No agreement save is selected yet.</div>
+          )}
+        </div>
+
+        <div className="settings-card">
+          <div className="settings-title">Agreement Save Events</div>
+          <div className="settings-sub">Track route-specific `/user/saveAgreementDetails` activity before live wiring is connected.</div>
+          <div className="pricebook-actions" style={{ marginBottom: 16, flexWrap: 'wrap' }}>
+            {['CSV', 'XLS', 'JSON'].map((format) => (
+              <button key={format} className="pricebook-btn" onClick={() => exportAgreementSaveEvents(format)}>
+                <Icon name="cash" size={15} /> {format}
+              </button>
+            ))}
+          </div>
+          <div className="alerts-list">
+            {selectedAgreementSaveEvents.length ? selectedAgreementSaveEvents.map((item) => (
+              <div key={item.id} className="alert-item" style={{ alignItems: 'flex-start' }}>
+                <Icon
+                  name={item.action.includes('Saved') ? 'cash' : item.action.includes('Previewed') ? 'report' : 'save'}
+                  size={18}
+                  bg={item.action.includes('Saved') ? iconDefaults.green.bg : item.action.includes('Previewed') ? iconDefaults.blue.bg : iconDefaults.slate.bg}
+                  fg={item.action.includes('Saved') ? '#15803D' : item.action.includes('Previewed') ? '#3B82F6' : '#64748B'}
+                />
+                <div className="alert-copy">
+                  <div className="alert-text">{item.action}</div>
+                  <div className="pricebook-detail-sub">{item.time} · {item.actor} · {item.status}</div>
+                  <div className="pricebook-detail-sub">{item.note}</div>
+                </div>
+              </div>
+            )) : (
+              <div className="pricebook-detail-sub">No agreement-save event history is visible for this selected save yet.</div>
+            )}
           </div>
         </div>
 
