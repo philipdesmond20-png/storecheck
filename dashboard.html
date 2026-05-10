@@ -12853,6 +12853,11 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
     { id: 'PS-2', packet: 'Payment method purchases recap', window: '2026-05-01 to 2026-05-09', focus: 'Cash / Check / EFT split', source: 'Payment Methods', status: 'Needs review', note: 'Payment-method rollup still needs final owner review before the live route is connected.' },
   ]);
   const [selectedPurchaseSummaryPacketId, setSelectedPurchaseSummaryPacketId] = useState('PS-1');
+  const [purchaseSavePacketRows, setPurchaseSavePacketRows] = useState([
+    { id: 'APS-1', packet: 'Primary purchase save handoff', window: 'Current purchase draft', focus: 'Save purchase follow-through', source: 'Add Purchase', status: 'Queued', note: 'Primary purchase-save handoff is staged for owner review before live Mercury wiring.' },
+    { id: 'APS-2', packet: 'Save and add another handoff', window: 'Current draft + keep-open flow', focus: 'Add Another follow-through', source: 'Save & Add Another', status: 'Needs review', note: 'Keep-open purchase handoff still needs final owner review before the live route is connected.' },
+  ]);
+  const [selectedPurchaseSavePacketId, setSelectedPurchaseSavePacketId] = useState('APS-1');
   const [vendorOrderPacketRows, setVendorOrderPacketRows] = useState([
     { id: 'VO-1', packet: 'Primary vendor order handoff', window: '2026-05-01 to 2026-05-09', focus: 'Current vendor filter', source: 'Vendor Orders', status: 'Queued', note: 'Primary vendor-order handoff is staged for owner review before live Mercury wiring.' },
     { id: 'VO-2', packet: 'Delivered order review', window: 'Delivered orders only', focus: 'Delivered status focus', source: 'Order / Delivery', status: 'Needs review', note: 'Delivered-order handoff still needs final owner review before the live route is connected.' },
@@ -12894,6 +12899,11 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
     { id: 'PSE-101', packetId: 'PS-1', time: '2026-05-10 11:04', actor: 'Store manager', route: '/storeExpenses/index', action: 'Previewed purchases summary packet', status: 'Opened', note: 'Owner reviewed the month-to-date grocery summary before the live Mercury route was connected.' },
     { id: 'PSE-102', packetId: 'PS-1', time: '2026-05-10 11:05', actor: 'Store manager', route: '/storeExpenses/index', action: 'Saved purchases summary packet', status: 'Ready', note: 'Purchases summary packet exported while the live Mercury route remained demo-only.' },
     { id: 'PSE-103', packetId: 'PS-2', time: '2026-05-09 16:42', actor: 'StoreCheck demo', route: '/storeExpenses/index', action: 'Queued purchases summary handoff', status: 'Queued', note: 'Payment-method purchases handoff remained visible in demo mode.' },
+  ]);
+  const [purchaseSaveEvents, setPurchaseSaveEvents] = useState([
+    { id: 'APE-101', packetId: 'APS-1', time: '2026-05-10 13:04', actor: 'Store manager', route: '/storeExpenses/index', action: 'Previewed purchase save packet', status: 'Opened', note: 'Owner reviewed the primary purchase-save packet before the live Mercury route was connected.' },
+    { id: 'APE-102', packetId: 'APS-1', time: '2026-05-10 13:05', actor: 'Store manager', route: '/storeExpenses/index', action: 'Saved purchase draft', status: 'Ready', note: 'Purchase draft packet was saved while the live Mercury route remained demo-only.' },
+    { id: 'APE-103', packetId: 'APS-2', time: '2026-05-09 19:12', actor: 'StoreCheck demo', route: '/storeExpenses/index', action: 'Queued purchase save handoff', status: 'Queued', note: 'Keep-open purchase handoff remained visible in demo mode.' },
   ]);
   const [vendorOrderEvents, setVendorOrderEvents] = useState([
     { id: 'VOE-101', packetId: 'VO-1', time: '2026-05-10 11:24', actor: 'Store manager', route: '/storeExpenses/index', action: 'Previewed vendor order packet', status: 'Opened', note: 'Owner reviewed the primary vendor-order packet before the live Mercury route was connected.' },
@@ -13022,6 +13032,7 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
   const selectedDeadItem = filteredDeadInventory.find((row) => row.id === selectedDeadItemId) || deadInventoryRows.find((row) => row.id === selectedDeadItemId) || deadInventoryRows.find((row) => deadSelected.includes(row.id)) || filteredDeadInventory[0] || deadInventoryRows[0];
   const selectedVendorCode = vendorCodeReferenceRows.find((row) => row.id === selectedVendorCodeId) || vendorCodeReferenceRows[0];
   const selectedPurchaseSummaryPacket = purchaseSummaryPacketRows.find((row) => row.id === selectedPurchaseSummaryPacketId) || purchaseSummaryPacketRows[0];
+  const selectedPurchaseSavePacket = purchaseSavePacketRows.find((row) => row.id === selectedPurchaseSavePacketId) || purchaseSavePacketRows[0];
   const selectedVendorOrderPacket = vendorOrderPacketRows.find((row) => row.id === selectedVendorOrderPacketId) || vendorOrderPacketRows[0];
   const selectedPurchaseLedgerPacket = purchaseLedgerPacketRows.find((row) => row.id === selectedPurchaseLedgerPacketId) || purchaseLedgerPacketRows[0];
   const selectedCostUpdatePacket = costUpdatePacketRows.find((row) => row.id === selectedCostUpdatePacketId) || costUpdatePacketRows[0];
@@ -13036,6 +13047,7 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
     vendorMasterRows[0];
   const selectedExpenseType = expenseTypeRows.find((row) => row.id === selectedExpenseTypeId) || expenseTypeRows[0];
   const selectedPurchaseSummaryEvents = selectedPurchaseSummaryPacket ? purchaseSummaryEvents.filter((row) => row.packetId === selectedPurchaseSummaryPacket.id) : purchaseSummaryEvents;
+  const selectedPurchaseSaveEvents = selectedPurchaseSavePacket ? purchaseSaveEvents.filter((row) => row.packetId === selectedPurchaseSavePacket.id) : purchaseSaveEvents;
   const selectedVendorOrderEvents = selectedVendorOrderPacket ? vendorOrderEvents.filter((row) => row.packetId === selectedVendorOrderPacket.id) : vendorOrderEvents;
   const selectedPurchaseLedgerEvents = selectedPurchaseLedgerPacket ? purchaseLedgerEvents.filter((row) => row.packetId === selectedPurchaseLedgerPacket.id) : purchaseLedgerEvents;
   const selectedCostUpdateEvents = selectedCostUpdatePacket ? costUpdateEvents.filter((row) => row.packetId === selectedCostUpdatePacket.id) : costUpdateEvents;
@@ -13046,6 +13058,7 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
   const selectedDeadRows = deadInventoryRows.filter((row) => deadSelected.includes(row.id));
   const stagedInactiveCount = deadInventoryRows.filter((row) => row.stage === 'Staged InActive').length;
   const selectedLibraryAttachment = attachments.find((row) => row.id === selectedLibraryAttachmentId) || attachments[0];
+  const selectedPurchaseDraftAttachment = attachments.find((row) => row.module === 'Purchases' && row.record === purchaseDraft.vendor);
   const selectedAttachmentUploadEvents = selectedLibraryAttachment ? attachmentUploadEvents.filter((row) => row.attachmentId === selectedLibraryAttachment.id) : [];
   const selectedAttachmentDownloadEvents = selectedLibraryAttachment ? attachmentDownloadEvents.filter((row) => row.attachmentId === selectedLibraryAttachment.id) : [];
   const tabs = [
@@ -13613,6 +13626,110 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
       note: 'Selected dead-inventory rows were exported while the live Mercury route remained demo-only.',
     });
     showNotice('Dead inventory inactivation packet saved in demo mode.');
+  };
+  const buildPurchaseSavePacketRows = (packet = selectedPurchaseSavePacket) => [
+    [
+      purchaseDraft.date,
+      purchaseDraft.shift,
+      purchaseDraft.amount,
+      purchaseDraft.paymentType,
+      purchaseDraft.checkNo || '-',
+      purchaseDraft.vendor,
+      purchaseDraft.comments || '-',
+      selectedPurchaseDraftAttachment?.fileName || 'No invoice staged',
+      packet?.id === 'APS-2' ? 'Save & Add Another' : 'Save Purchase',
+    ],
+  ];
+  const pushPurchaseSaveEvent = ({ packetId = selectedPurchaseSavePacket?.id, action, status, note }) => {
+    setPurchaseSaveEvents((current) => [
+      {
+        id: `APE-${current.length + 101}`,
+        packetId,
+        time: todayStr(),
+        actor: 'StoreCheck demo',
+        route: '/storeExpenses/index',
+        action,
+        status,
+        note,
+      },
+      ...current,
+    ]);
+  };
+  const previewPurchaseSaveDepth = (packet = selectedPurchaseSavePacket) => {
+    if (!packet) return;
+    setSelectedPurchaseSavePacketId(packet.id);
+    openPacketPreview({
+      title: 'Add Purchase Save Depth',
+      subtitle: `${packet.window} · ${packet.focus} · /storeExpenses/index`,
+      headers: ['Date', 'Shift', 'Amount', 'Payment', 'Check #', 'Vendor', 'Comments', 'Invoice', 'Mode'],
+      rows: buildPurchaseSavePacketRows(packet),
+    });
+    pushPurchaseSaveEvent({
+      packetId: packet.id,
+      action: 'Previewed purchase save packet',
+      status: 'Opened',
+      note: `${packet.packet} preview opened before the live Mercury route was connected.`,
+    });
+  };
+  const savePurchaseSaveDepth = (packet = selectedPurchaseSavePacket) => {
+    if (!packet) return;
+    setSelectedPurchaseSavePacketId(packet.id);
+    savePacket({
+      title: `Add Purchase Packet - ${packet.id}`,
+      subtitle: `${packet.window} · ${packet.focus}`,
+      route: '/storeExpenses/index',
+      note: 'Add Purchase save replacement shell',
+      headers: ['Date', 'Shift', 'Amount', 'Payment', 'Check #', 'Vendor', 'Comments', 'Invoice', 'Mode'],
+      rows: buildPurchaseSavePacketRows(packet),
+      filename: `storecheck-add-purchase-${packet.id.toLowerCase()}`,
+    });
+    pushPurchaseSaveEvent({
+      packetId: packet.id,
+      action: 'Saved purchase route packet',
+      status: 'Ready',
+      note: 'Add-purchase route packet was exported while the live Mercury route remained demo-only.',
+    });
+    showNotice('Add purchase route packet saved in demo mode.');
+  };
+  const stagePurchaseSaveHandoff = (packet = selectedPurchaseSavePacket) => {
+    if (!packet) return;
+    setSelectedPurchaseSavePacketId(packet.id);
+    setPurchaseSavePacketRows((current) => current.map((row) => (
+      row.id === packet.id ? { ...row, status: 'Queued', note: `Add-purchase handoff is staged for ${packet.window}.` } : row
+    )));
+    pushPurchaseSaveEvent({
+      packetId: packet.id,
+      action: 'Queued purchase save handoff',
+      status: 'Queued',
+      note: `Mercury-style add-purchase handoff accepted for ${packet.window}.`,
+    });
+    showNotice(`Add purchase handoff for ${packet.window} staged in demo mode. Live \`/storeExpenses/index\` endpoint still pending.`);
+  };
+  const submitPurchaseDraft = (packet = selectedPurchaseSavePacket) => {
+    if (!packet) return;
+    setSelectedPurchaseSavePacketId(packet.id);
+    setPurchaseSavePacketRows((current) => current.map((row) => (
+      row.id === packet.id
+        ? {
+            ...row,
+            status: 'Ready',
+            note: packet.id === 'APS-2'
+              ? 'Purchase draft saved in demo mode and kept open for another invoice.'
+              : `Purchase draft saved in demo mode for ${purchaseDraft.vendor}.`,
+          }
+        : row
+    )));
+    pushPurchaseSaveEvent({
+      packetId: packet.id,
+      action: packet.id === 'APS-2' ? 'Saved purchase draft and kept form open' : 'Saved purchase draft',
+      status: 'Ready',
+      note: packet.id === 'APS-2'
+        ? 'Purchase draft stayed open for another invoice while the live route remained demo-only.'
+        : `Purchase draft for ${purchaseDraft.vendor} was saved while the live Mercury route remained demo-only.`,
+    });
+    showNotice(packet.id === 'APS-2'
+      ? 'Purchase draft saved and kept open for another invoice.'
+      : `Purchase draft saved for ${purchaseDraft.vendor}. Endpoint connection is still pending.`);
   };
   const buildVendorCodePacketRows = () =>
     vendorCodeReferenceRows.map((row) => [row.vendor]);
@@ -14305,6 +14422,10 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
     downloadTableData(selectedVendorCodeEvents, format, 'storecheck-vendor-code-events');
     showNotice(`${fmtN(selectedVendorCodeEvents.length)} vendor-code events exported in ${format} format.`);
   };
+  const exportPurchaseSaveEvents = (format) => {
+    downloadTableData(selectedPurchaseSaveEvents, format, 'storecheck-add-purchase-events');
+    showNotice(`${fmtN(selectedPurchaseSaveEvents.length)} add-purchase events exported in ${format} format.`);
+  };
   const exportExpenseSummaryEvents = (format) => {
     downloadTableData(selectedExpenseSummaryEvents, format, 'storecheck-operating-expense-summary-events');
     showNotice(`${fmtN(selectedExpenseSummaryEvents.length)} operating-expense summary events exported in ${format} format.`);
@@ -14749,9 +14870,30 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
           <div className="purchase-note-card">
             <div className="purchase-panel-head">
               <div>
-                <h3>Add grocery purchase</h3>
-                <p>Date, shift, amount, payment type, check number, vendor, comments, and invoice upload mirror the Mercury entry flow.</p>
+                <h3>Add Purchase Save Depth</h3>
+                <p>Keep the `/storeExpenses/index` purchase-save handoff visible with selected packet context before the live Mercury route is connected.</p>
               </div>
+              <div className="pricebook-actions">
+                <button className="pricebook-btn" onClick={() => previewPurchaseSaveDepth(selectedPurchaseSavePacket)}>
+                  <Icon name="report" size={15} /> Preview route packet
+                </button>
+                <button className="pricebook-btn" onClick={() => stagePurchaseSaveHandoff(selectedPurchaseSavePacket)}>
+                  <Icon name="sync" size={15} /> Stage handoff
+                </button>
+                <button className="pricebook-btn" onClick={() => savePurchaseSaveDepth(selectedPurchaseSavePacket)}>
+                  <Icon name="cash" size={15} /> Save route packet
+                </button>
+                <button className="pricebook-btn primary" onClick={() => exportPurchaseSaveEvents('CSV')}>
+                  <Icon name="save" size={15} /> Export route log
+                </button>
+              </div>
+            </div>
+            <div className="purchase-kv-list" style={{ marginBottom: 18 }}>
+              <div className="purchase-kv"><span>Selected packet</span><span>{selectedPurchaseSavePacket ? `${selectedPurchaseSavePacket.packet} · ${selectedPurchaseSavePacket.status}` : 'Pending'}</span></div>
+              <div className="purchase-kv"><span>Route</span><span>/storeExpenses/index</span></div>
+              <div className="purchase-kv"><span>Focus</span><span>{selectedPurchaseSavePacket?.focus || 'Save purchase follow-through'}</span></div>
+              <div className="purchase-kv"><span>Current packet</span><span>{selectedPurchaseSavePacket ? `${selectedPurchaseSavePacket.window} · ${selectedPurchaseSavePacket.source}` : 'Add Purchase'}</span></div>
+              <div className="purchase-kv"><span>Latest event</span><span>{selectedPurchaseSaveEvents[0]?.action || 'No events yet'}</span></div>
             </div>
             <div className="purchase-form-grid">
               <div className="purchase-form-field"><label>Date</label><input className="pricebook-input" type="date" value={purchaseDraft.date} onChange={(e) => handlePurchaseDraft('date', e.target.value)} /></div>
@@ -14766,17 +14908,86 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
             <div className="purchase-action-row" style={{ marginTop: 18 }}>
               <span className="purchase-hint">StoreCheck will save the draft locally first, then post to real purchase endpoints in the data phase.</span>
               <div className="pricebook-actions">
-                <button className="pricebook-btn" onClick={() => showNotice('Purchase draft saved and kept open for another invoice.')}>
+                <button className="pricebook-btn" onClick={() => submitPurchaseDraft(purchaseSavePacketRows.find((row) => row.id === 'APS-2') || selectedPurchaseSavePacket)}>
                   <Icon name="save" size={15} /> Save & add another
                 </button>
-                <button className="pricebook-btn primary" onClick={() => showNotice(`Purchase draft saved for ${purchaseDraft.vendor}. Endpoint connection is still pending.`)}>
+                <button className="pricebook-btn primary" onClick={() => submitPurchaseDraft(purchaseSavePacketRows.find((row) => row.id === 'APS-1') || selectedPurchaseSavePacket)}>
                   <Icon name="cash" size={15} /> Save purchase
                 </button>
               </div>
             </div>
+            <div className="purchase-queue-list" style={{ marginTop: 18 }}>
+              {purchaseSavePacketRows.map((row) => (
+                <div className="purchase-queue-row" key={row.id}>
+                  <div className="purchase-queue-top">
+                    <div>
+                      <div className="purchase-queue-title">{row.packet}</div>
+                      <div className="purchase-queue-meta">{row.window} · {row.focus} · {row.source}</div>
+                    </div>
+                    <span className={`purchase-tag${toneClass(row.status)}`}>{row.status}</span>
+                  </div>
+                  <div className="purchase-queue-meta">{row.note}</div>
+                  <div className="pricebook-actions" style={{ marginTop: 12 }}>
+                    <button className="pricebook-btn" onClick={() => setSelectedPurchaseSavePacketId(row.id)}>
+                      <Icon name="report" size={15} /> Review
+                    </button>
+                    <button className="pricebook-btn soft" onClick={() => previewPurchaseSaveDepth(row)}>
+                      <Icon name="report" size={15} /> Preview
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
 
           <div className="purchase-stack">
+            <div className="purchase-note-card">
+              <h3>Selected Purchase Save Review</h3>
+              <p>Owner-facing visibility for the chosen add-purchase packet before the live Mercury route is connected.</p>
+              {selectedPurchaseSavePacket ? (
+                <div className="purchase-kv-list">
+                  <div className="purchase-kv"><span>Packet</span><span>{selectedPurchaseSavePacket.packet}</span></div>
+                  <div className="purchase-kv"><span>Window</span><span>{selectedPurchaseSavePacket.window}</span></div>
+                  <div className="purchase-kv"><span>Focus</span><span>{selectedPurchaseSavePacket.focus}</span></div>
+                  <div className="purchase-kv"><span>Source</span><span>{selectedPurchaseSavePacket.source}</span></div>
+                  <div className="purchase-kv"><span>Status</span><span>{selectedPurchaseSavePacket.status}</span></div>
+                  <div className="purchase-kv"><span>Note</span><span>{selectedPurchaseSavePacket.note}</span></div>
+                </div>
+              ) : <div className="purchase-hint">No add-purchase packet is selected right now.</div>}
+            </div>
+
+            <div className="purchase-note-card">
+              <h3>Purchase Save Events</h3>
+              <p>Track route-specific `/storeExpenses/index` purchase-save activity before live Mercury wiring is connected.</p>
+              <div className="purchase-queue-list">
+                {selectedPurchaseSaveEvents.length ? selectedPurchaseSaveEvents.map((row) => (
+                  <div className="purchase-queue-row" key={row.id}>
+                    <div className="purchase-queue-top">
+                      <div>
+                        <div className="purchase-queue-title">{row.action}</div>
+                        <div className="purchase-queue-meta">{row.time} · {row.actor} · {row.route}</div>
+                      </div>
+                      <span className={`purchase-tag${toneClass(row.status)}`}>{row.status}</span>
+                    </div>
+                    <div className="purchase-queue-meta">{selectedPurchaseSavePacket?.id || 'APS-1'} · {row.note}</div>
+                  </div>
+                )) : <div className="purchase-hint">No add-purchase events are recorded yet.</div>}
+              </div>
+            </div>
+
+            <div className="purchase-note-card">
+              <h3>Current purchase draft</h3>
+              <p>Keep the active draft visible while deciding whether to save, keep the form open, or export the route packet.</p>
+              <div className="purchase-kv-list">
+                <div className="purchase-kv"><span>Vendor</span><span>{purchaseDraft.vendor}</span></div>
+                <div className="purchase-kv"><span>Shift / Date</span><span>{purchaseDraft.shift} · {purchaseDraft.date}</span></div>
+                <div className="purchase-kv"><span>Amount</span><span>{purchaseDraft.amount}</span></div>
+                <div className="purchase-kv"><span>Payment</span><span>{purchaseDraft.paymentType}</span></div>
+                <div className="purchase-kv"><span>Check #</span><span>{purchaseDraft.checkNo || 'Optional'}</span></div>
+                <div className="purchase-kv"><span>Invoice</span><span>{selectedPurchaseDraftAttachment?.fileName || 'No invoice staged'}</span></div>
+              </div>
+            </div>
+
             <div className="purchase-note-card">
               <h3>Invoice review</h3>
               <p>Fast owner review for mismatched categories, missing cost updates, or uncategorized lines.</p>
