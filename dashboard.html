@@ -11823,6 +11823,11 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
   const [deliveryNotice, setDeliveryNotice] = useState('');
   const [deliveryEmail, setDeliveryEmail] = useState('owner@mainstreetgas.com');
   const [deliverySelection, setDeliverySelection] = useState('Weekly Summary PDF');
+  const [summaryPdfEvents, setSummaryPdfEvents] = useState([
+    { id: 'RSP-901', time: '2026-05-09 08:01', actor: 'Store manager', route: '/shifts/createSummaryPdf', action: 'Opened summary PDF preview', status: 'Opened', note: 'Month summary preview opened before the owner packet was shared.' },
+    { id: 'RSP-902', time: '2026-05-09 08:02', actor: 'Store manager', route: '/shifts/createSummaryPdf', action: 'Saved summary PDF packet', status: 'Ready', note: 'Summary packet exported for the weekly owner handoff.' },
+    { id: 'RSP-903', time: '2026-05-08 07:58', actor: 'StoreCheck demo', route: '/shifts/createSummaryPdf', action: 'Previewed summary packet', status: 'Ready', note: 'Previous summary packet preview stayed visible in demo mode.' },
+  ]);
   const [reportWindowName, setReportWindowName] = useState('weekly-summary');
   const [reportWindowEvents, setReportWindowEvents] = useState([
     { id: 'RWE-801', reportName: 'weekly-summary', time: '2026-05-09 08:04', actor: 'Store manager', route: '/administration/openReport?reportName=', action: 'Opened report window', status: 'Opened', note: 'Weekly summary renderer reviewed before printing.' },
@@ -11929,6 +11934,7 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
     { id: 'xml', label: 'XML Export', shortLabel: 'XML Export', group: 'export', route: '/shifts/getDayInfoForXml', surface: 'Reports / Export Center', format: 'XML Download', note: 'POS / accounting XML handoff', params: `date=${customTo}`, previewRows: weekPreviewRows, subtitle: `${currentLocation.name} · XML export`, fileName: 'storecheck-sales-report' },
   ];
   const reportActionMap = Object.fromEntries(reportActionPresets.map((action) => [action.id, action]));
+  const selectedSummaryPdfAction = reportActionMap.summaryPdf;
   const selectedReportWindowAction = {
     ...reportActionMap.reportWindow,
     route: `/administration/openReport?reportName=${reportWindowName}`,
@@ -11939,8 +11945,23 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
   const printActions = reportActionPresets.filter((action) => action.group === 'print');
   const emailActions = reportActionPresets.filter((action) => action.group === 'email');
   const handoffActions = reportActionPresets.filter((action) => action.group === 'download' || action.group === 'export');
+  const selectedSummaryPdfEvents = summaryPdfEvents;
   const selectedReportWindowEvents = reportWindowEvents.filter((item) => item.reportName === reportWindowName);
 
+  const pushSummaryPdfEvent = ({ action, status, note }) => {
+    setSummaryPdfEvents((current) => [
+      {
+        id: `RSP-${current.length + 901}`,
+        time: buildReportStamp(),
+        actor: 'StoreCheck demo',
+        route: '/shifts/createSummaryPdf',
+        action,
+        status,
+        note,
+      },
+      ...current,
+    ]);
+  };
   const pushReportWindowEvent = ({ action, status, note }) => {
     setReportWindowEvents((current) => [
       {
@@ -11955,6 +11976,10 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
       },
       ...current,
     ]);
+  };
+  const exportSummaryPdfEvents = (format) => {
+    downloadTableData(selectedSummaryPdfEvents, format, 'storecheck-summary-pdf-events');
+    showDeliveryNotice(`${fmtN(selectedSummaryPdfEvents.length)} summary PDF events exported in ${format} format.`);
   };
   const exportReportWindowEvents = (format) => {
     const rows = selectedReportWindowEvents.length ? selectedReportWindowEvents : reportWindowEvents;
@@ -12029,6 +12054,13 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
     }
     const html = buildReportPackageHtml(action);
     downloadTextData(html, 'text/html', action.fileName, 'html');
+    if (action.id === 'summaryPdf') {
+      pushSummaryPdfEvent({
+        action: 'Saved summary PDF packet',
+        status: 'Ready',
+        note: 'Summary PDF packet exported while the live renderer remained demo-only.',
+      });
+    }
     if (action.id === 'reportWindow') {
       pushReportWindowEvent({
         action: 'Saved report window packet',
@@ -12046,6 +12078,13 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
 
   const runReportAction = (action) => {
     if (action.group === 'print') {
+      if (action.id === 'summaryPdf') {
+        pushSummaryPdfEvent({
+          action: 'Opened summary PDF preview',
+          status: 'Opened',
+          note: 'Summary PDF preview opened from the print center.',
+        });
+      }
       if (action.id === 'reportWindow') {
         pushReportWindowEvent({
           action: 'Opened report window',
@@ -12144,6 +12183,34 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
             <div className="report-delivery-card">
               <div className="purchase-panel-head">
                 <div>
+                  <h3>Summary PDF endpoint</h3>
+                  <p>Keep the `/shifts/createSummaryPdf` packet and monthly summary context visible before the live PDF renderer is connected.</p>
+                </div>
+              </div>
+              <div className="purchase-kv-list">
+                <div className="purchase-kv"><span>Route</span><span>{selectedSummaryPdfAction.route}</span></div>
+                <div className="purchase-kv"><span>Surface</span><span>{selectedSummaryPdfAction.surface}</span></div>
+                <div className="purchase-kv"><span>Weeks in packet</span><span>{fmtN(monthlyRows.length)}</span></div>
+                <div className="purchase-kv"><span>Month total</span><span>{fmt(monthlyTotals.total)}</span></div>
+                <div className="purchase-kv"><span>Month gallons</span><span>{fmtN(monthlyTotals.gallons)}</span></div>
+                <div className="purchase-kv"><span>Latest event</span><span>{selectedSummaryPdfEvents[0]?.action || 'No events yet'}</span></div>
+              </div>
+              <div className="pricebook-actions" style={{ marginTop: 16 }}>
+                <button className="pricebook-btn" onClick={() => runReportAction(selectedSummaryPdfAction)}>
+                  <Icon name="report" size={15} /> Preview route packet
+                </button>
+                <button className="pricebook-btn" onClick={() => downloadActionPackage(selectedSummaryPdfAction)}>
+                  <Icon name="cash" size={15} /> Save route packet
+                </button>
+                <button className="pricebook-btn primary" onClick={() => exportSummaryPdfEvents('CSV')}>
+                  <Icon name="save" size={15} /> Export route log
+                </button>
+              </div>
+            </div>
+
+            <div className="report-delivery-card">
+              <div className="purchase-panel-head">
+                <div>
                   <h3>Report window endpoint</h3>
                   <p>Keep the shared `/administration/openReport?reportName=` handoff visible before the live renderer is connected.</p>
                 </div>
@@ -12213,6 +12280,29 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
           </div>
 
           <div className="report-delivery-stack">
+            <div className="report-delivery-card">
+              <div className="purchase-panel-head">
+                <div>
+                  <h3>Summary PDF events</h3>
+                  <p>Owner-facing event visibility for the summary PDF packet handoff.</p>
+                </div>
+              </div>
+              <div className="report-delivery-list">
+                {selectedSummaryPdfEvents.length ? selectedSummaryPdfEvents.map((item) => (
+                  <div className="report-delivery-row" key={item.id}>
+                    <div className="report-delivery-head">
+                      <div>
+                        <div className="report-delivery-title">{item.action}</div>
+                        <div className="report-delivery-meta">{item.time} · {item.actor} · {item.route}</div>
+                      </div>
+                      <span className={`purchase-tag${item.status === 'Needs review' ? ' amber' : ' blue'}`}>{item.status}</span>
+                    </div>
+                    <div className="report-delivery-meta">{item.note}</div>
+                  </div>
+                )) : <div className="purchase-hint">No summary PDF events are recorded yet.</div>}
+              </div>
+            </div>
+
             <div className="report-delivery-card">
               <div className="purchase-panel-head">
                 <div>
