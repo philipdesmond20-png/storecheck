@@ -25147,7 +25147,7 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
     setSelectedLogoutQueueId(item.id);
     setSelectedLogoutPacketId(packet.id);
     openSettingsPacket({
-      title: 'Logout Endpoint Depth',
+      title: 'Logout Endpoint Reconcile',
       subtitle: `${packet.window} · GET /user/logout`,
       headers: ['Store', 'Reason', 'After logout', 'Status', 'Route', 'Mode'],
       rows: buildLogoutRouteRows(item, packet),
@@ -25192,7 +25192,7 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
       setSelectedLogoutQueueId(item.id);
     }
     openSettingsPacket({
-      title: item?.id ? 'Logout Endpoint Review' : 'Logout Confirmation',
+      title: item?.id ? 'Selected Logout Endpoint Review' : 'Logout Confirmation',
       subtitle: `${context.store} · ${context.reason}`,
       headers: ['Store', 'Reason', 'Next Step', 'Register', 'Pending Updates', 'Temp Session'],
       rows: [[context.store, context.reason, context.destination, registerStatus, fmtN(releaseNeedsReviewCount), tempSessionOpen ? 'Open' : 'Closed']],
@@ -25218,7 +25218,7 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
       time: stampSessionTime(),
     };
     saveSettingsPacket({
-      title: item?.id ? 'Logout Endpoint Depth' : 'Session Logout Packet',
+      title: item?.id ? 'Logout Endpoint Reconcile' : 'Session Logout Packet',
       subtitle: `${context.store} · ${context.reason}`,
       route: '/user/logout',
       note: 'Logout and session handoff replacement shell',
@@ -25242,7 +25242,7 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
     setSelectedLogoutQueueId(item.id);
     setSelectedLogoutPacketId(packet.id);
     saveSettingsPacket({
-      title: 'Logout Endpoint Depth',
+      title: 'Logout Endpoint Reconcile',
       subtitle: `${packet.window} · GET /user/logout`,
       route: '/user/logout',
       note: 'Logout and session handoff replacement shell',
@@ -26221,7 +26221,7 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
         </div>
 
         <div className="settings-card">
-          <div className="settings-title">Logout Endpoint Depth</div>
+          <div className="settings-title">Logout Endpoint Reconcile</div>
           <div className="settings-sub">Owner-facing `GET /user/logout` review with selected packet, logout handoff visibility, and session-close context before live wiring is connected.</div>
           <div className="purchase-kv-list">
             <div className="purchase-kv"><span>Selected packet</span><span>{selectedLogoutPacket ? `${selectedLogoutPacket.packet} · ${selectedLogoutPacket.status}` : 'Pending'}</span></div>
