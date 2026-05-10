@@ -16194,6 +16194,7 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
   const [compareDate, setCompareDate] = useState('2026-05-09');
   const [selectedStore, setSelectedStore] = useState('All');
   const [selectedCompareStoreId, setSelectedCompareStoreId] = useState(MULTI_STORE_COMPARE[0].store);
+  const [selectedSwitchStoreId, setSelectedSwitchStoreId] = useState(currentLocation.id);
   const [loginSearch, setLoginSearch] = useState('');
   const [loginLocationId, setLoginLocationId] = useState(currentLocation.id);
   const [launchTarget, setLaunchTarget] = useState('today');
@@ -16205,6 +16206,11 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
     { id: 'CMP-3301', rowId: 'Main Street Gas & Go', time: '2026-05-09 21:52', actor: 'Store manager', route: '/shifts/searchMultiStoreReport', action: 'Previewed multi-store compare packet', status: 'Opened', note: 'Owner reviewed the multi-store comparison packet before the live Mercury search route was connected.' },
     { id: 'CMP-3302', rowId: 'Main Street Gas & Go', time: '2026-05-09 21:55', actor: 'Store manager', route: '/shifts/searchMultiStoreReport', action: 'Saved multi-store compare packet', status: 'Ready', note: 'Multi-store comparison packet exported while the live Mercury search route remained demo-only.' },
     { id: 'CMP-3303', rowId: 'North Avenue Market', time: '2026-05-08 10:04', actor: 'StoreCheck demo', route: '/shifts/searchMultiStoreReport', action: 'Refreshed multi-store compare search', status: 'Updated', note: 'Multi-store comparison review refreshed with the current StoreCheck date and store filters.' },
+  ]);
+  const [switchActionEvents, setSwitchActionEvents] = useState([
+    { id: 'SWA-3401', rowId: 'main-street', time: '2026-05-09 22:08', actor: 'Store manager', route: '/user/switchLocation?locationId=', action: 'Previewed store-switch packet', status: 'Opened', note: 'Owner reviewed the active-location switch packet before the live Mercury route was connected.' },
+    { id: 'SWA-3402', rowId: 'main-street', time: '2026-05-09 22:11', actor: 'Store manager', route: '/user/switchLocation?locationId=', action: 'Saved store-switch packet', status: 'Ready', note: 'Store-switch packet exported while the live Mercury route remained demo-only.' },
+    { id: 'SWA-3403', rowId: 'sandy-cross', time: '2026-05-08 10:22', actor: 'StoreCheck demo', route: '/user/switchLocation?locationId=', action: 'Switched active location', status: 'Complete', note: 'Location change stayed inside StoreCheck while the live Mercury route remained pending.' },
   ]);
   const [notice, setNotice] = useState('');
 
@@ -16218,6 +16224,15 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
     null;
   const selectedCompareEvents = selectedCompareRow ? compareSearchEvents.filter((row) => row.rowId === selectedCompareRow.store) : [];
   const compareContextLabel = `${compareDate} · ${selectedStore === 'All' ? 'All stores' : selectedStore}`;
+  const selectedSwitchLocation =
+    STORE_LOCATIONS.find((item) => item.id === selectedSwitchStoreId) ||
+    STORE_LOCATIONS.find((item) => item.id === currentLocation.id) ||
+    STORE_LOCATIONS[0];
+  const selectedSwitchOverview =
+    MULTI_STORE_OVERVIEW.find((row) => row.id === selectedSwitchLocation.id) ||
+    MULTI_STORE_OVERVIEW[0];
+  const selectedSwitchEvents = switchActionEvents.filter((row) => row.rowId === selectedSwitchLocation.id);
+  const switchContextLabel = `${selectedSwitchLocation.name} · ${selectedSwitchLocation.location}`;
   const filteredLoginLocations = STORE_LOCATIONS.filter((item) => {
     const haystack = `${item.name} ${item.location} ${item.manager} ${item.status}`.toLowerCase();
     return haystack.includes(loginSearch.toLowerCase());
@@ -16251,6 +16266,7 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
     window.clearTimeout(window.__storecheckMultiStoreNotice);
     window.__storecheckMultiStoreNotice = window.setTimeout(() => setNotice(''), 2800);
   };
+  const slugify = (value) => String(value).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
   const compareExportRows = filteredCompare.map((row) => ({
     Store: row.store,
     Date: compareDate,
@@ -16262,6 +16278,14 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
     CashDiff: row.cashDiff.toFixed(2),
   }));
   const comparePacketRows = filteredCompare.map((row) => [row.store, compareDate, fmt(row.fuel), fmt(row.shop), fmt(row.lottery), fmt(row.total), fmtN(row.gallons, 0), fmt(Math.abs(row.cashDiff))]);
+  const switchPacketRows = [[
+    selectedSwitchLocation.id,
+    selectedSwitchLocation.name,
+    selectedSwitchLocation.location,
+    selectedSwitchLocation.manager,
+    selectedSwitchOverview.status,
+    currentLocation.id === selectedSwitchLocation.id ? 'Active' : 'Pending switch',
+  ]];
   const multiStorePacketHtml = ({ title, subtitle, route, note, headers, rows }) => `<!doctype html>
 <html lang="en">
 <head>
@@ -16437,6 +16461,76 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
   const exportCompareSearchRows = (format) => {
     if (!compareExportRows.length) return;
     downloadTableData(compareExportRows, format, 'storecheck-multi-store-compare-search');
+  };
+  const pushSwitchActionEvent = ({ rowId, action, status, note }) => {
+    const time = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    setSwitchActionEvents((current) => [
+      {
+        id: `SWA-${Date.now()}`,
+        rowId,
+        time,
+        actor: 'Store manager',
+        route: '/user/switchLocation?locationId=',
+        action,
+        status,
+        note,
+      },
+      ...current,
+    ].slice(0, 24));
+  };
+  const previewSwitchPacket = () => {
+    openMultiStorePacket({
+      title: 'Store switch action depth',
+      subtitle: `${switchContextLabel} · /user/switchLocation?locationId=`,
+      headers: ['LocationId', 'Store', 'Location', 'Manager', 'Store Status', 'Switch Status'],
+      rows: switchPacketRows,
+    });
+    pushSwitchActionEvent({
+      rowId: selectedSwitchLocation.id,
+      action: 'Previewed store-switch packet',
+      status: 'Opened',
+      note: `Owner reviewed the ${selectedSwitchLocation.name} switch packet before the live Mercury route was connected.`,
+    });
+    showNotice('Store-switch packet preview opened in demo mode.');
+  };
+  const saveSwitchPacket = () => {
+    saveMultiStorePacket({
+      title: 'Store switch action depth',
+      subtitle: `${switchContextLabel} · /user/switchLocation?locationId=`,
+      route: '/user/switchLocation?locationId=',
+      note: 'Store-switch replacement shell',
+      headers: ['LocationId', 'Store', 'Location', 'Manager', 'Store Status', 'Switch Status'],
+      rows: switchPacketRows,
+      filename: 'storecheck-store-switch-action',
+    });
+    pushSwitchActionEvent({
+      rowId: selectedSwitchLocation.id,
+      action: 'Saved store-switch packet',
+      status: 'Ready',
+      note: 'Store-switch packet exported while the live Mercury route remained demo-only.',
+    });
+    showNotice('Store-switch packet saved in demo mode.');
+  };
+  const runSwitchAction = (targetLocationId = selectedSwitchLocation.id, openStore = false) => {
+    const targetLocation =
+      STORE_LOCATIONS.find((item) => item.id === targetLocationId) ||
+      selectedSwitchLocation;
+    setSelectedSwitchStoreId(targetLocation.id);
+    setLocationId(targetLocation.id);
+    if (openStore) setView('today');
+    pushSwitchActionEvent({
+      rowId: targetLocation.id,
+      action: openStore ? 'Switched location and opened dashboard' : 'Switched active location',
+      status: openStore ? 'Opened' : 'Complete',
+      note: openStore
+        ? `${targetLocation.name} was opened from the store switch action inside StoreCheck.`
+        : `${targetLocation.name} was set as the active location inside StoreCheck while the live Mercury route remained pending.`,
+    });
+    showNotice(openStore ? `${targetLocation.name} opened from the store switcher in demo mode.` : `${targetLocation.name} selected from the store switcher.`);
+  };
+  const exportSwitchEvents = (format) => {
+    if (!selectedSwitchEvents.length) return;
+    downloadTableData(selectedSwitchEvents, format, `storecheck-store-switch-events-${slugify(selectedSwitchLocation.name)}`);
   };
   const tabs = [
     { id: 'overview', label: 'Overview', icon: 'connect' },
@@ -16670,7 +16764,7 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
         <div className="purchase-grid">
           <div className="purchase-stack">
             {STORE_LOCATIONS.map((item) => (
-              <div className="purchase-note-card" key={item.id}>
+              <div className="purchase-note-card" key={item.id} style={item.id === selectedSwitchLocation.id ? { borderColor: 'rgba(39,198,107,0.24)' } : undefined}>
                 <div className="purchase-panel-head">
                   <div>
                     <h3>{item.name}</h3>
@@ -16679,10 +16773,13 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
                   <span className={`purchase-tag${currentLocation.id === item.id ? ' blue' : ''}`}>{currentLocation.id === item.id ? 'Active' : item.status}</span>
                 </div>
                 <div className="pricebook-actions">
-                  <button className="pricebook-btn" onClick={() => { setLocationId(item.id); showNotice(`${item.name} selected from the store switcher.`); }}>
+                  <button className="pricebook-btn soft" onClick={() => setSelectedSwitchStoreId(item.id)}>
+                    <Icon name="report" size={15} /> Review route
+                  </button>
+                  <button className="pricebook-btn" onClick={() => runSwitchAction(item.id, false)}>
                     <Icon name="connect" size={15} /> Switch store
                   </button>
-                  <button className="pricebook-btn primary" onClick={() => { setLocationId(item.id); setView('today'); showNotice(`${item.name} opened from the multi-store switcher.`); }}>
+                  <button className="pricebook-btn primary" onClick={() => runSwitchAction(item.id, true)}>
                     <Icon name="home" size={15} /> Open store
                   </button>
                 </div>
@@ -16691,6 +16788,86 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
           </div>
 
           <div className="purchase-stack">
+            <div className="purchase-note-card">
+              <div className="purchase-panel-head">
+                <div>
+                  <h3>Store switch action depth</h3>
+                  <p>Mercury route: <strong>/user/switchLocation?locationId=</strong></p>
+                </div>
+                <span className="purchase-tag amber">Partial</span>
+              </div>
+              <div className="purchase-kv-list">
+                <div className="purchase-kv"><span>Selected store</span><span>{selectedSwitchLocation.name}</span></div>
+                <div className="purchase-kv"><span>LocationId</span><span>{selectedSwitchLocation.id}</span></div>
+                <div className="purchase-kv"><span>Switch context</span><span>{switchContextLabel}</span></div>
+                <div className="purchase-kv"><span>Current active</span><span>{currentLocation.name}</span></div>
+              </div>
+              <div className="pricebook-actions" style={{ marginTop: 16, flexWrap: 'wrap' }}>
+                <button className="pricebook-btn" onClick={() => previewSwitchPacket()}>
+                  <Icon name="report" size={15} /> Preview route packet
+                </button>
+                <button className="pricebook-btn" onClick={() => saveSwitchPacket()}>
+                  <Icon name="cash" size={15} /> Save route packet
+                </button>
+                <button className="pricebook-btn primary" onClick={() => runSwitchAction(selectedSwitchLocation.id, false)}>
+                  <Icon name="connect" size={15} /> Run switch
+                </button>
+              </div>
+            </div>
+
+            <div className="purchase-note-card">
+              <div className="purchase-panel-head">
+                <div>
+                  <h3>Selected switch row</h3>
+                  <p>{selectedSwitchLocation.name} · {selectedSwitchLocation.location}</p>
+                </div>
+                <span className={`purchase-tag${currentLocation.id === selectedSwitchLocation.id ? ' blue' : ' amber'}`}>{currentLocation.id === selectedSwitchLocation.id ? 'Active' : 'Pending switch'}</span>
+              </div>
+              <div className="purchase-kv-list">
+                <div className="purchase-kv"><span>Manager</span><span>{selectedSwitchLocation.manager}</span></div>
+                <div className="purchase-kv"><span>Store status</span><span>{selectedSwitchLocation.status}</span></div>
+                <div className="purchase-kv"><span>Total sales</span><span>{fmt(selectedSwitchOverview.total)}</span></div>
+                <div className="purchase-kv"><span>Fuel / Shop</span><span>{fmt(selectedSwitchOverview.fuel)} / {fmt(selectedSwitchOverview.shop)}</span></div>
+                <div className="purchase-kv"><span>Cash diff</span><span>{fmt(Math.abs(selectedSwitchOverview.cashDiff))}</span></div>
+              </div>
+            </div>
+
+            <div className="purchase-note-card">
+              <div className="purchase-panel-head">
+                <div>
+                  <h3>Store switch events</h3>
+                  <p>{selectedSwitchLocation.name} · /user/switchLocation?locationId=</p>
+                </div>
+                <span className="purchase-tag amber">Partial</span>
+              </div>
+              <div className="pricebook-actions" style={{ marginBottom: 16, flexWrap: 'wrap' }}>
+                {['CSV', 'XLS', 'JSON'].map((format) => (
+                  <button key={format} className="pricebook-btn" onClick={() => exportSwitchEvents(format)}>
+                    <Icon name="cash" size={15} /> {format}
+                  </button>
+                ))}
+              </div>
+              <div className="alerts-list">
+                {selectedSwitchEvents.length ? selectedSwitchEvents.map((row) => (
+                  <div key={row.id} className="alert-item" style={{ alignItems: 'flex-start' }}>
+                    <Icon
+                      name={row.action.includes('Saved') ? 'cash' : row.action.includes('Previewed') ? 'report' : row.action.includes('Switched') ? 'connect' : 'calendar'}
+                      size={18}
+                      bg={row.action.includes('Saved') ? iconDefaults.green.bg : row.action.includes('Previewed') ? iconDefaults.blue.bg : row.action.includes('Switched') ? iconDefaults.green.bg : iconDefaults.slate.bg}
+                      fg={row.action.includes('Saved') ? '#15803D' : row.action.includes('Previewed') ? '#3B82F6' : row.action.includes('Switched') ? '#15803D' : '#64748B'}
+                    />
+                    <div className="alert-copy">
+                      <div className="alert-text">{row.action}</div>
+                      <div className="pricebook-detail-sub">{row.time} · {row.actor} · {row.status}</div>
+                      <div className="pricebook-detail-sub">{row.note}</div>
+                    </div>
+                  </div>
+                )) : (
+                  <div className="pricebook-detail-sub">No store-switch event history is visible for this selected store yet.</div>
+                )}
+              </div>
+            </div>
+
             <div className="purchase-note-card">
               <h3>Store switcher rail</h3>
               <p>This closes the Mercury location picker gap with an owner-facing switcher that is visible in three places.</p>
