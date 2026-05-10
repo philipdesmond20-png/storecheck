@@ -15457,6 +15457,11 @@ const OperationsView = ({ currentLocation, setLocationId }) => {
     preparedBy: 'N. Brooks',
     comments: 'Deposit bag sealed and waiting for pickup.',
   });
+  const [bankDropSaveEvents, setBankDropSaveEvents] = useState([
+    { id: 'BSD-3201', rowId: 'BAG-2250', time: '2026-05-09 21:34', actor: 'Store manager', route: '/shifts/addBankDrop', action: 'Previewed bank-drop save packet', status: 'Opened', note: 'Owner reviewed the add-bank-drop payload before the live Mercury save route was connected.' },
+    { id: 'BSD-3202', rowId: 'BAG-2250', time: '2026-05-09 21:38', actor: 'Store manager', route: '/shifts/addBankDrop', action: 'Saved bank-drop save packet', status: 'Ready', note: 'Bank-drop save packet exported while the live Mercury save route remained demo-only.' },
+    { id: 'BSD-3203', rowId: 'BAG-2250', time: '2026-05-09 21:41', actor: 'StoreCheck demo', route: '/shifts/addBankDrop', action: 'Submitted bank-drop save form', status: 'Submitted', note: 'Add-bank-drop confirmation stayed inside StoreCheck while the live Mercury save route remained pending.' },
+  ]);
 
   const showNotice = (message) => {
     setNotice(message);
@@ -15488,6 +15493,9 @@ const OperationsView = ({ currentLocation, setLocationId }) => {
     BANK_DROP_ROWS[0] ||
     null;
   const bankDropSearchContextLabel = `${startDate} to ${endDate} · ${selectedStore === 'All' ? 'All stores' : selectedStore} · ${selectedShift === 'All' ? 'All shifts' : selectedShift}`;
+  const bankDropSaveLocation = STORE_LOCATIONS.find((item) => item.id === formState.storeId) || currentLocation;
+  const bankDropSaveContextLabel = `${formState.date} · ${bankDropSaveLocation.name} · ${formState.shift}`;
+  const selectedBankDropSaveEvents = bankDropSaveEvents.filter((row) => row.rowId === formState.bag);
   const bankOnlyEvents = selectedBankDrop ? bankDropSearchEvents.filter((row) => row.rowId === selectedBankDrop.id) : [];
   const bankCashEvents = selectedBankDrop ? bankCashSearchEvents.filter((row) => row.rowId === selectedBankDrop.id) : [];
   const bankDropSearchExportRows = filteredRows.map((row) => ({
@@ -15517,6 +15525,17 @@ const OperationsView = ({ currentLocation, setLocationId }) => {
   }));
   const bankDropPacketRows = filteredRows.map((row) => [row.date, row.store, row.shift, row.bag, row.account, fmt(row.bankAmount), fmt(row.expected), fmt(row.variance), row.status]);
   const bankCashPacketRows = filteredRows.map((row) => [row.date, row.store, row.shift, row.bag, row.account, fmt(row.bankAmount), fmt(row.cashDrop), fmt(row.expected), fmt(row.variance), row.status]);
+  const bankDropSavePacketRows = [[
+    formState.date,
+    bankDropSaveLocation.name,
+    formState.shift,
+    formState.account,
+    fmt(Number(formState.bankAmount || 0)),
+    fmt(Number(formState.cashDrop || 0)),
+    formState.bag,
+    formState.preparedBy,
+    formState.comments || 'No comments',
+  ]];
   const activeSearchTitle = searchMode === 'combined' ? 'Bank + cash search depth' : 'Bank drop search depth';
   const activeSearchRoute = searchMode === 'combined' ? '/shifts/searchBankDropsWithCashDrops' : '/shifts/searchBankDrops';
   const activeSearchHeaders = searchMode === 'combined'
@@ -15577,8 +15596,103 @@ const OperationsView = ({ currentLocation, setLocationId }) => {
   const saveBankDrop = (addAnother) => {
     const selectedLocation = STORE_LOCATIONS.find((item) => item.id === formState.storeId) || currentLocation;
     setLocationId(selectedLocation.id);
+    setBankDropSaveEvents((current) => [
+      {
+        id: `BSD-${Date.now()}`,
+        rowId: formState.bag,
+        time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+        actor: 'Store manager',
+        route: '/shifts/addBankDrop',
+        action: addAnother ? 'Submitted bank-drop save form and reset draft' : 'Submitted bank-drop save form',
+        status: 'Submitted',
+        note: `Deposit ${formState.bag} for ${selectedLocation.name} stayed inside StoreCheck while the live Mercury save route remained pending.`,
+      },
+      ...current,
+    ].slice(0, 24));
     showNotice(`Bank drop saved for ${selectedLocation.name} in demo mode. Real \`/shifts/addBankDrop\` wiring is still pending.`);
     if (addAnother) resetForm();
+  };
+
+  const pushBankDropSaveEvent = ({ action, status, note }) => {
+    const time = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    setBankDropSaveEvents((current) => [
+      {
+        id: `BSD-${Date.now()}`,
+        rowId: formState.bag,
+        time,
+        actor: 'Store manager',
+        route: '/shifts/addBankDrop',
+        action,
+        status,
+        note,
+      },
+      ...current,
+    ].slice(0, 24));
+  };
+
+  const previewBankDropSavePacket = () => {
+    openPrintPreview({
+      title: 'Add bank drop save depth',
+      subtitle: `${bankDropSaveContextLabel} · /shifts/addBankDrop`,
+      rows: [['Date', 'Store', 'Shift', 'Account', 'Bank Drop', 'Cash Drop', 'Bag', 'Prepared By', 'Comments'], ...bankDropSavePacketRows],
+    });
+    pushBankDropSaveEvent({
+      action: 'Previewed bank-drop save packet',
+      status: 'Opened',
+      note: 'Owner reviewed the add-bank-drop payload before the live Mercury save route was connected.',
+    });
+    showNotice('Add-bank-drop route packet preview opened in demo mode.');
+  };
+
+  const saveBankDropSavePacket = () => {
+    const html = `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Add bank drop save depth</title>
+  <style>
+    body{font-family:"DM Sans",Arial,sans-serif;background:#F8FAFC;color:#0F172A;padding:28px}
+    .wrap{max-width:980px;margin:0 auto;background:#fff;border:1px solid #E2E8F0;border-radius:18px;padding:28px;box-shadow:0 12px 40px rgba(15,23,42,.08)}
+    h1{margin:0 0 8px;font-size:28px}
+    p{margin:0;color:#475569}
+    .meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin:20px 0}
+    .meta div{background:#F8FAFC;border:1px solid #E2E8F0;border-radius:12px;padding:12px 14px}
+    .meta strong{display:block;font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:#64748B;margin-bottom:6px}
+    table{width:100%;border-collapse:collapse;margin-top:16px}
+    th,td{padding:12px 14px;border-top:1px solid #E2E8F0;text-align:left}
+    th{background:#F8FAFC;font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:#64748B}
+    td{font-weight:600}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Add bank drop save depth</h1>
+    <p>${bankDropSaveContextLabel}</p>
+    <div class="meta">
+      <div><strong>Mercury Route</strong>/shifts/addBankDrop</div>
+      <div><strong>Deposit Bag</strong>${formState.bag}</div>
+      <div><strong>Bank Drop</strong>${fmt(Number(formState.bankAmount || 0))}</div>
+      <div><strong>Cash Drop</strong>${fmt(Number(formState.cashDrop || 0))}</div>
+    </div>
+    <table>
+      <thead><tr><th>Date</th><th>Store</th><th>Shift</th><th>Account</th><th>Bank Drop</th><th>Cash Drop</th><th>Bag</th><th>Prepared By</th><th>Comments</th></tr></thead>
+      <tbody>${bankDropSavePacketRows.map((row) => `<tr>${row.map((cell) => `<td>${cell}</td>`).join('')}</tr>`).join('')}</tbody>
+    </table>
+  </div>
+</body>
+</html>`;
+    downloadTextData(html, 'text/html', 'storecheck-add-bank-drop-save', 'html');
+    pushBankDropSaveEvent({
+      action: 'Saved bank-drop save packet',
+      status: 'Ready',
+      note: 'Bank-drop save packet exported while the live Mercury save route remained demo-only.',
+    });
+    showNotice('Add-bank-drop route packet saved in demo mode.');
+  };
+
+  const exportBankDropSaveEvents = (format) => {
+    if (!selectedBankDropSaveEvents.length) return;
+    downloadTableData(selectedBankDropSaveEvents, format, `storecheck-bank-drop-save-events-${String(formState.bag || 'all').toLowerCase()}`);
   };
 
   const pushBankDropSearchEvent = ({ rowId, action, status, note }) => {
@@ -15964,10 +16078,15 @@ const OperationsView = ({ currentLocation, setLocationId }) => {
             <div className="purchase-note-card">
               <div className="purchase-panel-head">
                 <div>
-                  <h3>Add bank drop</h3>
-                  <p>Owner-facing entry shell for the Mercury add-bank-drop action.</p>
+                  <h3>Add bank drop save depth</h3>
+                  <p>Mercury route: <strong>/shifts/addBankDrop</strong></p>
                 </div>
-                <span className="purchase-tag">Demo save</span>
+                <span className="purchase-tag amber">Partial</span>
+              </div>
+              <div className="purchase-kv-list" style={{ marginBottom: 16 }}>
+                <div className="purchase-kv"><span>Current payload</span><span>{bankDropSaveContextLabel}</span></div>
+                <div className="purchase-kv"><span>Bank / Cash</span><span>{fmt(Number(formState.bankAmount || 0))} / {fmt(Number(formState.cashDrop || 0))}</span></div>
+                <div className="purchase-kv"><span>Deposit bag</span><span>{formState.bag}</span></div>
               </div>
               <div className="purchase-form-grid">
                 <input className="form-input" type="date" value={formState.date} onChange={(e) => setFormState({ ...formState, date: e.target.value })} />
@@ -15984,7 +16103,13 @@ const OperationsView = ({ currentLocation, setLocationId }) => {
                 <input className="form-input" value={formState.preparedBy} onChange={(e) => setFormState({ ...formState, preparedBy: e.target.value })} placeholder="Prepared by" />
               </div>
               <textarea className="form-input" rows="4" value={formState.comments} onChange={(e) => setFormState({ ...formState, comments: e.target.value })} placeholder="Comments"></textarea>
-              <div className="pricebook-actions" style={{ marginTop: 16 }}>
+              <div className="pricebook-actions" style={{ marginTop: 16, flexWrap: 'wrap' }}>
+                <button className="pricebook-btn" onClick={() => previewBankDropSavePacket()}>
+                  <Icon name="report" size={15} /> Preview route packet
+                </button>
+                <button className="pricebook-btn" onClick={() => saveBankDropSavePacket()}>
+                  <Icon name="cash" size={15} /> Save route packet
+                </button>
                 <button className="pricebook-btn primary" onClick={() => saveBankDrop(false)}>
                   <Icon name="cash" size={15} /> Save bank drop
                 </button>
@@ -15994,12 +16119,67 @@ const OperationsView = ({ currentLocation, setLocationId }) => {
               </div>
             </div>
             <div className="purchase-note-card">
+              <div className="purchase-panel-head">
+                <div>
+                  <h3>Selected bank-drop save payload</h3>
+                  <p>{formState.bag} · {bankDropSaveLocation.name}</p>
+                </div>
+                <span className="purchase-tag amber">Partial</span>
+              </div>
+              <div className="purchase-kv-list">
+                <div className="purchase-kv"><span>Current payload</span><span>{bankDropSaveContextLabel}</span></div>
+                <div className="purchase-kv"><span>Mercury route</span><span>/shifts/addBankDrop</span></div>
+                <div className="purchase-kv"><span>Deposit account</span><span>{formState.account}</span></div>
+                <div className="purchase-kv"><span>Current store</span><span>{bankDropSaveLocation.name}</span></div>
+                <div className="purchase-kv"><span>Shift</span><span>{formState.shift}</span></div>
+                <div className="purchase-kv"><span>Bank drop</span><span>{fmt(Number(formState.bankAmount || 0))}</span></div>
+                <div className="purchase-kv"><span>Cash drop</span><span>{fmt(Number(formState.cashDrop || 0))}</span></div>
+                <div className="purchase-kv"><span>Prepared by</span><span>{formState.preparedBy}</span></div>
+                <div className="purchase-kv"><span>Comments</span><span>{formState.comments || 'No comments added yet.'}</span></div>
+              </div>
+            </div>
+            <div className="purchase-note-card">
+              <div className="purchase-panel-head">
+                <div>
+                  <h3>Bank-drop save events</h3>
+                  <p>{formState.bag} · /shifts/addBankDrop</p>
+                </div>
+                <span className="purchase-tag amber">Partial</span>
+              </div>
+              <div className="pricebook-actions" style={{ marginBottom: 16, flexWrap: 'wrap' }}>
+                {['CSV', 'XLS', 'JSON'].map((format) => (
+                  <button key={format} className="pricebook-btn" onClick={() => exportBankDropSaveEvents(format)}>
+                    <Icon name="cash" size={15} /> {format}
+                  </button>
+                ))}
+              </div>
+              <div className="alerts-list">
+                {selectedBankDropSaveEvents.length ? selectedBankDropSaveEvents.map((row) => (
+                  <div key={row.id} className="alert-item" style={{ alignItems: 'flex-start' }}>
+                    <Icon
+                      name={row.action.includes('Saved') ? 'cash' : row.action.includes('Previewed') ? 'report' : 'calendar'}
+                      size={18}
+                      bg={row.action.includes('Saved') ? iconDefaults.green.bg : row.action.includes('Previewed') ? iconDefaults.blue.bg : iconDefaults.slate.bg}
+                      fg={row.action.includes('Saved') ? '#15803D' : row.action.includes('Previewed') ? '#3B82F6' : '#64748B'}
+                    />
+                    <div className="alert-copy">
+                      <div className="alert-text">{row.action}</div>
+                      <div className="pricebook-detail-sub">{row.time} · {row.actor} · {row.status}</div>
+                      <div className="pricebook-detail-sub">{row.note}</div>
+                    </div>
+                  </div>
+                )) : (
+                  <div className="pricebook-detail-sub">No save-event history is visible for this bank-drop payload yet.</div>
+                )}
+              </div>
+            </div>
+            <div className="purchase-note-card">
               <h3>Cash drop visibility</h3>
               <p>Combined search keeps the related cash-drop number attached to the deposit row until real `/shifts/searchBankDropsWithCashDrops` data is connected.</p>
               <div className="purchase-kv-list">
-                <div className="purchase-kv"><span>Current store</span><span>{currentLocation.name}</span></div>
                 <div className="purchase-kv"><span>Prepared by</span><span>{formState.preparedBy}</span></div>
                 <div className="purchase-kv"><span>Cash included</span><span>{fmt(Number(formState.cashDrop || 0))}</span></div>
+                <div className="purchase-kv"><span>Banked now</span><span>{fmt(Number(formState.bankAmount || 0))}</span></div>
               </div>
             </div>
           </div>
