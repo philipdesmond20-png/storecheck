@@ -22843,10 +22843,20 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
     { id: 'NS-2', time: '21:52', state: 'Disabled', fallback: 'Visible', actor: 'Owner session', status: 'Reviewed', note: 'Legacy Mercury fallback was re-enabled during overnight troubleshooting.' },
   ]);
   const [selectedNewScreensId, setSelectedNewScreensId] = useState('NS-1');
+  const [newScreensPacketRows, setNewScreensPacketRows] = useState([
+    { id: 'NSP-1', packet: 'Primary new-screens handoff', window: 'Internal toggle review', focus: 'Owner feature-flag validation', source: 'Session controls', status: 'Queued', note: 'Primary new-screens handoff is staged for owner review before the live Mercury route is connected.' },
+    { id: 'NSP-2', packet: 'Legacy fallback follow-through', window: 'Feature rollback review', focus: 'Fallback visibility follow-up', source: 'Session follow-up', status: 'Needs review', note: 'Feature-toggle follow-through still needs final owner review before the live Mercury route is connected.' },
+  ]);
+  const [selectedNewScreensPacketId, setSelectedNewScreensPacketId] = useState('NSP-1');
   const [newScreensEvents, setNewScreensEvents] = useState([
     { id: 'NSE-4001', rowId: 'NS-1', time: '06:26', actor: 'Owner session', route: '/util/showNewScreens', action: 'Previewed feature toggle', status: 'Opened', note: 'Owner reviewed the new-screens toggle packet before the live Mercury route was connected.' },
     { id: 'NSE-4002', rowId: 'NS-1', time: '06:27', actor: 'Owner session', route: '/util/showNewScreens', action: 'Saved feature toggle packet', status: 'Ready', note: 'Feature-toggle packet exported while the live Mercury route remained demo-only.' },
     { id: 'NSE-4003', rowId: 'NS-2', time: '21:53', actor: 'Owner session', route: '/util/showNewScreens', action: 'Saved feature toggle state', status: 'Reviewed', note: 'Legacy Mercury fallback state was captured during overnight review.' },
+  ]);
+  const [newScreensRouteEvents, setNewScreensRouteEvents] = useState([
+    { id: 'NSR-4001', packetId: 'NSP-1', time: '06:26', actor: 'Owner session', route: '/util/showNewScreens', action: 'Previewed feature-toggle route packet', status: 'Opened', note: 'Owner reviewed the route-level feature-toggle packet before the live Mercury route was connected.' },
+    { id: 'NSR-4002', packetId: 'NSP-1', time: '06:27', actor: 'Owner session', route: '/util/showNewScreens', action: 'Saved feature-toggle route packet', status: 'Ready', note: 'Feature-toggle route packet exported while the live Mercury route remained demo-only.' },
+    { id: 'NSR-4003', packetId: 'NSP-2', time: '21:54', actor: 'StoreCheck demo', route: '/util/showNewScreens', action: 'Queued feature-toggle route handoff', status: 'Queued', note: 'Feature-toggle follow-through remained visible inside StoreCheck while the live Mercury route stayed demo-only.' },
   ]);
   const [tempSessionOpen, setTempSessionOpen] = useState(false);
   const [newScreensEnabled, setNewScreensEnabled] = useState(true);
@@ -22929,6 +22939,12 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
     newScreensRows[0] ||
     null;
   const selectedNewScreensEvents = selectedNewScreens ? newScreensEvents.filter((item) => item.rowId === selectedNewScreens.id) : [];
+  const selectedNewScreensPacket =
+    newScreensPacketRows.find((item) => item.id === selectedNewScreensPacketId) ||
+    newScreensPacketRows[0] ||
+    null;
+  const selectedNewScreensRouteEvents =
+    selectedNewScreensPacket ? newScreensRouteEvents.filter((item) => item.packetId === selectedNewScreensPacket.id) : [];
   const latestLicenceCheck = licenceCheckRows[0];
   const latestAgreementSave = agreementSaveRows[0];
   const latestAgreementPacket = agreementPacketRows[0];
@@ -22942,6 +22958,7 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
   const latestTempSession = tempSessionRows[0];
   const latestTempSessionPacket = tempSessionPacketRows[0];
   const latestNewScreens = newScreensRows[0];
+  const latestNewScreensPacket = newScreensPacketRows[0];
   const visibleReleaseRows = releaseRows.filter((item) => {
     const matchesFilter = releaseFilter === 'All' ? true : item.status === releaseFilter;
     const haystack = `${item.title} ${item.note} ${item.date} ${item.audience}`.toLowerCase();
@@ -24193,9 +24210,72 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
       ...current,
     ].slice(0, 24));
   };
+  const pushNewScreensRouteEvent = ({ packetId = selectedNewScreensPacket?.id, action, status, note }) => {
+    if (!packetId) return;
+    const time = stampSessionTime();
+    setNewScreensRouteEvents((current) => [
+      {
+        id: `NSR-${Date.now()}`,
+        packetId,
+        time,
+        actor: 'Owner session',
+        route: '/util/showNewScreens',
+        action,
+        status,
+        note,
+      },
+      ...current,
+    ].slice(0, 24));
+  };
   const exportNewScreensEvents = (format) => {
     if (!selectedNewScreensEvents.length) return;
     downloadTableData(selectedNewScreensEvents, format, `storecheck-new-screens-events-${String(selectedNewScreens?.id || 'session').toLowerCase()}`);
+  };
+  const buildNewScreensRouteRows = (item = selectedNewScreens || latestNewScreens, packet = selectedNewScreensPacket) => {
+    if (!item) return [];
+    return [[
+      item.time,
+      item.state,
+      item.fallback,
+      item.status,
+      'POST /util/showNewScreens',
+      packet?.id === 'NSP-2' ? 'Feature rollback follow-through' : 'Internal toggle review',
+    ]];
+  };
+  const previewNewScreensRoutePacket = (item = selectedNewScreens || latestNewScreens, packet = selectedNewScreensPacket || latestNewScreensPacket) => {
+    if (!item || !packet) return;
+    setSelectedNewScreensId(item.id);
+    setSelectedNewScreensPacketId(packet.id);
+    openSettingsPacket({
+      title: 'New Screens Toggle Depth',
+      subtitle: `${packet.window} · POST /util/showNewScreens`,
+      headers: ['Time', 'State', 'Fallback', 'Status', 'Route', 'Mode'],
+      rows: buildNewScreensRouteRows(item, packet),
+    });
+    pushNewScreensRouteEvent({
+      packetId: packet.id,
+      action: 'Previewed feature-toggle route packet',
+      status: 'Opened',
+      note: `${packet.packet} preview opened before the live Mercury route was connected.`,
+    });
+    showSessionNotice(`${item.id} feature-toggle route packet preview opened in demo mode.`);
+  };
+  const stageNewScreensRouteHandoff = (item = selectedNewScreens || latestNewScreens, packet = selectedNewScreensPacket || latestNewScreensPacket) => {
+    if (!item || !packet) return;
+    setSelectedNewScreensId(item.id);
+    setSelectedNewScreensPacketId(packet.id);
+    setNewScreensPacketRows((current) => current.map((row) => (
+      row.id === packet.id
+        ? { ...row, status: 'Queued', note: `Feature-toggle route handoff is staged for ${packet.window.toLowerCase()}.` }
+        : row
+    )));
+    pushNewScreensRouteEvent({
+      packetId: packet.id,
+      action: 'Queued feature-toggle route handoff',
+      status: 'Queued',
+      note: `Mercury-style feature-toggle handoff accepted for ${packet.window}.`,
+    });
+    showSessionNotice(`${item.id} feature-toggle route handoff staged in demo mode. Live \`/util/showNewScreens\` route still pending.`);
   };
   const previewNewScreensToggle = (item = selectedNewScreens || latestNewScreens) => {
     if (!item) return;
@@ -24232,6 +24312,31 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
       note: 'Feature-toggle packet exported while the live Mercury route remained demo-only.',
     });
     showSessionNotice('Feature-toggle packet saved in demo mode. Real `/util/showNewScreens` wiring still pending.');
+  };
+  const saveNewScreensRoutePacket = (item = selectedNewScreens || latestNewScreens, packet = selectedNewScreensPacket || latestNewScreensPacket) => {
+    if (!item || !packet) return;
+    setSelectedNewScreensId(item.id);
+    setSelectedNewScreensPacketId(packet.id);
+    saveSettingsPacket({
+      title: 'New Screens Toggle Depth',
+      subtitle: `${packet.window} · POST /util/showNewScreens`,
+      route: '/util/showNewScreens',
+      note: 'Feature-toggle control replacement shell',
+      headers: ['Time', 'State', 'Fallback', 'Status', 'Route', 'Mode'],
+      rows: buildNewScreensRouteRows(item, packet),
+      filename: `storecheck-new-screens-route-${String(packet.id).toLowerCase()}`,
+    });
+    pushNewScreensRouteEvent({
+      packetId: packet.id,
+      action: 'Saved feature-toggle route packet',
+      status: 'Ready',
+      note: 'Feature-toggle route packet exported while the live Mercury route remained demo-only.',
+    });
+    showSessionNotice(`${item.id} feature-toggle route packet saved in demo mode.`);
+  };
+  const exportNewScreensRouteEvents = (format) => {
+    if (!selectedNewScreensRouteEvents.length) return;
+    downloadTableData(selectedNewScreensRouteEvents, format, `storecheck-new-screens-route-events-${String(selectedNewScreensPacket?.id || 'route').toLowerCase()}`);
   };
   const saveNewScreensToggle = () => {
     const time = stampSessionTime();
@@ -24894,18 +24999,24 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
 
         <div className="settings-card">
           <div className="settings-title">New Screens Toggle Depth</div>
-          <div className="settings-sub">Owner-facing `/util/showNewScreens` review with selected toggle visibility and Mercury fallback context.</div>
+          <div className="settings-sub">Owner-facing `POST /util/showNewScreens` review with selected packet, toggle visibility, and Mercury fallback context.</div>
           <div className="purchase-kv-list">
+            <div className="purchase-kv"><span>Selected packet</span><span>{selectedNewScreensPacket ? `${selectedNewScreensPacket.packet} · ${selectedNewScreensPacket.status}` : 'Pending'}</span></div>
             <div className="purchase-kv"><span>Selected toggle</span><span>{selectedNewScreens ? `${selectedNewScreens.time} · ${selectedNewScreens.status}` : 'Pending'}</span></div>
             <div className="purchase-kv"><span>Current state</span><span>{selectedNewScreens?.state || (newScreensEnabled ? 'Enabled' : 'Disabled')}</span></div>
-            <div className="purchase-kv"><span>Toggle route</span><span>/util/showNewScreens</span></div>
+            <div className="purchase-kv"><span>Fallback</span><span>{selectedNewScreens?.fallback || (newScreensEnabled ? 'Disabled' : 'Visible')}</span></div>
+            <div className="purchase-kv"><span>Route</span><span>POST /util/showNewScreens</span></div>
+            <div className="purchase-kv"><span>Latest route event</span><span>{selectedNewScreensRouteEvents[0]?.action || 'No events yet'}</span></div>
           </div>
           <div className="pricebook-actions" style={{ marginTop: 16, flexWrap: 'wrap' }}>
-            <button className="pricebook-btn" onClick={() => previewNewScreensToggle(selectedNewScreens || latestNewScreens)}>
-              <Icon name="report" size={15} /> Preview toggle
+            <button className="pricebook-btn" onClick={() => previewNewScreensRoutePacket(selectedNewScreens || latestNewScreens, selectedNewScreensPacket)}>
+              <Icon name="report" size={15} /> Preview route packet
             </button>
-            <button className="pricebook-btn" onClick={() => saveNewScreensPacket(selectedNewScreens || latestNewScreens)}>
-              <Icon name="cash" size={15} /> Save toggle
+            <button className="pricebook-btn" onClick={() => stageNewScreensRouteHandoff(selectedNewScreens || latestNewScreens, selectedNewScreensPacket)}>
+              <Icon name="calendar" size={15} /> Stage handoff
+            </button>
+            <button className="pricebook-btn primary" onClick={() => saveNewScreensRoutePacket(selectedNewScreens || latestNewScreens, selectedNewScreensPacket)}>
+              <Icon name="cash" size={15} /> Save route packet
             </button>
           </div>
           <div className="purchase-queue-list" style={{ marginTop: 16 }}>
@@ -24924,17 +25035,38 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
               </div>
             ))}
           </div>
+          <div className="purchase-queue-list" style={{ marginTop: 12 }}>
+            {newScreensPacketRows.map((item) => (
+              <div className="purchase-queue-row" key={item.id}>
+                <div className="purchase-queue-top">
+                  <div>
+                    <div className="purchase-queue-title">{item.packet}</div>
+                    <div className="purchase-queue-meta">{item.window} · {item.focus} · {item.source}</div>
+                  </div>
+                  <button className="pricebook-btn soft" onClick={() => setSelectedNewScreensPacketId(item.id)}>Review</button>
+                </div>
+                <div className="purchase-queue-meta">{item.note}</div>
+              </div>
+            ))}
+          </div>
         </div>
 
         <div className="settings-card">
-          <div className="settings-title">Selected Toggle Review</div>
+          <div className="settings-title">Selected Toggle Endpoint Review</div>
           <div className="settings-sub">Keep the chosen new-screens response visible before internal controls proceed.</div>
           {selectedNewScreens ? (
             <div className="purchase-kv-list">
+              <div className="purchase-kv"><span>Packet</span><span>{selectedNewScreensPacket?.packet || 'Pending'}</span></div>
+              <div className="purchase-kv"><span>Window</span><span>{selectedNewScreensPacket?.window || 'Internal toggle review'}</span></div>
+              <div className="purchase-kv"><span>Focus</span><span>{selectedNewScreensPacket?.focus || 'Owner feature-flag validation'}</span></div>
+              <div className="purchase-kv"><span>Source</span><span>{selectedNewScreensPacket?.source || 'Session controls'}</span></div>
+              <div className="purchase-kv"><span>Packet status</span><span>{selectedNewScreensPacket?.status || 'Pending'}</span></div>
+              <div className="purchase-kv"><span>Time</span><span>{selectedNewScreens.time}</span></div>
               <div className="purchase-kv"><span>State</span><span>{selectedNewScreens.state}</span></div>
               <div className="purchase-kv"><span>Fallback</span><span>{selectedNewScreens.fallback}</span></div>
               <div className="purchase-kv"><span>Actor</span><span>{selectedNewScreens.actor}</span></div>
               <div className="purchase-kv"><span>Status</span><span>{selectedNewScreens.status}</span></div>
+              <div className="purchase-kv"><span>Route</span><span>POST /util/showNewScreens</span></div>
               <div className="purchase-kv"><span>Note</span><span>{selectedNewScreens.note}</span></div>
             </div>
           ) : (
@@ -24943,20 +25075,20 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
         </div>
 
         <div className="settings-card">
-          <div className="settings-title">New Screens Events</div>
-          <div className="settings-sub">Track route-specific `/util/showNewScreens` activity before live wiring is connected.</div>
+          <div className="settings-title">New Screens Route Events</div>
+          <div className="settings-sub">Track route-specific `/util/showNewScreens` packet activity before live wiring is connected.</div>
           <div className="pricebook-actions" style={{ marginBottom: 16, flexWrap: 'wrap' }}>
             {['CSV', 'XLS', 'JSON'].map((format) => (
-              <button key={format} className="pricebook-btn" onClick={() => exportNewScreensEvents(format)}>
+              <button key={format} className="pricebook-btn" onClick={() => exportNewScreensRouteEvents(format)}>
                 <Icon name="cash" size={15} /> {format}
               </button>
             ))}
           </div>
           <div className="alerts-list">
-            {selectedNewScreensEvents.length ? selectedNewScreensEvents.map((item) => (
+            {selectedNewScreensRouteEvents.length ? selectedNewScreensRouteEvents.map((item) => (
               <div key={item.id} className="alert-item" style={{ alignItems: 'flex-start' }}>
                 <Icon
-                  name={item.action.includes('Saved') ? 'cash' : item.action.includes('Previewed') ? 'report' : 'connect'}
+                  name={item.action.includes('Saved') ? 'cash' : item.action.includes('Previewed') ? 'report' : item.action.includes('Queued') ? 'calendar' : 'connect'}
                   size={18}
                   bg={item.action.includes('Saved') ? iconDefaults.green.bg : item.action.includes('Previewed') ? iconDefaults.blue.bg : iconDefaults.slate.bg}
                   fg={item.action.includes('Saved') ? '#15803D' : item.action.includes('Previewed') ? '#3B82F6' : '#64748B'}
@@ -24968,7 +25100,7 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
                 </div>
               </div>
             )) : (
-              <div className="pricebook-detail-sub">No new-screens event history is visible for this selected toggle yet.</div>
+              <div className="pricebook-detail-sub">No feature-toggle route history is visible for this selected packet yet.</div>
             )}
           </div>
         </div>
