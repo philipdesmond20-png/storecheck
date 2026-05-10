@@ -19053,6 +19053,16 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
   const [loginEmail, setLoginEmail] = useState(ACCOUNT_EMAIL_SETTINGS.login);
   const [reportEmail, setReportEmail] = useState(ACCOUNT_EMAIL_SETTINGS.reports);
   const [alertsEmail, setAlertsEmail] = useState(ACCOUNT_EMAIL_SETTINGS.alerts);
+  const [accountSettingsRows, setAccountSettingsRows] = useState([
+    { id: 'EML-1', time: '07:08', login: ACCOUNT_EMAIL_SETTINGS.login, reports: ACCOUNT_EMAIL_SETTINGS.reports, alerts: ACCOUNT_EMAIL_SETTINGS.alerts, actor: 'Owner session', status: 'Saved', note: 'Primary account-email routing stayed aligned before the owner handoff.' },
+    { id: 'EML-2', time: '18:42', login: 'ops@storecheck-demo.com', reports: 'reports@storecheck-demo.com', alerts: 'alerts@storecheck-demo.com', actor: 'Owner session', status: 'Reviewed', note: 'Alternate contact routing was reviewed during shift handoff.' },
+  ]);
+  const [selectedAccountSettingsId, setSelectedAccountSettingsId] = useState('EML-1');
+  const [accountSettingsEvents, setAccountSettingsEvents] = useState([
+    { id: 'ASEM-4001', rowId: 'EML-1', time: '07:09', actor: 'Owner session', route: '/administration/email', action: 'Previewed email settings', status: 'Opened', note: 'Owner reviewed the email-routing packet before the live Mercury route was connected.' },
+    { id: 'ASEM-4002', rowId: 'EML-1', time: '07:10', actor: 'Owner session', route: '/administration/email', action: 'Saved email settings packet', status: 'Ready', note: 'Email-settings packet exported while the live Mercury route remained demo-only.' },
+    { id: 'ASEM-4003', rowId: 'EML-2', time: '18:43', actor: 'Owner session', route: '/administration/email', action: 'Saved email settings state', status: 'Reviewed', note: 'Alternate contact routing was captured during shift handoff review.' },
+  ]);
   const [licenceCheckRows, setLicenceCheckRows] = useState([
     { id: 'LIC-1', time: '07:52', store: 'Main Street Gas & Go', agreement: 'Accepted', register: 'Connected', result: 'Passed', note: 'Morning session opened with an accepted agreement.' },
     { id: 'LIC-0', time: '06:11', store: 'Sandy Cross Fuel Center', agreement: 'Accepted', register: 'Refresh Needed', result: 'Review', note: 'Register refresh was required before session start.' },
@@ -19140,6 +19150,11 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
     window.__storecheckSessionNotice = window.setTimeout(() => setSessionNotice(''), 2800);
   };
   const selectedRelease = releaseRows.find((item) => item.id === selectedReleaseId) || releaseRows[0];
+  const selectedAccountSettings =
+    accountSettingsRows.find((item) => item.id === selectedAccountSettingsId) ||
+    accountSettingsRows[0] ||
+    null;
+  const selectedAccountSettingsEvents = selectedAccountSettings ? accountSettingsEvents.filter((item) => item.rowId === selectedAccountSettings.id) : [];
   const selectedLicenceCheck =
     licenceCheckRows.find((item) => item.id === selectedLicenceCheckId) ||
     licenceCheckRows[0] ||
@@ -19175,6 +19190,7 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
   const latestAgreementSave = agreementSaveRows[0];
   const latestRegisterRefresh = registerRefreshRows[0];
   const latestRelease = releaseRows[0];
+  const latestAccountSettings = accountSettingsRows[0];
   const latestLogoutQueue = logoutQueue[0];
   const latestTempSession = tempSessionRows[0];
   const latestNewScreens = newScreensRows[0];
@@ -19242,32 +19258,92 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
     const html = settingsPacketHtml({ title, subtitle, route, note, headers, rows });
     downloadTextData(html, 'text/html', filename, 'html');
   };
-  const previewAccountSettings = () =>
+  const pushAccountSettingsEvent = ({ rowId = selectedAccountSettings?.id, action, status, note }) => {
+    if (!rowId) return;
+    const time = stampSessionTime();
+    setAccountSettingsEvents((current) => [
+      {
+        id: `ASEM-${Date.now()}`,
+        rowId,
+        time,
+        actor: 'Owner session',
+        route: '/administration/email',
+        action,
+        status,
+        note,
+      },
+      ...current,
+    ].slice(0, 24));
+  };
+  const exportAccountSettingsEvents = (format) => {
+    if (!selectedAccountSettingsEvents.length) return;
+    downloadTableData(selectedAccountSettingsEvents, format, `storecheck-email-events-${String(selectedAccountSettings?.id || 'session').toLowerCase()}`);
+  };
+  const previewAccountSettings = (item = selectedAccountSettings || latestAccountSettings) => {
+    if (!item) return;
+    setSelectedAccountSettingsId(item.id);
     openSettingsPacket({
-      title: 'Admin Account Settings',
-      subtitle: `${currentLocation.name} · configured email routing`,
-      headers: ['Role', 'Email', 'Surface'],
+      title: 'Email Endpoint Review',
+      subtitle: `${currentLocation.name} · ${item.time}`,
+      headers: ['Role', 'Email', 'Surface', 'Route'],
       rows: [
-        ['Login / Account', loginEmail, 'Admin / Account'],
-        ['Report Delivery', reportEmail, 'Reports / Delivery'],
-        ['Alerts', alertsEmail, 'Alerts / Session'],
+        ['Login / Account', item.login, 'Admin / Account', '/administration/email'],
+        ['Report Delivery', item.reports, 'Reports / Delivery', '/administration/email'],
+        ['Alerts', item.alerts, 'Alerts / Session', '/administration/email'],
       ],
     });
-  const saveAccountSettingsPacket = () => {
+    pushAccountSettingsEvent({
+      rowId: item.id,
+      action: 'Previewed email settings',
+      status: 'Opened',
+      note: `Owner reviewed the ${item.login} email-routing packet before the live Mercury route was connected.`,
+    });
+  };
+  const saveAccountSettingsPacket = (item = selectedAccountSettings || latestAccountSettings) => {
+    if (!item) return;
+    setSelectedAccountSettingsId(item.id);
     saveSettingsPacket({
-      title: 'Admin Account Settings Packet',
-      subtitle: `${currentLocation.name} · configured email routing`,
+      title: 'Email Endpoint Depth',
+      subtitle: `${currentLocation.name} · ${item.time}`,
       route: '/administration/email',
       note: 'Admin account and email settings replacement shell',
-      headers: ['Role', 'Email', 'Surface'],
+      headers: ['Role', 'Email', 'Surface', 'Route'],
       rows: [
-        ['Login / Account', loginEmail, 'Admin / Account'],
-        ['Report Delivery', reportEmail, 'Reports / Delivery'],
-        ['Alerts', alertsEmail, 'Alerts / Session'],
+        ['Login / Account', item.login, 'Admin / Account', '/administration/email'],
+        ['Report Delivery', item.reports, 'Reports / Delivery', '/administration/email'],
+        ['Alerts', item.alerts, 'Alerts / Session', '/administration/email'],
       ],
       filename: 'storecheck-admin-account-settings',
     });
+    pushAccountSettingsEvent({
+      rowId: item.id,
+      action: 'Saved email settings packet',
+      status: 'Ready',
+      note: 'Email-settings packet exported while the live Mercury route remained demo-only.',
+    });
     showSessionNotice('Admin account settings packet saved in demo mode.');
+  };
+  const saveAccountSettingsState = () => {
+    const time = stampSessionTime();
+    const row = {
+      id: `EML-${Date.now()}`,
+      time,
+      login: loginEmail,
+      reports: reportEmail,
+      alerts: alertsEmail,
+      actor: 'Owner session',
+      status: 'Saved',
+      note: 'Account-email routing was saved from the owner settings surface in demo mode.',
+    };
+    setAccountSettingsRows((current) => [row, ...current].slice(0, 6));
+    setSelectedAccountSettingsId(row.id);
+    pushAccountSettingsEvent({
+      rowId: row.id,
+      action: 'Saved email settings state',
+      status: row.status,
+      note: row.note,
+    });
+    showSessionNotice('Admin account settings saved in demo mode. Real `/administration/email` wiring still pending.');
   };
   const pushLicenceCheckEvent = ({ rowId = selectedLicenceCheck?.id, action, status, note }) => {
     if (!rowId) return;
@@ -20564,8 +20640,8 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
         </div>
 
         <div className="settings-card">
-          <div className="settings-title">Admin Account</div>
-          <div className="settings-sub">Replacement shell for Mercury account and email settings.</div>
+          <div className="settings-title">Email Endpoint Depth</div>
+          <div className="settings-sub">Owner-facing `/administration/email` review with selected save visibility and routing-surface context.</div>
           <label className="form-label">Login / Account Email</label>
           <input className="form-input" value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} />
           <label className="form-label">Report Delivery Email</label>
@@ -20573,22 +20649,85 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
           <label className="form-label">Alerts Email</label>
           <input className="form-input" value={alertsEmail} onChange={(e) => setAlertsEmail(e.target.value)} />
           <div className="purchase-kv-list">
-            <div className="purchase-kv"><span>Login route</span><span>{loginEmail}</span></div>
-            <div className="purchase-kv"><span>Reports route</span><span>{reportEmail}</span></div>
-            <div className="purchase-kv"><span>Alerts route</span><span>{alertsEmail}</span></div>
+            <div className="purchase-kv"><span>Selected save</span><span>{selectedAccountSettings ? `${selectedAccountSettings.time} · ${selectedAccountSettings.status}` : 'Pending'}</span></div>
+            <div className="purchase-kv"><span>Login route</span><span>{selectedAccountSettings?.login || loginEmail}</span></div>
+            <div className="purchase-kv"><span>Endpoint</span><span>/administration/email</span></div>
           </div>
-          <div className="pricebook-actions" style={{ marginTop: 16 }}>
-            <button className="pricebook-btn" onClick={() => previewAccountSettings()}>
-              <Icon name="report" size={15} /> Preview packet
+          <div className="pricebook-actions" style={{ marginTop: 16, flexWrap: 'wrap' }}>
+            <button className="pricebook-btn" onClick={() => previewAccountSettings(selectedAccountSettings || latestAccountSettings)}>
+              <Icon name="report" size={15} /> Preview email
             </button>
-            <button className="pricebook-btn" onClick={() => saveAccountSettingsPacket()}>
-              <Icon name="cash" size={15} /> Save packet
+            <button className="pricebook-btn" onClick={() => saveAccountSettingsPacket(selectedAccountSettings || latestAccountSettings)}>
+              <Icon name="cash" size={15} /> Save email
             </button>
           </div>
-          <button className="connect-btn" onClick={() => showSessionNotice('Admin account settings saved in demo mode. Real `/administration/email` wiring still pending.')}>
+          <div className="purchase-queue-list" style={{ marginTop: 16 }}>
+            {accountSettingsRows.map((item) => (
+              <div className="purchase-queue-row" key={item.id}>
+                <div className="purchase-queue-top">
+                  <div>
+                    <div className="purchase-queue-title">{item.login}</div>
+                    <div className="purchase-queue-meta">{item.time} · {item.reports} · {item.actor}</div>
+                  </div>
+                  <div className="pricebook-actions" style={{ gap: 8 }}>
+                    <span className={`purchase-tag${item.status === 'Saved' ? ' blue' : ''}`}>{item.status}</span>
+                    <button className="pricebook-btn soft" onClick={() => setSelectedAccountSettingsId(item.id)}>Review</button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+          <button className="connect-btn" onClick={() => saveAccountSettingsState()}>
             <Icon name="save" size={16} bg="rgba(255,255,255,0.12)" fg="#86EFAC" />
             <span>Save Account Settings</span>
           </button>
+        </div>
+
+        <div className="settings-card">
+          <div className="settings-title">Selected Email Review</div>
+          <div className="settings-sub">Keep the chosen email-routing response visible before admin settings proceed.</div>
+          {selectedAccountSettings ? (
+            <div className="purchase-kv-list">
+              <div className="purchase-kv"><span>Login</span><span>{selectedAccountSettings.login}</span></div>
+              <div className="purchase-kv"><span>Reports</span><span>{selectedAccountSettings.reports}</span></div>
+              <div className="purchase-kv"><span>Alerts</span><span>{selectedAccountSettings.alerts}</span></div>
+              <div className="purchase-kv"><span>Status</span><span>{selectedAccountSettings.status}</span></div>
+              <div className="purchase-kv"><span>Note</span><span>{selectedAccountSettings.note}</span></div>
+            </div>
+          ) : (
+            <div className="pricebook-detail-sub">No account-email review is selected yet.</div>
+          )}
+        </div>
+
+        <div className="settings-card">
+          <div className="settings-title">Email Endpoint Events</div>
+          <div className="settings-sub">Track route-specific `/administration/email` activity before live wiring is connected.</div>
+          <div className="pricebook-actions" style={{ marginBottom: 16, flexWrap: 'wrap' }}>
+            {['CSV', 'XLS', 'JSON'].map((format) => (
+              <button key={format} className="pricebook-btn" onClick={() => exportAccountSettingsEvents(format)}>
+                <Icon name="cash" size={15} /> {format}
+              </button>
+            ))}
+          </div>
+          <div className="alerts-list">
+            {selectedAccountSettingsEvents.length ? selectedAccountSettingsEvents.map((item) => (
+              <div key={item.id} className="alert-item" style={{ alignItems: 'flex-start' }}>
+                <Icon
+                  name={item.action.includes('Saved') ? 'cash' : item.action.includes('Previewed') ? 'report' : 'save'}
+                  size={18}
+                  bg={item.action.includes('Saved') ? iconDefaults.green.bg : item.action.includes('Previewed') ? iconDefaults.blue.bg : iconDefaults.slate.bg}
+                  fg={item.action.includes('Saved') ? '#15803D' : item.action.includes('Previewed') ? '#3B82F6' : '#64748B'}
+                />
+                <div className="alert-copy">
+                  <div className="alert-text">{item.action}</div>
+                  <div className="pricebook-detail-sub">{item.time} · {item.actor} · {item.status}</div>
+                  <div className="pricebook-detail-sub">{item.note}</div>
+                </div>
+              </div>
+            )) : (
+              <div className="pricebook-detail-sub">No email-endpoint event history is visible for this selected save yet.</div>
+            )}
+          </div>
         </div>
 
         <div className="settings-card">
