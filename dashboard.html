@@ -22735,10 +22735,20 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
     { id: 'AGR-0', time: '06:12', store: 'Sandy Cross Fuel Center', value: 'Accepted', actor: 'Owner session', status: 'Saved', note: 'Agreement saved during early shift startup.' },
   ]);
   const [selectedAgreementSaveId, setSelectedAgreementSaveId] = useState('AGR-1');
+  const [agreementPacketRows, setAgreementPacketRows] = useState([
+    { id: 'AGP-1', packet: 'Primary agreement-save handoff', window: 'Session-init acceptance', focus: 'Owner agreement confirmation', source: 'Session init', status: 'Queued', note: 'Primary agreement-save handoff is staged for owner review before the live Mercury route is connected.' },
+    { id: 'AGP-2', packet: 'Agreement acceptance follow-through', window: 'Exception review', focus: 'Blocked session-start follow-up', source: 'Session follow-up', status: 'Needs review', note: 'Agreement follow-through still needs final owner review before the live Mercury route is connected.' },
+  ]);
+  const [selectedAgreementPacketId, setSelectedAgreementPacketId] = useState('AGP-1');
   const [agreementSaveEvents, setAgreementSaveEvents] = useState([
     { id: 'ASE-3901', rowId: 'AGR-1', time: '07:53', actor: 'Owner session', route: '/user/saveAgreementDetails', action: 'Previewed agreement save', status: 'Opened', note: 'Owner reviewed the agreement-save packet before the live Mercury route was connected.' },
     { id: 'ASE-3902', rowId: 'AGR-1', time: '07:54', actor: 'Owner session', route: '/user/saveAgreementDetails', action: 'Saved agreement packet', status: 'Ready', note: 'Agreement-save packet exported while the live Mercury route remained demo-only.' },
     { id: 'ASE-3903', rowId: 'AGR-0', time: '06:12', actor: 'Owner session', route: '/user/saveAgreementDetails', action: 'Saved agreement state', status: 'Saved', note: 'Agreement acceptance was captured during early session startup.' },
+  ]);
+  const [agreementRouteEvents, setAgreementRouteEvents] = useState([
+    { id: 'AGRTE-3901', packetId: 'AGP-1', time: '07:53', actor: 'Owner session', route: '/user/saveAgreementDetails', action: 'Previewed agreement route packet', status: 'Opened', note: 'Owner reviewed the route-level agreement packet before the live Mercury route was connected.' },
+    { id: 'AGRTE-3902', packetId: 'AGP-1', time: '07:54', actor: 'Owner session', route: '/user/saveAgreementDetails', action: 'Saved agreement route packet', status: 'Ready', note: 'Agreement route packet exported while the live Mercury route remained demo-only.' },
+    { id: 'AGRTE-3903', packetId: 'AGP-2', time: '06:13', actor: 'StoreCheck demo', route: '/user/saveAgreementDetails', action: 'Queued agreement route handoff', status: 'Queued', note: 'Agreement follow-through remained visible inside StoreCheck while the live Mercury route stayed demo-only.' },
   ]);
   const [registerRefreshRows, setRegisterRefreshRows] = useState([
     { id: 'REG-1', time: '07:54', store: 'Main Street Gas & Go', previous: 'Refresh Needed', current: 'Connected', source: 'Session start', status: 'Updated', note: 'Main register came online after refresh.' },
@@ -22828,6 +22838,12 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
     agreementSaveRows[0] ||
     null;
   const selectedAgreementSaveEvents = selectedAgreementSave ? agreementSaveEvents.filter((item) => item.rowId === selectedAgreementSave.id) : [];
+  const selectedAgreementPacket =
+    agreementPacketRows.find((item) => item.id === selectedAgreementPacketId) ||
+    agreementPacketRows[0] ||
+    null;
+  const selectedAgreementRouteEvents =
+    selectedAgreementPacket ? agreementRouteEvents.filter((item) => item.packetId === selectedAgreementPacket.id) : [];
   const selectedRegisterRefresh =
     registerRefreshRows.find((item) => item.id === selectedRegisterRefreshId) ||
     registerRefreshRows[0] ||
@@ -22851,6 +22867,7 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
   const selectedNewScreensEvents = selectedNewScreens ? newScreensEvents.filter((item) => item.rowId === selectedNewScreens.id) : [];
   const latestLicenceCheck = licenceCheckRows[0];
   const latestAgreementSave = agreementSaveRows[0];
+  const latestAgreementPacket = agreementPacketRows[0];
   const latestRegisterRefresh = registerRefreshRows[0];
   const latestRelease = releaseRows[0];
   const latestAccountSettings = accountSettingsRows[0];
@@ -23170,6 +23187,69 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
       ...current,
     ].slice(0, 24));
   };
+  const pushAgreementRouteEvent = ({ packetId = selectedAgreementPacket?.id, action, status, note }) => {
+    if (!packetId) return;
+    const time = stampSessionTime();
+    setAgreementRouteEvents((current) => [
+      {
+        id: `AGRTE-${Date.now()}`,
+        packetId,
+        time,
+        actor: 'Owner session',
+        route: '/user/saveAgreementDetails',
+        action,
+        status,
+        note,
+      },
+      ...current,
+    ].slice(0, 24));
+  };
+  const buildAgreementRouteRows = (item = selectedAgreementSave || latestAgreementSave, packet = selectedAgreementPacket) => {
+    if (!item) return [];
+    return [[
+      item.store,
+      item.value,
+      item.actor,
+      item.status,
+      '/user/saveAgreementDetails',
+      packet?.id === 'AGP-2' ? 'Blocked session follow-through' : 'Session-init acceptance',
+    ]];
+  };
+  const previewAgreementRoutePacket = (item = selectedAgreementSave || latestAgreementSave, packet = selectedAgreementPacket || latestAgreementPacket) => {
+    if (!item || !packet) return;
+    setSelectedAgreementSaveId(item.id);
+    setSelectedAgreementPacketId(packet.id);
+    openSettingsPacket({
+      title: 'Agreement Save Endpoint Depth',
+      subtitle: `${packet.window} · POST /user/saveAgreementDetails`,
+      headers: ['Store', 'Agreement', 'Actor', 'Status', 'Route', 'Mode'],
+      rows: buildAgreementRouteRows(item, packet),
+    });
+    pushAgreementRouteEvent({
+      packetId: packet.id,
+      action: 'Previewed agreement route packet',
+      status: 'Opened',
+      note: `${packet.packet} preview opened before the live Mercury route was connected.`,
+    });
+    showSessionNotice(`${item.id} agreement route packet preview opened in demo mode.`);
+  };
+  const stageAgreementRouteHandoff = (item = selectedAgreementSave || latestAgreementSave, packet = selectedAgreementPacket || latestAgreementPacket) => {
+    if (!item || !packet) return;
+    setSelectedAgreementSaveId(item.id);
+    setSelectedAgreementPacketId(packet.id);
+    setAgreementPacketRows((current) => current.map((row) => (
+      row.id === packet.id
+        ? { ...row, status: 'Queued', note: `Agreement route handoff is staged for ${packet.window.toLowerCase()}.` }
+        : row
+    )));
+    pushAgreementRouteEvent({
+      packetId: packet.id,
+      action: 'Queued agreement route handoff',
+      status: 'Queued',
+      note: `Mercury-style agreement handoff accepted for ${packet.window}.`,
+    });
+    showSessionNotice(`${item.id} agreement route handoff staged in demo mode. Live \`/user/saveAgreementDetails\` route still pending.`);
+  };
   const previewAgreementSave = (item = selectedAgreementSave || latestAgreementSave) => {
     if (!item) return;
     setSelectedAgreementSaveId(item.id);
@@ -23189,6 +23269,31 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
   const exportAgreementSaveEvents = (format) => {
     if (!selectedAgreementSaveEvents.length) return;
     downloadTableData(selectedAgreementSaveEvents, format, `storecheck-agreement-save-events-${String(selectedAgreementSave?.id || 'session').toLowerCase()}`);
+  };
+  const saveAgreementRoutePacket = (item = selectedAgreementSave || latestAgreementSave, packet = selectedAgreementPacket || latestAgreementPacket) => {
+    if (!item || !packet) return;
+    setSelectedAgreementSaveId(item.id);
+    setSelectedAgreementPacketId(packet.id);
+    saveSettingsPacket({
+      title: 'Agreement Save Endpoint Depth',
+      subtitle: `${packet.window} · POST /user/saveAgreementDetails`,
+      route: '/user/saveAgreementDetails',
+      note: 'Agreement acceptance save replacement shell',
+      headers: ['Store', 'Agreement', 'Actor', 'Status', 'Route', 'Mode'],
+      rows: buildAgreementRouteRows(item, packet),
+      filename: `storecheck-agreement-route-${String(packet.id).toLowerCase()}`,
+    });
+    pushAgreementRouteEvent({
+      packetId: packet.id,
+      action: 'Saved agreement route packet',
+      status: 'Ready',
+      note: 'Agreement route packet exported while the live Mercury route remained demo-only.',
+    });
+    showSessionNotice(`${item.id} agreement route packet saved in demo mode.`);
+  };
+  const exportAgreementRouteEvents = (format) => {
+    if (!selectedAgreementRouteEvents.length) return;
+    downloadTableData(selectedAgreementRouteEvents, format, `storecheck-agreement-route-events-${String(selectedAgreementPacket?.id || 'route').toLowerCase()}`);
   };
   const saveAgreementState = () => {
     const time = stampSessionTime();
@@ -23881,73 +23986,96 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
         </div>
 
         <div className="settings-card">
-          <div className="settings-title">Agreement Save Depth</div>
-          <div className="settings-sub">Owner-facing `/user/saveAgreementDetails` review with acceptance state and session-start gate visibility.</div>
+          <div className="settings-title">Agreement Save Endpoint Depth</div>
+          <div className="settings-sub">Owner-facing `POST /user/saveAgreementDetails` review with selected packet, acceptance status, and session-start gate visibility.</div>
           <div className="purchase-kv-list">
-            <div className="purchase-kv"><span>Selected save</span><span>{selectedAgreementSave ? `${selectedAgreementSave.time} · ${selectedAgreementSave.status}` : 'Pending'}</span></div>
-            <div className="purchase-kv"><span>Agreement state</span><span>{selectedAgreementSave?.value || 'Pending'}</span></div>
-            <div className="purchase-kv"><span>Save route</span><span>/user/saveAgreementDetails</span></div>
+            <div className="purchase-kv"><span>Selected packet</span><span>{selectedAgreementPacket ? `${selectedAgreementPacket.packet} · ${selectedAgreementPacket.status}` : 'Pending'}</span></div>
+            <div className="purchase-kv"><span>Selected review</span><span>{selectedAgreementSave ? `${selectedAgreementSave.time} · ${selectedAgreementSave.status}` : 'Pending'}</span></div>
+            <div className="purchase-kv"><span>Agreement</span><span>{selectedAgreementSave?.value || 'Pending'}</span></div>
+            <div className="purchase-kv"><span>Actor</span><span>{selectedAgreementSave?.actor || currentLocation.manager}</span></div>
+            <div className="purchase-kv"><span>Route</span><span>POST /user/saveAgreementDetails</span></div>
+            <div className="purchase-kv"><span>Latest route event</span><span>{selectedAgreementRouteEvents[0]?.action || 'No events yet'}</span></div>
           </div>
           <div className="pricebook-actions" style={{ marginTop: 16, flexWrap: 'wrap' }}>
-            <button className="pricebook-btn" onClick={() => previewAgreementSave(selectedAgreementSave)}>
-              <Icon name="report" size={15} /> Preview agreement
+            <button className="pricebook-btn" onClick={() => previewAgreementRoutePacket(selectedAgreementSave, selectedAgreementPacket)}>
+              <Icon name="report" size={15} /> Preview route packet
             </button>
-            <button className="pricebook-btn" onClick={() => saveAgreementHistoryPacket()}>
-              <Icon name="cash" size={15} /> Save agreement
+            <button className="pricebook-btn" onClick={() => stageAgreementRouteHandoff(selectedAgreementSave, selectedAgreementPacket)}>
+              <Icon name="calendar" size={15} /> Stage handoff
+            </button>
+            <button className="pricebook-btn primary" onClick={() => saveAgreementRoutePacket(selectedAgreementSave, selectedAgreementPacket)}>
+              <Icon name="cash" size={15} /> Save route packet
             </button>
           </div>
-          <div className="purchase-queue-list">
+          <div className="purchase-queue-list" style={{ marginTop: 18 }}>
             {agreementSaveRows.map((item) => (
               <div className="purchase-queue-row" key={item.id}>
                 <div className="purchase-queue-top">
                   <div>
-                    <div className="purchase-queue-title">{item.value}</div>
-                    <div className="purchase-queue-meta">{item.time} · {item.store} · {item.actor}</div>
+                    <div className="purchase-queue-title">{item.value} · {item.store}</div>
+                    <div className="purchase-queue-meta">{item.time} · {item.actor} · {item.status}</div>
                   </div>
-                  <div className="pricebook-actions" style={{ gap: 8 }}>
-                    <span className={`purchase-tag${item.status === 'Saved' ? ' blue' : ' amber'}`}>{item.status}</span>
-                    <button className="pricebook-btn soft" onClick={() => setSelectedAgreementSaveId(item.id)}>Review</button>
-                  </div>
+                  <button className="pricebook-btn soft" onClick={() => setSelectedAgreementSaveId(item.id)}>Review</button>
                 </div>
+              </div>
+            ))}
+          </div>
+          <div className="purchase-queue-list" style={{ marginTop: 12 }}>
+            {agreementPacketRows.map((item) => (
+              <div className="purchase-queue-row" key={item.id}>
+                <div className="purchase-queue-top">
+                  <div>
+                    <div className="purchase-queue-title">{item.packet}</div>
+                    <div className="purchase-queue-meta">{item.window} · {item.focus} · {item.source}</div>
+                  </div>
+                  <button className="pricebook-btn soft" onClick={() => setSelectedAgreementPacketId(item.id)}>Review</button>
+                </div>
+                <div className="purchase-queue-meta">{item.note}</div>
               </div>
             ))}
           </div>
         </div>
 
         <div className="settings-card">
-          <div className="settings-title">Selected Agreement Save</div>
-          <div className="settings-sub">Keep the chosen agreement response visible before session init proceeds.</div>
+          <div className="settings-title">Selected Agreement Save Endpoint Review</div>
+          <div className="settings-sub">Keep the chosen route packet and selected agreement response visible before the session proceeds.</div>
           {selectedAgreementSave ? (
             <div className="purchase-kv-list">
+              <div className="purchase-kv"><span>Packet</span><span>{selectedAgreementPacket?.packet || 'Pending'}</span></div>
+              <div className="purchase-kv"><span>Window</span><span>{selectedAgreementPacket?.window || 'Session-init acceptance'}</span></div>
+              <div className="purchase-kv"><span>Focus</span><span>{selectedAgreementPacket?.focus || 'Owner agreement confirmation'}</span></div>
+              <div className="purchase-kv"><span>Source</span><span>{selectedAgreementPacket?.source || 'Session init'}</span></div>
+              <div className="purchase-kv"><span>Packet status</span><span>{selectedAgreementPacket?.status || 'Pending'}</span></div>
               <div className="purchase-kv"><span>Store</span><span>{selectedAgreementSave.store}</span></div>
-              <div className="purchase-kv"><span>Value</span><span>{selectedAgreementSave.value}</span></div>
+              <div className="purchase-kv"><span>Agreement</span><span>{selectedAgreementSave.value}</span></div>
               <div className="purchase-kv"><span>Actor</span><span>{selectedAgreementSave.actor}</span></div>
               <div className="purchase-kv"><span>Status</span><span>{selectedAgreementSave.status}</span></div>
+              <div className="purchase-kv"><span>Route</span><span>POST /user/saveAgreementDetails</span></div>
               <div className="purchase-kv"><span>Note</span><span>{selectedAgreementSave.note}</span></div>
             </div>
           ) : (
-            <div className="pricebook-detail-sub">No agreement save is selected yet.</div>
+            <div className="pricebook-detail-sub">No agreement save review is selected yet.</div>
           )}
         </div>
 
         <div className="settings-card">
-          <div className="settings-title">Agreement Save Events</div>
-          <div className="settings-sub">Track route-specific `/user/saveAgreementDetails` activity before live wiring is connected.</div>
+          <div className="settings-title">Agreement Save Route Events</div>
+          <div className="settings-sub">Track route-specific `/user/saveAgreementDetails` packet activity before live wiring is connected.</div>
           <div className="pricebook-actions" style={{ marginBottom: 16, flexWrap: 'wrap' }}>
             {['CSV', 'XLS', 'JSON'].map((format) => (
-              <button key={format} className="pricebook-btn" onClick={() => exportAgreementSaveEvents(format)}>
+              <button key={format} className="pricebook-btn" onClick={() => exportAgreementRouteEvents(format)}>
                 <Icon name="cash" size={15} /> {format}
               </button>
             ))}
           </div>
           <div className="alerts-list">
-            {selectedAgreementSaveEvents.length ? selectedAgreementSaveEvents.map((item) => (
+            {selectedAgreementRouteEvents.length ? selectedAgreementRouteEvents.map((item) => (
               <div key={item.id} className="alert-item" style={{ alignItems: 'flex-start' }}>
                 <Icon
-                  name={item.action.includes('Saved') ? 'cash' : item.action.includes('Previewed') ? 'report' : 'save'}
+                  name={item.action.includes('Saved') ? 'cash' : item.action.includes('Previewed') ? 'report' : item.action.includes('Queued') ? 'calendar' : 'save'}
                   size={18}
-                  bg={item.action.includes('Saved') ? iconDefaults.green.bg : item.action.includes('Previewed') ? iconDefaults.blue.bg : iconDefaults.slate.bg}
-                  fg={item.action.includes('Saved') ? '#15803D' : item.action.includes('Previewed') ? '#3B82F6' : '#64748B'}
+                  bg={item.action.includes('Saved') ? iconDefaults.green.bg : item.action.includes('Previewed') ? iconDefaults.blue.bg : item.action.includes('Queued') ? iconDefaults.slate.bg : iconDefaults.green.bg}
+                  fg={item.action.includes('Saved') ? '#15803D' : item.action.includes('Previewed') ? '#3B82F6' : item.action.includes('Queued') ? '#64748B' : '#15803D'}
                 />
                 <div className="alert-copy">
                   <div className="alert-text">{item.action}</div>
@@ -23956,7 +24084,7 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
                 </div>
               </div>
             )) : (
-              <div className="pricebook-detail-sub">No agreement-save event history is visible for this selected save yet.</div>
+              <div className="pricebook-detail-sub">No agreement route history is visible for this selected packet yet.</div>
             )}
           </div>
         </div>
