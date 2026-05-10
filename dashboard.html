@@ -24768,7 +24768,7 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
     setSelectedAgreementSaveId(item.id);
     setSelectedAgreementPacketId(packet.id);
     openSettingsPacket({
-      title: 'Agreement Save Endpoint Depth',
+      title: 'Agreement Save Endpoint Reconcile',
       subtitle: `${packet.window} · POST /user/saveAgreementDetails`,
       headers: ['Store', 'Agreement', 'Actor', 'Status', 'Route', 'Mode'],
       rows: buildAgreementRouteRows(item, packet),
@@ -24802,7 +24802,7 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
     if (!item) return;
     setSelectedAgreementSaveId(item.id);
     openSettingsPacket({
-      title: 'Agreement Save Review',
+      title: 'Selected Agreement Save Endpoint Review',
       subtitle: `${item.store} · ${item.time}`,
       headers: ['Store', 'Value', 'Actor', 'Status', 'Note'],
       rows: [[item.store, item.value, item.actor, item.status, item.note]],
@@ -24823,7 +24823,7 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
     setSelectedAgreementSaveId(item.id);
     setSelectedAgreementPacketId(packet.id);
     saveSettingsPacket({
-      title: 'Agreement Save Endpoint Depth',
+      title: 'Agreement Save Endpoint Reconcile',
       subtitle: `${packet.window} · POST /user/saveAgreementDetails`,
       route: '/user/saveAgreementDetails',
       note: 'Agreement acceptance save replacement shell',
@@ -24885,7 +24885,7 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
   const saveAgreementHistoryPacket = () => {
     const item = selectedAgreementSave || latestAgreementSave;
     saveSettingsPacket({
-      title: 'Agreement Save Depth',
+      title: 'Agreement Save Endpoint Reconcile',
       subtitle: `${item ? `${item.store} · ${item.time}` : `${currentLocation.name} · session init`}`,
       route: '/user/saveAgreementDetails',
       note: 'Agreement save history replacement shell',
@@ -25974,7 +25974,7 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
         </div>
 
         <div className="settings-card">
-          <div className="settings-title">Agreement Save Endpoint Depth</div>
+          <div className="settings-title">Agreement Save Endpoint Reconcile</div>
           <div className="settings-sub">Owner-facing `POST /user/saveAgreementDetails` review with selected packet, acceptance status, and session-start gate visibility.</div>
           <div className="purchase-kv-list">
             <div className="purchase-kv"><span>Selected packet</span><span>{selectedAgreementPacket ? `${selectedAgreementPacket.packet} · ${selectedAgreementPacket.status}` : 'Pending'}</span></div>
