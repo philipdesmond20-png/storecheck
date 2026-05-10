@@ -20544,6 +20544,11 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
     { id: 'XML-2', shiftDate: '2026-05-08', packet: 'Prior day POS ledger XML', window: '2026-05-08 only', format: 'XML export', source: 'Daily XML review', status: 'Needs review', note: 'Previous XML export still needs a final owner review before live file delivery is wired.' },
   ]);
   const [selectedXmlExportId, setSelectedXmlExportId] = useState('XML-1');
+  const [xmlExportPacketRows, setXmlExportPacketRows] = useState([
+    { id: 'XMP-1', packet: 'Primary XML handoff', window: 'Owner XML review', focus: 'Daily sales XML packet', source: 'Reports / Export Center', status: 'Queued', note: 'Primary XML handoff is staged for owner review before the live Mercury file route is connected.' },
+    { id: 'XMP-2', packet: 'Back-office XML rerun', window: 'Accounting XML follow-through', focus: 'Prior-day XML packet', source: 'Reports / Delivery', status: 'Needs review', note: 'Previous XML rerun still needs final owner review before the live Mercury file route is connected.' },
+  ]);
+  const [selectedXmlExportPacketId, setSelectedXmlExportPacketId] = useState('XMP-1');
   const [shiftEmailEvents, setShiftEmailEvents] = useState([
     { id: 'RSE-1001', sendId: 'SE-1', time: '2026-05-09 08:06', actor: 'Store manager', route: '/shifts/sendShiftEmail', action: 'Confirmed shift email', status: 'Queued', note: 'Shift email confirmation accepted for the configured store address.' },
     { id: 'RSE-1002', sendId: 'SE-1', time: '2026-05-09 08:07', actor: 'Store manager', route: '/shifts/sendShiftEmail', action: 'Saved shift email packet', status: 'Ready', note: 'Shift email packet exported before the live send endpoint was connected.' },
@@ -20598,6 +20603,11 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
     { id: 'RXML-1501', sendId: 'XML-1', time: '2026-05-10 01:27', actor: 'Store manager', route: '/shifts/getDayInfoForXml', action: 'Previewed XML export packet', status: 'Opened', note: 'XML export packet was reviewed before the live file handoff was connected.' },
     { id: 'RXML-1502', sendId: 'XML-1', time: '2026-05-10 01:28', actor: 'Store manager', route: '/shifts/getDayInfoForXml', action: 'Saved XML export packet', status: 'Ready', note: 'XML export packet was downloaded before the live file handoff was connected.' },
     { id: 'RXML-1503', sendId: 'XML-2', time: '2026-05-09 18:36', actor: 'StoreCheck demo', route: '/shifts/getDayInfoForXml', action: 'Queued XML export handoff', status: 'Queued', note: 'Previous XML export handoff remained visible in demo mode.' },
+  ]);
+  const [xmlExportRouteEvents, setXmlExportRouteEvents] = useState([
+    { id: 'RXR-1501', packetId: 'XMP-1', time: '2026-05-10 01:27', actor: 'Store manager', route: 'POST /shifts/getDayInfoForXml', action: 'Queued XML route handoff', status: 'Queued', note: 'XML route handoff was accepted for the owner XML review.' },
+    { id: 'RXR-1502', packetId: 'XMP-1', time: '2026-05-10 01:28', actor: 'Store manager', route: 'POST /shifts/getDayInfoForXml', action: 'Saved XML route packet', status: 'Ready', note: 'XML route packet was exported before the live file handoff was connected.' },
+    { id: 'RXR-1503', packetId: 'XMP-2', time: '2026-05-09 18:37', actor: 'StoreCheck demo', route: 'POST /shifts/getDayInfoForXml', action: 'Previewed XML route packet', status: 'Opened', note: 'Previous XML route preview stayed visible in demo mode.' },
   ]);
   const [dailyPdfRows, setDailyPdfRows] = useState([
     { id: 'DP-1', shiftDate: '2026-05-09', window: '06:00-22:00', output: 'PDF Preview', actor: 'Store manager', status: 'Ready', note: 'Primary custom-day PDF stayed aligned for the owner print review.' },
@@ -20810,6 +20820,10 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
     quickbooksPacketRows[0] ||
     null;
   const selectedXmlExport = xmlExportRows.find((item) => item.id === selectedXmlExportId) || xmlExportRows[0];
+  const selectedXmlExportPacket =
+    xmlExportPacketRows.find((item) => item.id === selectedXmlExportPacketId) ||
+    xmlExportPacketRows[0] ||
+    null;
   const selectedDailyPdf = dailyPdfRows.find((item) => item.id === selectedDailyPdfId) || dailyPdfRows[0];
   const selectedDailyPdfPacket =
     dailyPdfPacketRows.find((item) => item.id === selectedDailyPdfPacketId) ||
@@ -20841,6 +20855,8 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
   const selectedQuickbooksRouteEvents =
     selectedQuickbooksPacket ? quickbooksRouteEvents.filter((item) => item.packetId === selectedQuickbooksPacket.id) : quickbooksRouteEvents;
   const selectedXmlExportEvents = selectedXmlExport ? xmlExportEvents.filter((item) => item.sendId === selectedXmlExport.id) : xmlExportEvents;
+  const selectedXmlExportRouteEvents =
+    selectedXmlExportPacket ? xmlExportRouteEvents.filter((item) => item.packetId === selectedXmlExportPacket.id) : xmlExportRouteEvents;
   const selectedDailyPdfEvents = selectedDailyPdf ? dailyPdfEvents.filter((item) => item.rowId === selectedDailyPdf.id) : dailyPdfEvents;
   const selectedDailyPdfRouteEvents =
     selectedDailyPdfPacket ? dailyPdfRouteEvents.filter((item) => item.packetId === selectedDailyPdfPacket.id) : dailyPdfRouteEvents;
@@ -21524,6 +21540,21 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
       ...current,
     ]);
   };
+  const pushXmlExportRouteEvent = ({ packetId = selectedXmlExportPacket?.id, action, status, note }) => {
+    setXmlExportRouteEvents((current) => [
+      {
+        id: `RXR-${current.length + 1501}`,
+        packetId,
+        time: buildReportStamp(),
+        actor: 'StoreCheck demo',
+        route: 'POST /shifts/getDayInfoForXml',
+        action,
+        status,
+        note,
+      },
+      ...current,
+    ]);
+  };
   const previewXmlExportPacket = (item = selectedXmlExport) => {
     if (!item) return;
     setSelectedXmlExportId(item.id);
@@ -21564,6 +21595,63 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
       note: `Mercury-style XML export handoff accepted for ${item.shiftDate}.`,
     });
     showDeliveryNotice(`XML export for ${item.shiftDate} staged in demo mode. Live \`${selectedXmlAction.route}\` endpoint still pending.`);
+  };
+  const buildXmlRouteAction = (item = selectedXmlExport, packet = selectedXmlExportPacket) => ({
+    ...selectedXmlAction,
+    route: 'POST /shifts/getDayInfoForXml',
+    params: `date=${item?.shiftDate || customTo}; source=${item?.source || 'Day report'}`,
+    subtitle: `${packet?.window || 'Owner XML review'} · POST /shifts/getDayInfoForXml`,
+    fileName: `storecheck-xml-route-${String(packet?.id || 'route').toLowerCase()}`,
+  });
+  const previewXmlRoutePacket = (item = selectedXmlExport, packet = selectedXmlExportPacket) => {
+    if (!item || !packet) return;
+    setSelectedXmlExportId(item.id);
+    setSelectedXmlExportPacketId(packet.id);
+    const action = buildXmlRouteAction(item, packet);
+    openReportSurface('XML Export Endpoint Reconcile', action.subtitle, action.previewRows);
+    pushXmlExportRouteEvent({
+      packetId: packet.id,
+      action: 'Previewed XML route packet',
+      status: 'Opened',
+      note: `${packet.packet} preview opened before the live file handoff was connected.`,
+    });
+    showDeliveryNotice(`${item.id} XML route packet preview opened in demo mode.`);
+  };
+  const stageXmlRouteHandoff = (item = selectedXmlExport, packet = selectedXmlExportPacket) => {
+    if (!item || !packet) return;
+    setSelectedXmlExportId(item.id);
+    setSelectedXmlExportPacketId(packet.id);
+    setXmlExportPacketRows((current) => current.map((row) => (
+      row.id === packet.id
+        ? { ...row, status: 'Queued', note: `XML route handoff is staged for ${packet.window.toLowerCase()}.` }
+        : row
+    )));
+    pushXmlExportRouteEvent({
+      packetId: packet.id,
+      action: 'Queued XML route handoff',
+      status: 'Queued',
+      note: `Mercury-style XML handoff accepted for ${packet.window}.`,
+    });
+    showDeliveryNotice(`${item.id} XML route handoff staged in demo mode. Live \`POST /shifts/getDayInfoForXml\` endpoint still pending.`);
+  };
+  const saveXmlRoutePacket = (item = selectedXmlExport, packet = selectedXmlExportPacket) => {
+    if (!item || !packet) return;
+    setSelectedXmlExportId(item.id);
+    setSelectedXmlExportPacketId(packet.id);
+    const action = buildXmlRouteAction(item, packet);
+    const html = buildReportPackageHtml(action);
+    downloadTextData(html, 'text/html', action.fileName, 'html');
+    pushXmlExportRouteEvent({
+      packetId: packet.id,
+      action: 'Saved XML route packet',
+      status: 'Ready',
+      note: 'XML route packet was exported while the live file handoff remained demo-only.',
+    });
+    showDeliveryNotice(`${item.id} XML route packet saved in demo mode.`);
+  };
+  const exportXmlRouteEvents = (format) => {
+    downloadTableData(selectedXmlExportRouteEvents, format, `storecheck-xml-route-events-${String(selectedXmlExportPacket?.id || 'route').toLowerCase()}`);
+    showDeliveryNotice(`${fmtN(selectedXmlExportRouteEvents.length)} XML route events exported in ${format} format.`);
   };
   const pushDailyPdfEvent = ({ rowId = selectedDailyPdf?.id, action, status, note }) => {
     setDailyPdfEvents((current) => [
@@ -23327,47 +23415,60 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
             <div className="report-delivery-card">
               <div className="purchase-panel-head">
                 <div>
-                  <h3>XML Export Endpoint Depth</h3>
-                  <p>Keep the `/shifts/getDayInfoForXml` XML handoff visible with selected export context before the live file delivery route is connected.</p>
+                  <h3>XML Export Endpoint Reconcile</h3>
+                  <p>Keep the `POST /shifts/getDayInfoForXml` XML packet visible with selected export and route follow-through context before the live file delivery route is connected.</p>
                 </div>
               </div>
               <div className="purchase-kv-list">
+                <div className="purchase-kv"><span>Selected route packet</span><span>{selectedXmlExportPacket ? `${selectedXmlExportPacket.packet} · ${selectedXmlExportPacket.status}` : 'Pending'}</span></div>
                 <div className="purchase-kv"><span>Selected export</span><span>{selectedXmlExport ? `${selectedXmlExport.shiftDate} · ${selectedXmlExport.status}` : 'Pending'}</span></div>
-                <div className="purchase-kv"><span>Route</span><span>{selectedXmlAction.route}</span></div>
+                <div className="purchase-kv"><span>Route</span><span>POST /shifts/getDayInfoForXml</span></div>
                 <div className="purchase-kv"><span>Format</span><span>{selectedXmlExport?.format || selectedXmlAction.format}</span></div>
                 <div className="purchase-kv"><span>Params</span><span>{`date=${selectedXmlExport?.shiftDate || customTo}; source=${selectedXmlExport?.source || 'Day report'}`}</span></div>
+                <div className="purchase-kv"><span>Packet window</span><span>{selectedXmlExportPacket?.window || 'Owner XML review'}</span></div>
                 <div className="purchase-kv"><span>Current export</span><span>{selectedXmlExport ? `${selectedXmlExport.window} · ${selectedXmlExport.packet}` : `${customTo} · XML export`}</span></div>
-                <div className="purchase-kv"><span>Latest event</span><span>{selectedXmlExportEvents[0]?.action || 'No events yet'}</span></div>
+                <div className="purchase-kv"><span>Latest route event</span><span>{selectedXmlExportRouteEvents[0]?.action || 'No events yet'}</span></div>
               </div>
               <div className="pricebook-actions" style={{ marginTop: 16, flexWrap: 'wrap' }}>
-                <button className="pricebook-btn" onClick={() => previewXmlExportPacket(selectedXmlExport)}>
+                <button className="pricebook-btn" onClick={() => previewXmlRoutePacket(selectedXmlExport, selectedXmlExportPacket)}>
                   <Icon name="report" size={15} /> Preview route packet
                 </button>
-                <button className="pricebook-btn" onClick={() => stageXmlExportHandoff(selectedXmlExport)}>
+                <button className="pricebook-btn" onClick={() => stageXmlRouteHandoff(selectedXmlExport, selectedXmlExportPacket)}>
                   <Icon name="cash" size={15} /> Stage handoff
                 </button>
-                <button className="pricebook-btn" onClick={() => saveXmlExportPacket(selectedXmlExport)}>
+                <button className="pricebook-btn primary" onClick={() => saveXmlRoutePacket(selectedXmlExport, selectedXmlExportPacket)}>
                   <Icon name="cash" size={15} /> Save route packet
                 </button>
-                <button className="pricebook-btn primary" onClick={() => exportXmlExportEvents('CSV')}>
-                  <Icon name="save" size={15} /> Export route log
-                </button>
               </div>
-              <div className="report-delivery-list" style={{ marginTop: 18 }}>
+              <div className="purchase-queue-list" style={{ marginTop: 16 }}>
                 {xmlExportRows.map((row) => (
-                  <div className="report-delivery-row" key={row.id}>
-                    <div className="report-delivery-head">
+                  <div className="purchase-queue-row" key={row.id}>
+                    <div className="purchase-queue-top">
                       <div>
-                        <div className="report-delivery-title">{row.packet}</div>
-                        <div className="report-delivery-meta">{row.shiftDate} · {row.window} · {row.source}</div>
+                        <div className="purchase-queue-title">{row.packet}</div>
+                        <div className="purchase-queue-meta">{row.shiftDate} · {row.window} · {row.source}</div>
                       </div>
-                      <span className={`purchase-tag${row.status === 'Needs review' ? ' amber' : ' blue'}`}>{row.status}</span>
+                      <div className="pricebook-actions" style={{ gap: 8 }}>
+                        <span className={`purchase-tag${row.status === 'Needs review' ? ' amber' : ' blue'}`}>{row.status}</span>
+                        <button className="pricebook-btn soft" onClick={() => setSelectedXmlExportId(row.id)}>
+                          Review
+                        </button>
+                      </div>
                     </div>
-                    <div className="report-delivery-actions">
-                      <button className="pricebook-btn" onClick={() => setSelectedXmlExportId(row.id)}>
-                        <Icon name="report" size={15} /> Review
-                      </button>
+                  </div>
+                ))}
+              </div>
+              <div className="purchase-queue-list" style={{ marginTop: 12 }}>
+                {xmlExportPacketRows.map((row) => (
+                  <div className="purchase-queue-row" key={row.id}>
+                    <div className="purchase-queue-top">
+                      <div>
+                        <div className="purchase-queue-title">{row.packet}</div>
+                        <div className="purchase-queue-meta">{row.window} · {row.focus} · {row.source}</div>
+                      </div>
+                      <button className="pricebook-btn soft" onClick={() => setSelectedXmlExportPacketId(row.id)}>Review</button>
                     </div>
+                    <div className="purchase-queue-meta">{row.note}</div>
                   </div>
                 ))}
               </div>
@@ -23376,20 +23477,55 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
             <div className="report-delivery-card">
               <div className="purchase-panel-head">
                 <div>
-                  <h3>Selected XML Export Review</h3>
-                  <p>Owner-facing visibility for the chosen XML export handoff before the live file route is connected.</p>
+                  <h3>Selected XML Export Endpoint Review</h3>
+                  <p>Owner-facing visibility for the chosen XML route packet before the live file route is connected.</p>
                 </div>
               </div>
               {selectedXmlExport ? (
                 <div className="purchase-kv-list">
+                  <div className="purchase-kv"><span>Packet</span><span>{selectedXmlExportPacket?.packet || 'Pending'}</span></div>
+                  <div className="purchase-kv"><span>Window</span><span>{selectedXmlExportPacket?.window || 'Owner XML review'}</span></div>
+                  <div className="purchase-kv"><span>Focus</span><span>{selectedXmlExportPacket?.focus || 'Daily sales XML packet'}</span></div>
+                  <div className="purchase-kv"><span>Packet status</span><span>{selectedXmlExportPacket?.status || 'Pending'}</span></div>
                   <div className="purchase-kv"><span>Shift date</span><span>{selectedXmlExport.shiftDate}</span></div>
                   <div className="purchase-kv"><span>Packet</span><span>{selectedXmlExport.packet}</span></div>
                   <div className="purchase-kv"><span>Window</span><span>{selectedXmlExport.window}</span></div>
                   <div className="purchase-kv"><span>Source</span><span>{selectedXmlExport.source}</span></div>
+                  <div className="purchase-kv"><span>Route</span><span>POST /shifts/getDayInfoForXml</span></div>
                   <div className="purchase-kv"><span>Status</span><span>{selectedXmlExport.status}</span></div>
                   <div className="purchase-kv"><span>Note</span><span>{selectedXmlExport.note}</span></div>
                 </div>
               ) : <div className="purchase-hint">No XML export handoff is selected right now.</div>}
+            </div>
+
+            <div className="report-delivery-card">
+              <div className="purchase-panel-head">
+                <div>
+                  <h3>XML Route Events</h3>
+                  <p>Track route-specific `POST /shifts/getDayInfoForXml` packet activity before the live file route is connected.</p>
+                </div>
+              </div>
+              <div className="pricebook-actions" style={{ marginBottom: 16, flexWrap: 'wrap' }}>
+                {['CSV', 'XLS', 'JSON'].map((format) => (
+                  <button key={format} className="pricebook-btn" onClick={() => exportXmlRouteEvents(format)}>
+                    <Icon name="save" size={15} /> {format}
+                  </button>
+                ))}
+              </div>
+              <div className="report-delivery-list">
+                {selectedXmlExportRouteEvents.length ? selectedXmlExportRouteEvents.map((item) => (
+                  <div className="report-delivery-row" key={item.id}>
+                    <div className="report-delivery-head">
+                      <div>
+                        <div className="report-delivery-title">{item.action}</div>
+                        <div className="report-delivery-meta">{item.time} · {item.actor} · {item.route}</div>
+                      </div>
+                      <span className={`purchase-tag${item.status === 'Needs review' ? ' amber' : ' blue'}`}>{item.status}</span>
+                    </div>
+                    <div className="report-delivery-meta">{selectedXmlExportPacket?.id || 'XMP-1'} · {item.note}</div>
+                  </div>
+                )) : <div className="purchase-hint">No XML route events are recorded for the selected packet yet.</div>}
+              </div>
             </div>
 
             <div className="report-delivery-card">
