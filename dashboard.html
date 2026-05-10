@@ -25710,7 +25710,7 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
     setSelectedNewScreensId(item.id);
     setSelectedNewScreensPacketId(packet.id);
     openSettingsPacket({
-      title: 'New Screens Toggle Depth',
+      title: 'New Screens Toggle Reconcile',
       subtitle: `${packet.window} · POST /util/showNewScreens`,
       headers: ['Time', 'State', 'Fallback', 'Status', 'Route', 'Mode'],
       rows: buildNewScreensRouteRows(item, packet),
@@ -25744,7 +25744,7 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
     if (!item) return;
     setSelectedNewScreensId(item.id);
     openSettingsPacket({
-      title: 'New Screens Toggle Review',
+      title: 'Selected Toggle Endpoint Review',
       subtitle: `${currentLocation.name} · ${item.time}`,
       headers: ['State', 'Fallback', 'Actor', 'Status', 'Route', 'Note'],
       rows: [[item.state, item.fallback, item.actor, item.status, '/util/showNewScreens', item.note]],
@@ -25760,7 +25760,7 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
     if (!item) return;
     setSelectedNewScreensId(item.id);
     saveSettingsPacket({
-      title: 'New Screens Toggle Depth',
+      title: 'New Screens Toggle Reconcile',
       subtitle: `${currentLocation.name} · ${item.time}`,
       route: '/util/showNewScreens',
       note: 'Feature-toggle control replacement shell',
@@ -25781,7 +25781,7 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
     setSelectedNewScreensId(item.id);
     setSelectedNewScreensPacketId(packet.id);
     saveSettingsPacket({
-      title: 'New Screens Toggle Depth',
+      title: 'New Screens Toggle Reconcile',
       subtitle: `${packet.window} · POST /util/showNewScreens`,
       route: '/util/showNewScreens',
       note: 'Feature-toggle control replacement shell',
@@ -26461,7 +26461,7 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
         </div>
 
         <div className="settings-card">
-          <div className="settings-title">New Screens Toggle Depth</div>
+          <div className="settings-title">New Screens Toggle Reconcile</div>
           <div className="settings-sub">Owner-facing `POST /util/showNewScreens` review with selected packet, toggle visibility, and Mercury fallback context.</div>
           <div className="purchase-kv-list">
             <div className="purchase-kv"><span>Selected packet</span><span>{selectedNewScreensPacket ? `${selectedNewScreensPacket.packet} · ${selectedNewScreensPacket.status}` : 'Pending'}</span></div>
