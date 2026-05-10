@@ -22715,10 +22715,20 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
     { id: 'LIC-0', time: '06:11', store: 'Sandy Cross Fuel Center', agreement: 'Accepted', register: 'Refresh Needed', result: 'Review', note: 'Register refresh was required before session start.' },
   ]);
   const [selectedLicenceCheckId, setSelectedLicenceCheckId] = useState('LIC-1');
+  const [licencePacketRows, setLicencePacketRows] = useState([
+    { id: 'LCP-1', packet: 'Primary licence review handoff', window: 'Session-init review', focus: 'Agreement + register validation', source: 'Session init', status: 'Queued', note: 'Primary licence review handoff is staged for owner review before the live Mercury route is connected.' },
+    { id: 'LCP-2', packet: 'Licence exception follow-through', window: 'Agreement or register follow-up', focus: 'Session-start exception review', source: 'Session follow-up', status: 'Needs review', note: 'Licence follow-through still needs final owner review before the live Mercury route is connected.' },
+  ]);
+  const [selectedLicencePacketId, setSelectedLicencePacketId] = useState('LCP-1');
   const [licenceCheckEvents, setLicenceCheckEvents] = useState([
     { id: 'LCE-3801', rowId: 'LIC-1', time: '07:52', actor: 'Owner session', route: '/user/licenceDetails', action: 'Previewed licence review', status: 'Opened', note: 'Owner reviewed the session-start licence packet before the live Mercury route was connected.' },
     { id: 'LCE-3802', rowId: 'LIC-1', time: '07:53', actor: 'Owner session', route: '/user/licenceDetails', action: 'Saved licence packet', status: 'Ready', note: 'Licence packet exported while the live Mercury route remained demo-only.' },
     { id: 'LCE-3803', rowId: 'LIC-0', time: '06:14', actor: 'StoreCheck demo', route: '/user/licenceDetails', action: 'Updated licence review from register refresh', status: 'Review', note: 'Register follow-up kept the session-init licence review in review status.' },
+  ]);
+  const [licenceRouteEvents, setLicenceRouteEvents] = useState([
+    { id: 'LCR-3901', packetId: 'LCP-1', time: '07:52', actor: 'Owner session', route: '/user/licenceDetails', action: 'Previewed licence route packet', status: 'Opened', note: 'Owner reviewed the route-level licence packet before the live Mercury route was connected.' },
+    { id: 'LCR-3902', packetId: 'LCP-1', time: '07:53', actor: 'Owner session', route: '/user/licenceDetails', action: 'Saved licence route packet', status: 'Ready', note: 'Licence route packet exported while the live Mercury route remained demo-only.' },
+    { id: 'LCR-3903', packetId: 'LCP-2', time: '06:14', actor: 'StoreCheck demo', route: '/user/licenceDetails', action: 'Queued licence route handoff', status: 'Queued', note: 'Licence follow-through remained visible inside StoreCheck while the live Mercury route stayed demo-only.' },
   ]);
   const [agreementSaveRows, setAgreementSaveRows] = useState([
     { id: 'AGR-1', time: '07:53', store: 'Main Street Gas & Go', value: 'Accepted', actor: 'Owner session', status: 'Saved', note: 'Agreement captured before dashboard open.' },
@@ -22807,6 +22817,12 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
     licenceCheckRows[0] ||
     null;
   const selectedLicenceEvents = selectedLicenceCheck ? licenceCheckEvents.filter((item) => item.rowId === selectedLicenceCheck.id) : [];
+  const selectedLicencePacket =
+    licencePacketRows.find((item) => item.id === selectedLicencePacketId) ||
+    licencePacketRows[0] ||
+    null;
+  const selectedLicenceRouteEvents =
+    selectedLicencePacket ? licenceRouteEvents.filter((item) => item.packetId === selectedLicencePacket.id) : [];
   const selectedAgreementSave =
     agreementSaveRows.find((item) => item.id === selectedAgreementSaveId) ||
     agreementSaveRows[0] ||
@@ -23009,6 +23025,69 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
       ...current,
     ].slice(0, 24));
   };
+  const pushLicenceRouteEvent = ({ packetId = selectedLicencePacket?.id, action, status, note }) => {
+    if (!packetId) return;
+    const time = stampSessionTime();
+    setLicenceRouteEvents((current) => [
+      {
+        id: `LCR-${Date.now()}`,
+        packetId,
+        time,
+        actor: 'Owner session',
+        route: '/user/licenceDetails',
+        action,
+        status,
+        note,
+      },
+      ...current,
+    ].slice(0, 24));
+  };
+  const buildLicenceRouteRows = (item = selectedLicenceCheck || latestLicenceCheck, packet = selectedLicencePacket) => {
+    if (!item) return [];
+    return [[
+      item.store,
+      item.agreement,
+      item.register,
+      item.result,
+      '/user/licenceDetails',
+      packet?.id === 'LCP-2' ? 'Exception follow-through' : 'Session-init validation',
+    ]];
+  };
+  const previewLicenceRoutePacket = (item = selectedLicenceCheck || latestLicenceCheck, packet = selectedLicencePacket) => {
+    if (!item || !packet) return;
+    setSelectedLicenceCheckId(item.id);
+    setSelectedLicencePacketId(packet.id);
+    openSettingsPacket({
+      title: 'Licence Check Endpoint Depth',
+      subtitle: `${packet.window} · /user/licenceDetails`,
+      headers: ['Store', 'Agreement', 'Register', 'Result', 'Route', 'Mode'],
+      rows: buildLicenceRouteRows(item, packet),
+    });
+    pushLicenceRouteEvent({
+      packetId: packet.id,
+      action: 'Previewed licence route packet',
+      status: 'Opened',
+      note: `${packet.packet} preview opened before the live Mercury route was connected.`,
+    });
+    showSessionNotice(`${item.id} licence route packet preview opened in demo mode.`);
+  };
+  const stageLicenceRouteHandoff = (item = selectedLicenceCheck || latestLicenceCheck, packet = selectedLicencePacket) => {
+    if (!item || !packet) return;
+    setSelectedLicenceCheckId(item.id);
+    setSelectedLicencePacketId(packet.id);
+    setLicencePacketRows((current) => current.map((row) => (
+      row.id === packet.id
+        ? { ...row, status: 'Queued', note: `Licence route handoff is staged for ${packet.window.toLowerCase()}.` }
+        : row
+    )));
+    pushLicenceRouteEvent({
+      packetId: packet.id,
+      action: 'Queued licence route handoff',
+      status: 'Queued',
+      note: `Mercury-style licence handoff accepted for ${packet.window}.`,
+    });
+    showSessionNotice(`${item.id} licence route handoff staged in demo mode. Live \`/user/licenceDetails\` route still pending.`);
+  };
   const previewLicenceCheck = (item = selectedLicenceCheck || latestLicenceCheck) => {
     if (!item) return;
     setSelectedLicenceCheckId(item.id);
@@ -23045,9 +23124,34 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
     });
     showSessionNotice(`${item.id} licence packet saved in demo mode.`);
   };
+  const saveLicenceRoutePacket = (item = selectedLicenceCheck || latestLicenceCheck, packet = selectedLicencePacket) => {
+    if (!item || !packet) return;
+    setSelectedLicenceCheckId(item.id);
+    setSelectedLicencePacketId(packet.id);
+    saveSettingsPacket({
+      title: 'Licence Check Endpoint Depth',
+      subtitle: `${packet.window} · /user/licenceDetails`,
+      route: '/user/licenceDetails',
+      note: 'Session licence review replacement shell',
+      headers: ['Store', 'Agreement', 'Register', 'Result', 'Route', 'Mode'],
+      rows: buildLicenceRouteRows(item, packet),
+      filename: `storecheck-licence-route-${String(packet.id).toLowerCase()}`,
+    });
+    pushLicenceRouteEvent({
+      packetId: packet.id,
+      action: 'Saved licence route packet',
+      status: 'Ready',
+      note: 'Licence route packet exported while the live Mercury route remained demo-only.',
+    });
+    showSessionNotice(`${item.id} licence route packet saved in demo mode.`);
+  };
   const exportLicenceCheckEvents = (format) => {
     if (!selectedLicenceEvents.length) return;
     downloadTableData(selectedLicenceEvents, format, `storecheck-licence-events-${String(selectedLicenceCheck?.id || 'session').toLowerCase()}`);
+  };
+  const exportLicenceRouteEvents = (format) => {
+    if (!selectedLicenceRouteEvents.length) return;
+    downloadTableData(selectedLicenceRouteEvents, format, `storecheck-licence-route-events-${String(selectedLicencePacket?.id || 'route').toLowerCase()}`);
   };
   const pushAgreementSaveEvent = ({ rowId = selectedAgreementSave?.id, action, status, note }) => {
     if (!rowId) return;
@@ -23673,25 +23777,25 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
         </div>
 
         <div className="settings-card">
-          <div className="settings-title">Licence Check Depth</div>
-          <div className="settings-sub">Owner-facing `/user/licenceDetails` review with agreement and register context before the session starts.</div>
+          <div className="settings-title">Licence Check Endpoint Depth</div>
+          <div className="settings-sub">Owner-facing `/user/licenceDetails` review with selected packet, agreement, and register context before the session starts.</div>
           <div className="purchase-kv-list">
+            <div className="purchase-kv"><span>Selected packet</span><span>{selectedLicencePacket ? `${selectedLicencePacket.packet} · ${selectedLicencePacket.status}` : 'Pending'}</span></div>
             <div className="purchase-kv"><span>Selected review</span><span>{selectedLicenceCheck ? `${selectedLicenceCheck.time} · ${selectedLicenceCheck.result}` : 'Pending'}</span></div>
             <div className="purchase-kv"><span>Agreement</span><span>{selectedLicenceCheck?.agreement || 'Pending'}</span></div>
             <div className="purchase-kv"><span>Register</span><span>{selectedLicenceCheck?.register || registerStatus}</span></div>
+            <div className="purchase-kv"><span>Route</span><span>/user/licenceDetails</span></div>
+            <div className="purchase-kv"><span>Latest route event</span><span>{selectedLicenceRouteEvents[0]?.action || 'No events yet'}</span></div>
           </div>
           <div className="pricebook-actions" style={{ marginTop: 16, flexWrap: 'wrap' }}>
-            <button className="pricebook-btn" onClick={() => previewLicenceCheck(selectedLicenceCheck)}>
-              <Icon name="report" size={15} /> Preview licence
+            <button className="pricebook-btn" onClick={() => previewLicenceRoutePacket(selectedLicenceCheck, selectedLicencePacket)}>
+              <Icon name="report" size={15} /> Preview route packet
             </button>
-            <button className="pricebook-btn" onClick={() => saveLicenceCheckPacket(selectedLicenceCheck)}>
-              <Icon name="cash" size={15} /> Save licence
+            <button className="pricebook-btn" onClick={() => stageLicenceRouteHandoff(selectedLicenceCheck, selectedLicencePacket)}>
+              <Icon name="calendar" size={15} /> Stage handoff
             </button>
-            <button className="pricebook-btn" onClick={() => saveAgreementHistoryPacket()}>
-              <Icon name="save" size={15} /> Save agreement log
-            </button>
-            <button className="pricebook-btn primary" onClick={() => saveRegisterRefreshPacket()}>
-              <Icon name="connect" size={15} /> Save refresh log
+            <button className="pricebook-btn primary" onClick={() => saveLicenceRoutePacket(selectedLicenceCheck, selectedLicencePacket)}>
+              <Icon name="cash" size={15} /> Save route packet
             </button>
           </div>
           <div className="purchase-queue-list" style={{ marginTop: 18 }}>
@@ -23707,17 +23811,37 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
               </div>
             ))}
           </div>
+          <div className="purchase-queue-list" style={{ marginTop: 12 }}>
+            {licencePacketRows.map((item) => (
+              <div className="purchase-queue-row" key={item.id}>
+                <div className="purchase-queue-top">
+                  <div>
+                    <div className="purchase-queue-title">{item.packet}</div>
+                    <div className="purchase-queue-meta">{item.window} · {item.focus} · {item.source}</div>
+                  </div>
+                  <button className="pricebook-btn soft" onClick={() => setSelectedLicencePacketId(item.id)}>Review</button>
+                </div>
+                <div className="purchase-queue-meta">{item.note}</div>
+              </div>
+            ))}
+          </div>
         </div>
 
         <div className="settings-card">
-          <div className="settings-title">Selected Licence Review</div>
-          <div className="settings-sub">Keep the chosen licence response visible before the session proceeds.</div>
+          <div className="settings-title">Selected Licence Endpoint Review</div>
+          <div className="settings-sub">Keep the chosen route packet and selected licence response visible before the session proceeds.</div>
           {selectedLicenceCheck ? (
             <div className="purchase-kv-list">
+              <div className="purchase-kv"><span>Packet</span><span>{selectedLicencePacket?.packet || 'Pending'}</span></div>
+              <div className="purchase-kv"><span>Window</span><span>{selectedLicencePacket?.window || 'Session-init review'}</span></div>
+              <div className="purchase-kv"><span>Focus</span><span>{selectedLicencePacket?.focus || 'Agreement + register validation'}</span></div>
+              <div className="purchase-kv"><span>Source</span><span>{selectedLicencePacket?.source || 'Session init'}</span></div>
+              <div className="purchase-kv"><span>Packet status</span><span>{selectedLicencePacket?.status || 'Pending'}</span></div>
               <div className="purchase-kv"><span>Store</span><span>{selectedLicenceCheck.store}</span></div>
               <div className="purchase-kv"><span>Agreement</span><span>{selectedLicenceCheck.agreement}</span></div>
               <div className="purchase-kv"><span>Register</span><span>{selectedLicenceCheck.register}</span></div>
               <div className="purchase-kv"><span>Result</span><span>{selectedLicenceCheck.result}</span></div>
+              <div className="purchase-kv"><span>Route</span><span>/user/licenceDetails</span></div>
               <div className="purchase-kv"><span>Note</span><span>{selectedLicenceCheck.note}</span></div>
             </div>
           ) : (
@@ -23726,23 +23850,23 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
         </div>
 
         <div className="settings-card">
-          <div className="settings-title">Licence Check Events</div>
-          <div className="settings-sub">Track route-specific `/user/licenceDetails` review activity before live wiring is connected.</div>
+          <div className="settings-title">Licence Check Route Events</div>
+          <div className="settings-sub">Track route-specific `/user/licenceDetails` packet activity before live wiring is connected.</div>
           <div className="pricebook-actions" style={{ marginBottom: 16, flexWrap: 'wrap' }}>
             {['CSV', 'XLS', 'JSON'].map((format) => (
-              <button key={format} className="pricebook-btn" onClick={() => exportLicenceCheckEvents(format)}>
+              <button key={format} className="pricebook-btn" onClick={() => exportLicenceRouteEvents(format)}>
                 <Icon name="cash" size={15} /> {format}
               </button>
             ))}
           </div>
           <div className="alerts-list">
-            {selectedLicenceEvents.length ? selectedLicenceEvents.map((item) => (
+            {selectedLicenceRouteEvents.length ? selectedLicenceRouteEvents.map((item) => (
               <div key={item.id} className="alert-item" style={{ alignItems: 'flex-start' }}>
                 <Icon
-                  name={item.action.includes('Saved') ? 'cash' : item.action.includes('Previewed') ? 'report' : 'connect'}
+                  name={item.action.includes('Saved') ? 'cash' : item.action.includes('Previewed') ? 'report' : item.action.includes('Queued') ? 'calendar' : 'connect'}
                   size={18}
-                  bg={item.action.includes('Saved') ? iconDefaults.green.bg : item.action.includes('Previewed') ? iconDefaults.blue.bg : iconDefaults.slate.bg}
-                  fg={item.action.includes('Saved') ? '#15803D' : item.action.includes('Previewed') ? '#3B82F6' : '#64748B'}
+                  bg={item.action.includes('Saved') ? iconDefaults.green.bg : item.action.includes('Previewed') ? iconDefaults.blue.bg : item.action.includes('Queued') ? iconDefaults.slate.bg : iconDefaults.green.bg}
+                  fg={item.action.includes('Saved') ? '#15803D' : item.action.includes('Previewed') ? '#3B82F6' : item.action.includes('Queued') ? '#64748B' : '#15803D'}
                 />
                 <div className="alert-copy">
                   <div className="alert-text">{item.action}</div>
@@ -23751,7 +23875,7 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
                 </div>
               </div>
             )) : (
-              <div className="pricebook-detail-sub">No licence-check event history is visible for this selected review yet.</div>
+              <div className="pricebook-detail-sub">No licence route history is visible for this selected packet yet.</div>
             )}
           </div>
         </div>
