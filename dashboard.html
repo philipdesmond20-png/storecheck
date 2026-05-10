@@ -24623,7 +24623,7 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
     setSelectedLicenceCheckId(item.id);
     setSelectedLicencePacketId(packet.id);
     openSettingsPacket({
-      title: 'Licence Check Endpoint Depth',
+      title: 'Licence Check Endpoint Reconcile',
       subtitle: `${packet.window} · /user/licenceDetails`,
       headers: ['Store', 'Agreement', 'Register', 'Result', 'Route', 'Mode'],
       rows: buildLicenceRouteRows(item, packet),
@@ -24657,7 +24657,7 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
     if (!item) return;
     setSelectedLicenceCheckId(item.id);
     openSettingsPacket({
-      title: 'Licence Check Review',
+      title: 'Selected Licence Endpoint Review',
       subtitle: `${item.store} · ${item.time}`,
       headers: ['Store', 'Agreement', 'Register', 'Result', 'Note'],
       rows: [[item.store, item.agreement, item.register, item.result, item.note]],
@@ -24673,7 +24673,7 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
     if (!item) return;
     setSelectedLicenceCheckId(item.id);
     saveSettingsPacket({
-      title: 'Licence Check Packet',
+      title: 'Licence Check Endpoint Reconcile',
       subtitle: `${item.store} · ${item.time}`,
       route: '/user/licenceDetails',
       note: 'Session licence review replacement shell',
@@ -24694,7 +24694,7 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
     setSelectedLicenceCheckId(item.id);
     setSelectedLicencePacketId(packet.id);
     saveSettingsPacket({
-      title: 'Licence Check Endpoint Depth',
+      title: 'Licence Check Endpoint Reconcile',
       subtitle: `${packet.window} · /user/licenceDetails`,
       route: '/user/licenceDetails',
       note: 'Session licence review replacement shell',
@@ -25870,7 +25870,7 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
         </div>
 
         <div className="settings-card">
-          <div className="settings-title">Licence Check Endpoint Depth</div>
+          <div className="settings-title">Licence Check Endpoint Reconcile</div>
           <div className="settings-sub">Owner-facing `/user/licenceDetails` review with selected packet, agreement, and register context before the session starts.</div>
           <div className="purchase-kv-list">
             <div className="purchase-kv"><span>Selected packet</span><span>{selectedLicencePacket ? `${selectedLicencePacket.packet} · ${selectedLicencePacket.status}` : 'Pending'}</span></div>
