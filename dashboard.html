@@ -18427,6 +18427,11 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
     { id: 'HRP-2', packet: 'Redirect packet export handoff', window: 'Dashboard redirect packet', focus: 'Owner export review', source: 'Redirect packet', status: 'Needs review', note: 'Redirect packet export still needs final owner review before the live Mercury dashboard redirect is connected.' },
   ]);
   const [selectedHomeRedirectPacketId, setSelectedHomeRedirectPacketId] = useState('HRP-1');
+  const [moduleLauncherPacketRows, setModuleLauncherPacketRows] = useState([
+    { id: 'MLP-1', packet: 'Primary module-launch handoff', window: 'Store to module selection', focus: 'Selected module review', source: 'Launcher home', status: 'Queued', note: 'Primary module-launch handoff is staged for owner review before the live Mercury launcher route is connected.' },
+    { id: 'MLP-2', packet: 'Open selected module handoff', window: 'Module launch follow-through', focus: 'Destination launch review', source: 'Open module', status: 'Needs review', note: 'Module-launch follow-through still needs final owner review before the live Mercury launcher route is connected.' },
+  ]);
+  const [selectedModuleLauncherPacketId, setSelectedModuleLauncherPacketId] = useState('MLP-1');
   const [locationPickerPacketRows, setLocationPickerPacketRows] = useState([
     { id: 'LPP-1', packet: 'Primary location picker handoff', window: 'Visible post-login store list', focus: 'Selected store review', source: 'Location Picker', status: 'Queued', note: 'Primary location-picker handoff is staged for owner review before live Mercury redirects are wired.' },
     { id: 'LPP-2', packet: 'Continue-to-home handoff', window: 'Selected store + redirect follow-through', focus: 'Open home reconciliation', source: 'Post-Login Continue', status: 'Needs review', note: 'Continue-to-home handoff still needs final owner review before the live Mercury route is connected.' },
@@ -18445,6 +18450,11 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
     { id: 'HRE-4101', packetId: 'HRP-1', time: '2026-05-10 15:02', actor: 'Store manager', route: '/user/openHomePage', action: 'Previewed post-auth redirect packet', status: 'Opened', note: 'Owner reviewed the dashboard redirect packet before the live Mercury route was connected.' },
     { id: 'HRE-4102', packetId: 'HRP-2', time: '2026-05-10 15:05', actor: 'Store manager', route: '/user/openHomePage', action: 'Saved post-auth redirect packet', status: 'Ready', note: 'Dashboard redirect packet was exported while the live Mercury route remained demo-only.' },
     { id: 'HRE-4103', packetId: 'HRP-1', time: '2026-05-10 15:07', actor: 'StoreCheck demo', route: '/user/openHomePage', action: 'Queued post-auth redirect handoff', status: 'Queued', note: 'Dashboard redirect handoff remained visible inside StoreCheck while the Mercury route stayed demo-only.' },
+  ]);
+  const [moduleLauncherRouteEvents, setModuleLauncherRouteEvents] = useState([
+    { id: 'MLE-4201', packetId: 'MLP-1', time: '2026-05-10 15:18', actor: 'Store manager', route: '/user/puzzleMainPage', action: 'Previewed module-launch route packet', status: 'Opened', note: 'Owner reviewed the module-launch route packet before the live Mercury launcher route was connected.' },
+    { id: 'MLE-4202', packetId: 'MLP-1', time: '2026-05-10 15:20', actor: 'Store manager', route: '/user/puzzleMainPage', action: 'Saved module-launch route packet', status: 'Ready', note: 'Module-launch route packet was exported while the live Mercury launcher route remained demo-only.' },
+    { id: 'MLE-4203', packetId: 'MLP-2', time: '2026-05-10 15:22', actor: 'StoreCheck demo', route: '/user/puzzleMainPage', action: 'Queued module-launch handoff', status: 'Queued', note: 'Module-launch follow-through remained visible inside StoreCheck while the Mercury launcher route stayed demo-only.' },
   ]);
   const [pickerActionEvents, setPickerActionEvents] = useState([
     { id: 'LPR-3601', rowId: 'main-street', time: '2026-05-09 22:52', actor: 'Store manager', route: '/user/viewLocations', action: 'Previewed location-picker packet', status: 'Opened', note: 'Owner reviewed the post-login location picker packet before the live Mercury route was connected.' },
@@ -18540,6 +18550,13 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
     selectedHomeRedirectPacket
       ? homeRedirectEvents.filter((row) => row.packetId === selectedHomeRedirectPacket.id)
       : homeRedirectEvents;
+  const selectedModuleLauncherPacket =
+    moduleLauncherPacketRows.find((row) => row.id === selectedModuleLauncherPacketId) ||
+    moduleLauncherPacketRows[0];
+  const selectedModuleLauncherRouteEvents =
+    selectedModuleLauncherPacket
+      ? moduleLauncherRouteEvents.filter((row) => row.packetId === selectedModuleLauncherPacket.id)
+      : moduleLauncherRouteEvents;
   const loginSubmitContextLabel = `${loginUserName || 'No username'} · ${selectedLoginLocation.name}`;
   const homeRedirectContextLabel = `${selectedLoginLocation.name} · Today's Summary`;
   const loginContextLabel = `${selectedLoginLocation.name} · ${selectedLoginLocation.location}`;
@@ -18598,6 +18615,14 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
     '/user/openHomePage',
     packet?.id === 'HRP-2' ? 'Redirect packet export review' : 'Open dashboard handoff',
   ]];
+  const buildModuleLauncherRows = (packet = selectedModuleLauncherPacket) => [[
+    selectedLoginLocation.id,
+    selectedLoginLocation.name,
+    selectedLaunchTarget.label,
+    selectedLoginLocation.manager,
+    '/user/puzzleMainPage',
+    packet?.id === 'MLP-2' ? 'Open selected module follow-through' : selectedLaunchTarget.note,
+  ]];
   const loginPickerPacketRows = filteredLoginLocations.map((item) => [
     item.id,
     item.name,
@@ -18619,14 +18644,6 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
     }
     return loginPickerPacketRows;
   };
-  const moduleLauncherPacketRows = [[
-    selectedLoginLocation.id,
-    selectedLoginLocation.name,
-    selectedLaunchTarget.label,
-    selectedLoginLocation.manager,
-    '/user/puzzleMainPage',
-    selectedLaunchTarget.note,
-  ]];
   const redirectPacketRows = [[
     selectedRedirectLocation.id,
     selectedRedirectLocation.name,
@@ -18715,6 +18732,22 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
         time,
         actor: 'Store manager',
         route: '/user/openHomePage',
+        action,
+        status,
+        note,
+      },
+      ...current,
+    ].slice(0, 24));
+  };
+  const pushModuleLauncherRouteEvent = ({ packetId = selectedModuleLauncherPacket?.id, action, status, note }) => {
+    const time = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    setModuleLauncherRouteEvents((current) => [
+      {
+        id: `MLE-${Date.now()}`,
+        packetId,
+        time,
+        actor: 'Store manager',
+        route: '/user/puzzleMainPage',
         action,
         status,
         note,
@@ -19001,12 +19034,19 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
       ...current,
     ].slice(0, 24));
   };
-  const previewModuleLauncherPacket = () => {
+  const previewModuleLauncherPacket = (packet = selectedModuleLauncherPacket) => {
+    setSelectedModuleLauncherPacketId(packet.id);
     openMultiStorePacket({
-      title: 'Module launcher depth',
+      title: 'Module Launcher Endpoint Depth',
       subtitle: `${launcherContextLabel} · /user/puzzleMainPage`,
       headers: ['LocationId', 'Store', 'Module', 'Manager', 'Route', 'Context'],
-      rows: moduleLauncherPacketRows,
+      rows: buildModuleLauncherRows(packet),
+    });
+    pushModuleLauncherRouteEvent({
+      packetId: packet.id,
+      action: 'Previewed module-launch route packet',
+      status: 'Opened',
+      note: `${packet.packet} preview opened before the live Mercury launcher route was connected.`,
     });
     pushModuleLauncherEvent({
       action: 'Previewed module-launch packet',
@@ -19015,7 +19055,36 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
     });
     showNotice('Module-launch packet preview opened in demo mode.');
   };
+  const stageModuleLauncherHandoff = (packet = selectedModuleLauncherPacket) => {
+    setSelectedModuleLauncherPacketId(packet.id);
+    setModuleLauncherPacketRows((current) => current.map((row) => (
+      row.id === packet.id
+        ? { ...row, status: 'Queued', note: `Module-launch handoff is staged for ${packet.window.toLowerCase()}.` }
+        : row
+    )));
+    pushModuleLauncherRouteEvent({
+      packetId: packet.id,
+      action: 'Queued module-launch handoff',
+      status: 'Queued',
+      note: `Mercury-style module-launch handoff accepted for ${packet.window}.`,
+    });
+    showNotice(`Module-launch review for ${packet.window} staged in demo mode. Live \`/user/puzzleMainPage\` route still pending.`);
+  };
   const openModuleLauncher = () => {
+    setSelectedModuleLauncherPacketId('MLP-2');
+    setModuleLauncherPacketRows((current) => current.map((row) => (
+      row.id === 'MLP-1'
+        ? { ...row, status: 'Opened', note: `Launcher route was reviewed in demo mode for ${selectedLoginLocation.name}.` }
+        : row.id === 'MLP-2'
+          ? { ...row, status: 'Launched', note: `${selectedLaunchTarget.label} was opened in demo mode for ${selectedLoginLocation.name}.` }
+          : row
+    )));
+    pushModuleLauncherRouteEvent({
+      packetId: 'MLP-2',
+      action: 'Opened selected module from launcher',
+      status: 'Launched',
+      note: `${selectedLaunchTarget.label} opened for ${selectedLoginLocation.name} inside StoreCheck while the live Mercury launcher route remained pending.`,
+    });
     setLocationId(selectedLoginLocation.id);
     setView(selectedLaunchTarget.id);
     stampAuthFlow(`Module opened: ${selectedLaunchTarget.label}`, '/user/puzzleMainPage', selectedLoginLocation.name, 'Launched');
@@ -19026,15 +19095,22 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
     });
     showNotice(`${selectedLaunchTarget.label} opened for ${selectedLoginLocation.name} in demo mode.`);
   };
-  const saveModuleLauncherPacket = () => {
+  const saveModuleLauncherPacket = (packet = selectedModuleLauncherPacket) => {
+    setSelectedModuleLauncherPacketId(packet.id);
     saveMultiStorePacket({
-      title: 'Module launcher depth',
+      title: 'Module Launcher Endpoint Depth',
       subtitle: `${launcherContextLabel} · /user/puzzleMainPage`,
       route: '/user/puzzleMainPage',
       note: 'Module launcher replacement shell after location selection',
       headers: ['LocationId', 'Store', 'Module', 'Manager', 'Route', 'Context'],
-      rows: moduleLauncherPacketRows,
-      filename: 'storecheck-module-launcher-depth',
+      rows: buildModuleLauncherRows(packet),
+      filename: `storecheck-module-launcher-depth-${packet.id.toLowerCase()}`,
+    });
+    pushModuleLauncherRouteEvent({
+      packetId: packet.id,
+      action: 'Saved module-launch route packet',
+      status: 'Ready',
+      note: 'Module-launch route packet was exported while the live Mercury launcher route remained demo-only.',
     });
     pushModuleLauncherEvent({
       action: 'Saved module-launch packet',
@@ -19054,6 +19130,10 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
   const exportModuleLauncherEvents = (format) => {
     if (!selectedModuleLauncherEvents.length) return;
     downloadTableData(selectedModuleLauncherEvents, format, `storecheck-module-launcher-events-${slugify(selectedLoginLocation.name)}-${slugify(selectedLaunchTarget.label)}`);
+  };
+  const exportModuleLauncherRouteEvents = (format) => {
+    if (!selectedModuleLauncherRouteEvents.length) return;
+    downloadTableData(selectedModuleLauncherRouteEvents, format, `storecheck-module-launcher-route-events-${slugify(selectedLoginLocation.name)}-${slugify(selectedModuleLauncherPacket?.packet || 'review')}`);
   };
   const exportLoginSubmitEvents = (format) => {
     if (!selectedLoginSubmitEvents.length) return;
@@ -20214,10 +20294,16 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
             <div className="purchase-note-card">
               <div className="purchase-panel-head">
                 <div>
-                  <h3>Module launcher depth</h3>
+                  <h3>Module Launcher Endpoint Depth</h3>
                   <p>{launcherContextLabel} · /user/puzzleMainPage</p>
                 </div>
                 <span className="purchase-tag amber">Partial</span>
+              </div>
+              <div className="purchase-kv-list">
+                <div className="purchase-kv"><span>Selected packet</span><span>{selectedModuleLauncherPacket ? `${selectedModuleLauncherPacket.packet} · ${selectedModuleLauncherPacket.status}` : 'Pending'}</span></div>
+                <div className="purchase-kv"><span>Selected module</span><span>{selectedLaunchTarget.label}</span></div>
+                <div className="purchase-kv"><span>Launcher route</span><span>/user/puzzleMainPage</span></div>
+                <div className="purchase-kv"><span>Latest route event</span><span>{selectedModuleLauncherRouteEvents[0]?.action || 'No events yet'}</span></div>
               </div>
               <div className="pricebook-actions" style={{ flexWrap: 'wrap' }}>
                 {launcherTargets.map((item) => (
@@ -20226,21 +20312,99 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
                   </button>
                 ))}
               </div>
-              <div className="purchase-kv-list" style={{ marginTop: 16 }}>
-                <div className="purchase-kv"><span>Selected module</span><span>{selectedLaunchTarget.label}</span></div>
-                <div className="purchase-kv"><span>Launcher route</span><span>/user/puzzleMainPage</span></div>
-                <div className="purchase-kv"><span>Context</span><span>{selectedLaunchTarget.note}</span></div>
-              </div>
               <div className="pricebook-actions" style={{ marginTop: 16, flexWrap: 'wrap' }}>
-                <button className="pricebook-btn" onClick={() => previewModuleLauncherPacket()}>
+                <button className="pricebook-btn" onClick={() => previewModuleLauncherPacket(selectedModuleLauncherPacket)}>
                   <Icon name="report" size={15} /> Preview route packet
                 </button>
-                <button className="pricebook-btn" onClick={() => saveModuleLauncherPacket()}>
+                <button className="pricebook-btn" onClick={() => stageModuleLauncherHandoff(selectedModuleLauncherPacket)}>
+                  <Icon name="calendar" size={15} /> Stage handoff
+                </button>
+                <button className="pricebook-btn" onClick={() => saveModuleLauncherPacket(selectedModuleLauncherPacket)}>
                   <Icon name="cash" size={15} /> Save route packet
                 </button>
                 <button className="pricebook-btn primary" onClick={() => openModuleLauncher()}>
                   <Icon name={selectedLaunchTarget.icon} size={15} /> Open module
                 </button>
+              </div>
+              <div className="purchase-queue-list" style={{ marginTop: 16 }}>
+                {moduleLauncherPacketRows.map((row) => (
+                  <div className="purchase-queue-row" key={row.id}>
+                    <div className="purchase-queue-top">
+                      <div>
+                        <div className="purchase-queue-title">{row.packet}</div>
+                        <div className="purchase-queue-meta">{row.window} · {row.focus} · {row.source}</div>
+                      </div>
+                      <span className={`purchase-tag${row.status === 'Needs review' ? ' amber' : row.status === 'Queued' || row.status === 'Opened' || row.status === 'Launched' ? ' blue' : ''}`}>{row.status}</span>
+                    </div>
+                    <div className="purchase-queue-meta">{row.note}</div>
+                    <div className="pricebook-actions" style={{ marginTop: 12 }}>
+                      <button className="pricebook-btn" onClick={() => setSelectedModuleLauncherPacketId(row.id)}>
+                        <Icon name="report" size={15} /> Review
+                      </button>
+                      <button className="pricebook-btn soft" onClick={() => previewModuleLauncherPacket(row)}>
+                        <Icon name="report" size={15} /> Preview
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="purchase-note-card">
+              <div className="purchase-panel-head">
+                <div>
+                  <h3>Selected Module Launcher Review</h3>
+                  <p>{selectedModuleLauncherPacket ? `${selectedModuleLauncherPacket.packet} · /user/puzzleMainPage` : '/user/puzzleMainPage'}</p>
+                </div>
+                <span className="purchase-tag amber">Partial</span>
+              </div>
+              {selectedModuleLauncherPacket ? (
+                <div className="purchase-kv-list">
+                  <div className="purchase-kv"><span>Packet</span><span>{selectedModuleLauncherPacket.packet}</span></div>
+                  <div className="purchase-kv"><span>Window</span><span>{selectedModuleLauncherPacket.window}</span></div>
+                  <div className="purchase-kv"><span>Focus</span><span>{selectedModuleLauncherPacket.focus}</span></div>
+                  <div className="purchase-kv"><span>Source</span><span>{selectedModuleLauncherPacket.source}</span></div>
+                  <div className="purchase-kv"><span>Status</span><span>{selectedModuleLauncherPacket.status}</span></div>
+                  <div className="purchase-kv"><span>Note</span><span>{selectedModuleLauncherPacket.note}</span></div>
+                </div>
+              ) : (
+                <div className="pricebook-detail-sub">No module-launch packet is selected right now.</div>
+              )}
+            </div>
+
+            <div className="purchase-note-card">
+              <div className="purchase-panel-head">
+                <div>
+                  <h3>Module Launcher Route Events</h3>
+                  <p>{selectedModuleLauncherPacket ? `${selectedModuleLauncherPacket.packet} · /user/puzzleMainPage` : '/user/puzzleMainPage'}</p>
+                </div>
+                <span className="purchase-tag amber">Partial</span>
+              </div>
+              <div className="pricebook-actions" style={{ marginBottom: 16, flexWrap: 'wrap' }}>
+                {['CSV', 'XLS', 'JSON'].map((format) => (
+                  <button key={format} className="pricebook-btn" onClick={() => exportModuleLauncherRouteEvents(format)}>
+                    <Icon name="cash" size={15} /> {format}
+                  </button>
+                ))}
+              </div>
+              <div className="alerts-list">
+                {selectedModuleLauncherRouteEvents.length ? selectedModuleLauncherRouteEvents.map((row) => (
+                  <div key={row.id} className="alert-item" style={{ alignItems: 'flex-start' }}>
+                    <Icon
+                      name={row.action.includes('Saved') ? 'cash' : row.action.includes('Previewed') ? 'report' : row.action.includes('Queued') ? 'calendar' : 'home'}
+                      size={18}
+                      bg={row.action.includes('Saved') ? iconDefaults.green.bg : row.action.includes('Previewed') ? iconDefaults.blue.bg : row.action.includes('Queued') ? iconDefaults.slate.bg : iconDefaults.green.bg}
+                      fg={row.action.includes('Saved') ? '#15803D' : row.action.includes('Previewed') ? '#3B82F6' : row.action.includes('Queued') ? '#64748B' : '#15803D'}
+                    />
+                    <div className="alert-copy">
+                      <div className="alert-text">{row.action}</div>
+                      <div className="pricebook-detail-sub">{row.time} · {row.actor} · {row.status}</div>
+                      <div className="pricebook-detail-sub">{row.note}</div>
+                    </div>
+                  </div>
+                )) : (
+                  <div className="pricebook-detail-sub">No module-launch route history is visible for this packet yet.</div>
+                )}
               </div>
             </div>
 
