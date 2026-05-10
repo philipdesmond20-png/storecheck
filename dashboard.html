@@ -18422,6 +18422,11 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
     { id: 'LSP-2', packet: 'Submit + picker follow-through', window: 'Credential submit to location picker', focus: 'Post-auth store selection handoff', source: 'Login redirect', status: 'Needs review', note: 'Credential submit follow-through still needs final owner review before the live Mercury auth route is connected.' },
   ]);
   const [selectedLoginSubmitPacketId, setSelectedLoginSubmitPacketId] = useState('LSP-1');
+  const [homeRedirectPacketRows, setHomeRedirectPacketRows] = useState([
+    { id: 'HRP-1', packet: 'Primary post-auth redirect handoff', window: 'Location picker to dashboard', focus: 'Selected store redirect review', source: 'Open home', status: 'Queued', note: 'Primary redirect handoff is staged for owner review before the live Mercury dashboard redirect is connected.' },
+    { id: 'HRP-2', packet: 'Redirect packet export handoff', window: 'Dashboard redirect packet', focus: 'Owner export review', source: 'Redirect packet', status: 'Needs review', note: 'Redirect packet export still needs final owner review before the live Mercury dashboard redirect is connected.' },
+  ]);
+  const [selectedHomeRedirectPacketId, setSelectedHomeRedirectPacketId] = useState('HRP-1');
   const [locationPickerPacketRows, setLocationPickerPacketRows] = useState([
     { id: 'LPP-1', packet: 'Primary location picker handoff', window: 'Visible post-login store list', focus: 'Selected store review', source: 'Location Picker', status: 'Queued', note: 'Primary location-picker handoff is staged for owner review before live Mercury redirects are wired.' },
     { id: 'LPP-2', packet: 'Continue-to-home handoff', window: 'Selected store + redirect follow-through', focus: 'Open home reconciliation', source: 'Post-Login Continue', status: 'Needs review', note: 'Continue-to-home handoff still needs final owner review before the live Mercury route is connected.' },
@@ -18435,6 +18440,11 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
     { id: 'LSE-3901', packetId: 'LSP-1', time: '2026-05-10 14:42', actor: 'Store manager', route: 'POST /user/authenticateLogin/loginForm', action: 'Previewed login submit packet', status: 'Opened', note: 'Owner reviewed the credential submit packet before the live Mercury auth route was connected.' },
     { id: 'LSE-3902', packetId: 'LSP-1', time: '2026-05-10 14:45', actor: 'Store manager', route: 'POST /user/authenticateLogin/loginForm', action: 'Saved login submit route packet', status: 'Ready', note: 'Credential submit packet was exported while the live Mercury auth route remained demo-only.' },
     { id: 'LSE-3903', packetId: 'LSP-2', time: '2026-05-10 14:47', actor: 'StoreCheck demo', route: 'POST /user/authenticateLogin/loginForm', action: 'Queued login submit handoff', status: 'Queued', note: 'Post-auth location-picker handoff remained visible inside StoreCheck while Mercury auth stayed demo-only.' },
+  ]);
+  const [homeRedirectEvents, setHomeRedirectEvents] = useState([
+    { id: 'HRE-4101', packetId: 'HRP-1', time: '2026-05-10 15:02', actor: 'Store manager', route: '/user/openHomePage', action: 'Previewed post-auth redirect packet', status: 'Opened', note: 'Owner reviewed the dashboard redirect packet before the live Mercury route was connected.' },
+    { id: 'HRE-4102', packetId: 'HRP-2', time: '2026-05-10 15:05', actor: 'Store manager', route: '/user/openHomePage', action: 'Saved post-auth redirect packet', status: 'Ready', note: 'Dashboard redirect packet was exported while the live Mercury route remained demo-only.' },
+    { id: 'HRE-4103', packetId: 'HRP-1', time: '2026-05-10 15:07', actor: 'StoreCheck demo', route: '/user/openHomePage', action: 'Queued post-auth redirect handoff', status: 'Queued', note: 'Dashboard redirect handoff remained visible inside StoreCheck while the Mercury route stayed demo-only.' },
   ]);
   const [pickerActionEvents, setPickerActionEvents] = useState([
     { id: 'LPR-3601', rowId: 'main-street', time: '2026-05-09 22:52', actor: 'Store manager', route: '/user/viewLocations', action: 'Previewed location-picker packet', status: 'Opened', note: 'Owner reviewed the post-login location picker packet before the live Mercury route was connected.' },
@@ -18523,7 +18533,15 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
     selectedLoginSubmitPacket
       ? loginSubmitEvents.filter((row) => row.packetId === selectedLoginSubmitPacket.id)
       : loginSubmitEvents;
+  const selectedHomeRedirectPacket =
+    homeRedirectPacketRows.find((row) => row.id === selectedHomeRedirectPacketId) ||
+    homeRedirectPacketRows[0];
+  const selectedHomeRedirectEvents =
+    selectedHomeRedirectPacket
+      ? homeRedirectEvents.filter((row) => row.packetId === selectedHomeRedirectPacket.id)
+      : homeRedirectEvents;
   const loginSubmitContextLabel = `${loginUserName || 'No username'} · ${selectedLoginLocation.name}`;
+  const homeRedirectContextLabel = `${selectedLoginLocation.name} · Today's Summary`;
   const loginContextLabel = `${selectedLoginLocation.name} · ${selectedLoginLocation.location}`;
   const launcherTargets = [
     { id: 'today', label: "Today's Summary", icon: 'home', note: 'Open dashboard after login redirect' },
@@ -18571,6 +18589,14 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
     packet?.id === 'LSP-2' ? 'Location picker follow-through' : selectedLoginLocation.manager,
     'POST /user/authenticateLogin/loginForm',
     packet?.id === 'LSP-2' ? 'Post-auth store selection stays in StoreCheck' : 'Credential submit review only',
+  ]];
+  const buildHomeRedirectRows = (packet = selectedHomeRedirectPacket) => [[
+    selectedLoginLocation.id,
+    selectedLoginLocation.name,
+    selectedLoginLocation.manager,
+    "Today's Summary",
+    '/user/openHomePage',
+    packet?.id === 'HRP-2' ? 'Redirect packet export review' : 'Open dashboard handoff',
   ]];
   const loginPickerPacketRows = filteredLoginLocations.map((item) => [
     item.id,
@@ -18673,6 +18699,22 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
         time,
         actor: 'Store manager',
         route: 'POST /user/authenticateLogin/loginForm',
+        action,
+        status,
+        note,
+      },
+      ...current,
+    ].slice(0, 24));
+  };
+  const pushHomeRedirectEvent = ({ packetId = selectedHomeRedirectPacket?.id, action, status, note }) => {
+    const time = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    setHomeRedirectEvents((current) => [
+      {
+        id: `HRE-${Date.now()}`,
+        packetId,
+        time,
+        actor: 'Store manager',
+        route: '/user/openHomePage',
         action,
         status,
         note,
@@ -18860,33 +18902,86 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
     stampAuthFlow('Location selected', '/user/viewLocations', targetLocation.name, 'Selected');
     showNotice(`${targetLocation.name} selected in the post-login picker.`);
   };
-  const openHomeRedirect = () => {
+  const previewHomeRedirectPacket = (packet = selectedHomeRedirectPacket) =>
+    (setSelectedHomeRedirectPacketId(packet.id),
+    openMultiStorePacket({
+      title: 'Post-Auth Redirect Endpoint Depth',
+      subtitle: `${packet.window} · /user/openHomePage`,
+      headers: ['LocationId', 'Store', 'Manager', 'Destination', 'Route', 'Mode'],
+      rows: buildHomeRedirectRows(packet),
+    }),
+    pushHomeRedirectEvent({
+      packetId: packet.id,
+      action: 'Previewed post-auth redirect packet',
+      status: 'Opened',
+      note: `${packet.packet} preview opened before the live Mercury dashboard redirect was connected.`,
+    }),
+    showNotice('Post-auth redirect packet preview opened in demo mode.'));
+  const stageHomeRedirectHandoff = (packet = selectedHomeRedirectPacket) => {
+    setSelectedHomeRedirectPacketId(packet.id);
+    setHomeRedirectPacketRows((current) => current.map((row) => (
+      row.id === packet.id
+        ? { ...row, status: 'Queued', note: `Post-auth redirect handoff is staged for ${packet.window.toLowerCase()}.` }
+        : row
+    )));
+    pushHomeRedirectEvent({
+      packetId: packet.id,
+      action: 'Queued post-auth redirect handoff',
+      status: 'Queued',
+      note: `Mercury-style dashboard redirect handoff accepted for ${packet.window}.`,
+    });
+    showNotice(`Post-auth redirect review for ${packet.window} staged in demo mode. Live \`/user/openHomePage\` route still pending.`);
+  };
+  const openHomeRedirect = (locationId = selectedLoginLocation.id, packetId = selectedHomeRedirectPacket?.id || 'HRP-1') => {
+    const targetLocation =
+      STORE_LOCATIONS.find((item) => item.id === locationId) ||
+      selectedLoginLocation;
+    setLoginLocationId(targetLocation.id);
+    setSelectedHomeRedirectPacketId(packetId);
     setSelectedLocationPickerPacketId('LPP-2');
     setLocationPickerPacketRows((current) => current.map((row) => (
       row.id === 'LPP-2'
-        ? { ...row, status: 'Ready', note: `Continue-to-home handoff was reconciled in demo mode for ${selectedLoginLocation.name}.` }
+        ? { ...row, status: 'Ready', note: `Continue-to-home handoff was reconciled in demo mode for ${targetLocation.name}.` }
+        : row
+    )));
+    setHomeRedirectPacketRows((current) => current.map((row) => (
+      row.id === 'HRP-1'
+        ? { ...row, status: 'Opened', note: `Dashboard redirect was opened in demo mode for ${targetLocation.name}.` }
         : row
     )));
     pushLocationPickerRouteEvent({
       packetId: 'LPP-2',
       action: 'Opened home from location picker',
       status: 'Ready',
-      note: `${selectedLoginLocation.name} continued to the dashboard while the live Mercury redirect remained pending.`,
+      note: `${targetLocation.name} continued to the dashboard while the live Mercury redirect remained pending.`,
     });
-    setLocationId(selectedLoginLocation.id);
+    pushHomeRedirectEvent({
+      packetId: 'HRP-1',
+      action: 'Opened home from post-auth redirect',
+      status: 'Opened',
+      note: `${targetLocation.name} continued to Today's Summary inside StoreCheck while the live Mercury redirect remained pending.`,
+    });
+    setLocationId(targetLocation.id);
     setView('today');
-    stampAuthFlow('Redirect to dashboard', '/user/openHomePage', selectedLoginLocation.name, 'Complete');
-    showNotice(`${selectedLoginLocation.name} opened from the post-login redirect in demo mode.`);
+    stampAuthFlow('Redirect to dashboard', '/user/openHomePage', targetLocation.name, 'Complete');
+    showNotice(`${targetLocation.name} opened from the post-login redirect in demo mode.`);
   };
-  const saveHomeRedirectPacket = () => {
+  const saveHomeRedirectPacket = (packet = selectedHomeRedirectPacket) => {
+    setSelectedHomeRedirectPacketId(packet.id);
     saveMultiStorePacket({
-      title: 'Post-Auth Redirect Packet',
-      subtitle: `${selectedLoginLocation.name} · Today's Summary`,
+      title: 'Post-Auth Redirect Endpoint Depth',
+      subtitle: `${packet.window} · /user/openHomePage`,
       route: '/user/openHomePage',
       note: 'Post-login redirect replacement shell',
-      headers: ['Store', 'Manager', 'Destination', 'Route'],
-      rows: [[selectedLoginLocation.name, selectedLoginLocation.manager, "Today's Summary", '/user/openHomePage']],
-      filename: 'storecheck-post-auth-redirect',
+      headers: ['LocationId', 'Store', 'Manager', 'Destination', 'Route', 'Mode'],
+      rows: buildHomeRedirectRows(packet),
+      filename: `storecheck-post-auth-redirect-${packet.id.toLowerCase()}`,
+    });
+    pushHomeRedirectEvent({
+      packetId: packet.id,
+      action: 'Saved post-auth redirect packet',
+      status: 'Ready',
+      note: 'Dashboard redirect packet was exported while the live Mercury route remained demo-only.',
     });
     showNotice('Post-auth redirect packet saved in demo mode.');
   };
@@ -18963,6 +19058,10 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
   const exportLoginSubmitEvents = (format) => {
     if (!selectedLoginSubmitEvents.length) return;
     downloadTableData(selectedLoginSubmitEvents, format, `storecheck-login-submit-events-${slugify(loginUserName || selectedLoginLocation.name)}-${slugify(selectedLoginSubmitPacket?.packet || 'review')}`);
+  };
+  const exportHomeRedirectEvents = (format) => {
+    if (!selectedHomeRedirectEvents.length) return;
+    downloadTableData(selectedHomeRedirectEvents, format, `storecheck-post-auth-redirect-events-${slugify(selectedLoginLocation.name)}-${slugify(selectedHomeRedirectPacket?.packet || 'review')}`);
   };
   const exportCompare = (format) => downloadTableData(filteredCompare, format, 'storecheck-multi-store-compare');
   const pushRedirectActionEvent = ({ rowId, action, status, note }) => {
@@ -19719,7 +19818,7 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
                       <button className="pricebook-btn" onClick={() => reviewLoginLocation(item.id)}>
                         <Icon name="connect" size={15} /> Select store
                       </button>
-                      <button className="pricebook-btn primary" onClick={() => { setLoginLocationId(item.id); setSelectedLocationPickerPacketId('LPP-2'); setLocationId(item.id); setView('today'); stampAuthFlow('Redirect to dashboard', '/user/openHomePage', item.name, 'Complete'); pushLocationPickerRouteEvent({ packetId: 'LPP-2', action: 'Opened home from location picker', status: 'Ready', note: `${item.name} continued to the dashboard while the live Mercury redirect remained pending.` }); showNotice(`${item.name} opened from the post-login picker in demo mode.`); }}>
+                      <button className="pricebook-btn primary" onClick={() => openHomeRedirect(item.id, 'HRP-1')}>
                         <Icon name="home" size={15} /> Continue
                       </button>
                     </div>
@@ -19861,6 +19960,58 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
             <div className="purchase-note-card">
               <div className="purchase-panel-head">
                 <div>
+                  <h3>Post-Auth Redirect Endpoint Depth</h3>
+                  <p>{homeRedirectContextLabel} · /user/openHomePage</p>
+                </div>
+                <span className="purchase-tag amber">Partial</span>
+              </div>
+              <div className="purchase-kv-list">
+                <div className="purchase-kv"><span>Selected store</span><span>{selectedLoginLocation.name}</span></div>
+                <div className="purchase-kv"><span>Destination</span><span>Today's Summary</span></div>
+                <div className="purchase-kv"><span>Redirect route</span><span>/user/openHomePage</span></div>
+                <div className="purchase-kv"><span>Latest event</span><span>{selectedHomeRedirectEvents[0]?.action || 'No events yet'}</span></div>
+              </div>
+              <div className="pricebook-actions" style={{ marginTop: 16, flexWrap: 'wrap' }}>
+                <button className="pricebook-btn" onClick={() => previewHomeRedirectPacket(selectedHomeRedirectPacket)}>
+                  <Icon name="report" size={15} /> Preview route packet
+                </button>
+                <button className="pricebook-btn" onClick={() => stageHomeRedirectHandoff(selectedHomeRedirectPacket)}>
+                  <Icon name="calendar" size={15} /> Stage handoff
+                </button>
+                <button className="pricebook-btn" onClick={() => saveHomeRedirectPacket(selectedHomeRedirectPacket)}>
+                  <Icon name="cash" size={15} /> Save route packet
+                </button>
+                <button className="pricebook-btn primary" onClick={() => openHomeRedirect(selectedLoginLocation.id, 'HRP-1')}>
+                  <Icon name="home" size={15} /> Open home
+                </button>
+              </div>
+              <div className="purchase-queue-list" style={{ marginTop: 16 }}>
+                {homeRedirectPacketRows.map((row) => (
+                  <div className="purchase-queue-row" key={row.id}>
+                    <div className="purchase-queue-top">
+                      <div>
+                        <div className="purchase-queue-title">{row.packet}</div>
+                        <div className="purchase-queue-meta">{row.window} · {row.focus} · {row.source}</div>
+                      </div>
+                      <span className={`purchase-tag${row.status === 'Needs review' ? ' amber' : row.status === 'Queued' || row.status === 'Opened' ? ' blue' : ''}`}>{row.status}</span>
+                    </div>
+                    <div className="purchase-queue-meta">{row.note}</div>
+                    <div className="pricebook-actions" style={{ marginTop: 12 }}>
+                      <button className="pricebook-btn" onClick={() => setSelectedHomeRedirectPacketId(row.id)}>
+                        <Icon name="report" size={15} /> Review
+                      </button>
+                      <button className="pricebook-btn soft" onClick={() => previewHomeRedirectPacket(row)}>
+                        <Icon name="report" size={15} /> Preview
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="purchase-note-card">
+              <div className="purchase-panel-head">
+                <div>
                   <h3>Location Picker Endpoint Reconcile</h3>
                   <p>{selectedLoginLocation.name} · /user/viewLocations</p>
                 </div>
@@ -19885,9 +20036,67 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
                 <button className="pricebook-btn" onClick={() => saveHomeRedirectPacket()}>
                   <Icon name="cash" size={15} /> Save redirect
                 </button>
-                <button className="pricebook-btn primary" onClick={() => openHomeRedirect()}>
+                <button className="pricebook-btn primary" onClick={() => openHomeRedirect(selectedLoginLocation.id, 'HRP-1')}>
                   <Icon name="home" size={15} /> Open home
                 </button>
+              </div>
+            </div>
+
+            <div className="purchase-note-card">
+              <div className="purchase-panel-head">
+                <div>
+                  <h3>Selected Post-Auth Redirect Review</h3>
+                  <p>{selectedHomeRedirectPacket ? `${selectedHomeRedirectPacket.packet} · /user/openHomePage` : '/user/openHomePage'}</p>
+                </div>
+                <span className="purchase-tag amber">Partial</span>
+              </div>
+              {selectedHomeRedirectPacket ? (
+                <div className="purchase-kv-list">
+                  <div className="purchase-kv"><span>Packet</span><span>{selectedHomeRedirectPacket.packet}</span></div>
+                  <div className="purchase-kv"><span>Window</span><span>{selectedHomeRedirectPacket.window}</span></div>
+                  <div className="purchase-kv"><span>Focus</span><span>{selectedHomeRedirectPacket.focus}</span></div>
+                  <div className="purchase-kv"><span>Source</span><span>{selectedHomeRedirectPacket.source}</span></div>
+                  <div className="purchase-kv"><span>Status</span><span>{selectedHomeRedirectPacket.status}</span></div>
+                  <div className="purchase-kv"><span>Note</span><span>{selectedHomeRedirectPacket.note}</span></div>
+                </div>
+              ) : (
+                <div className="pricebook-detail-sub">No post-auth redirect packet is selected right now.</div>
+              )}
+            </div>
+
+            <div className="purchase-note-card">
+              <div className="purchase-panel-head">
+                <div>
+                  <h3>Post-Auth Redirect Events</h3>
+                  <p>{selectedHomeRedirectPacket ? `${selectedHomeRedirectPacket.packet} · /user/openHomePage` : '/user/openHomePage'}</p>
+                </div>
+                <span className="purchase-tag amber">Partial</span>
+              </div>
+              <div className="pricebook-actions" style={{ marginBottom: 16, flexWrap: 'wrap' }}>
+                {['CSV', 'XLS', 'JSON'].map((format) => (
+                  <button key={format} className="pricebook-btn" onClick={() => exportHomeRedirectEvents(format)}>
+                    <Icon name="cash" size={15} /> {format}
+                  </button>
+                ))}
+              </div>
+              <div className="alerts-list">
+                {selectedHomeRedirectEvents.length ? selectedHomeRedirectEvents.map((row) => (
+                  <div key={row.id} className="alert-item" style={{ alignItems: 'flex-start' }}>
+                    <Icon
+                      name={row.action.includes('Saved') ? 'cash' : row.action.includes('Previewed') ? 'report' : row.action.includes('Queued') ? 'calendar' : 'home'}
+                      size={18}
+                      bg={row.action.includes('Saved') ? iconDefaults.green.bg : row.action.includes('Previewed') ? iconDefaults.blue.bg : row.action.includes('Queued') ? iconDefaults.slate.bg : iconDefaults.green.bg}
+                      fg={row.action.includes('Saved') ? '#15803D' : row.action.includes('Previewed') ? '#3B82F6' : row.action.includes('Queued') ? '#64748B' : '#15803D'}
+                    />
+                    <div className="alert-copy">
+                      <div className="alert-text">{row.action}</div>
+                      <div className="pricebook-detail-sub">{row.time} · {row.actor} · {row.status}</div>
+                      <div className="pricebook-detail-sub">{row.note}</div>
+                    </div>
+                  </div>
+                )) : (
+                  <div className="pricebook-detail-sub">No dashboard-redirect history is visible for this packet yet.</div>
+                )}
               </div>
             </div>
 
