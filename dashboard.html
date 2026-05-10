@@ -18415,6 +18415,11 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
   const [loginSearch, setLoginSearch] = useState('');
   const [loginLocationId, setLoginLocationId] = useState(currentLocation.id);
   const [launchTarget, setLaunchTarget] = useState('today');
+  const [locationPickerPacketRows, setLocationPickerPacketRows] = useState([
+    { id: 'LPP-1', packet: 'Primary location picker handoff', window: 'Visible post-login store list', focus: 'Selected store review', source: 'Location Picker', status: 'Queued', note: 'Primary location-picker handoff is staged for owner review before live Mercury redirects are wired.' },
+    { id: 'LPP-2', packet: 'Continue-to-home handoff', window: 'Selected store + redirect follow-through', focus: 'Open home reconciliation', source: 'Post-Login Continue', status: 'Needs review', note: 'Continue-to-home handoff still needs final owner review before the live Mercury route is connected.' },
+  ]);
+  const [selectedLocationPickerPacketId, setSelectedLocationPickerPacketId] = useState('LPP-1');
   const [authFlowRows, setAuthFlowRows] = useState([
     { id: 'AUTH-1', time: '08:42', step: 'Location picker opened', route: '/user/viewLocations', store: 'Main Street Gas & Go', status: 'Ready' },
     { id: 'AUTH-2', time: '08:43', step: 'Redirect to dashboard', route: '/user/openHomePage', store: 'Main Street Gas & Go', status: 'Complete' },
@@ -18423,6 +18428,11 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
     { id: 'LPR-3601', rowId: 'main-street', time: '2026-05-09 22:52', actor: 'Store manager', route: '/user/viewLocations', action: 'Previewed location-picker packet', status: 'Opened', note: 'Owner reviewed the post-login location picker packet before the live Mercury route was connected.' },
     { id: 'LPR-3602', rowId: 'main-street', time: '2026-05-09 22:56', actor: 'Store manager', route: '/user/viewLocations', action: 'Saved location-picker packet', status: 'Ready', note: 'Location-picker packet exported while the live Mercury route remained demo-only.' },
     { id: 'LPR-3603', rowId: 'north-avenue', time: '2026-05-08 10:59', actor: 'StoreCheck demo', route: '/user/viewLocations', action: 'Selected location in picker', status: 'Selected', note: 'Location selection stayed inside StoreCheck while the live Mercury route remained pending.' },
+  ]);
+  const [locationPickerRouteEvents, setLocationPickerRouteEvents] = useState([
+    { id: 'LPP-401', packetId: 'LPP-1', time: '2026-05-10 14:22', actor: 'Store manager', route: '/user/viewLocations', action: 'Previewed location-picker route packet', status: 'Opened', note: 'Owner reviewed the selected-store route packet before the live Mercury route was connected.' },
+    { id: 'LPP-402', packetId: 'LPP-1', time: '2026-05-10 14:24', actor: 'Store manager', route: '/user/viewLocations', action: 'Saved location-picker route packet', status: 'Ready', note: 'Location-picker route packet was exported while the live Mercury route remained demo-only.' },
+    { id: 'LPP-403', packetId: 'LPP-2', time: '2026-05-09 20:18', actor: 'StoreCheck demo', route: '/user/viewLocations', action: 'Queued location-picker handoff', status: 'Queued', note: 'Continue-to-home handoff remained visible in demo mode.' },
   ]);
   const [moduleLauncherEvents, setModuleLauncherEvents] = useState([
     { id: 'MLD-3701', rowId: 'main-street:today', time: '2026-05-09 23:14', actor: 'Store manager', route: '/user/puzzleMainPage', action: 'Previewed module-launch packet', status: 'Opened', note: 'Owner reviewed the module launcher packet before the live Mercury route was connected.' },
@@ -18482,10 +18492,17 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
     STORE_LOCATIONS.find((item) => item.id === loginLocationId) ||
     filteredLoginLocations[0] ||
     STORE_LOCATIONS[0];
+  const selectedLocationPickerPacket =
+    locationPickerPacketRows.find((row) => row.id === selectedLocationPickerPacketId) ||
+    locationPickerPacketRows[0];
   const selectedLoginOverview =
     MULTI_STORE_OVERVIEW.find((row) => row.id === selectedLoginLocation.id) ||
     MULTI_STORE_OVERVIEW[0];
   const selectedPickerEvents = pickerActionEvents.filter((row) => row.rowId === selectedLoginLocation.id);
+  const selectedLocationPickerRouteEvents =
+    selectedLocationPickerPacket
+      ? locationPickerRouteEvents.filter((row) => row.packetId === selectedLocationPickerPacket.id)
+      : locationPickerRouteEvents;
   const loginContextLabel = `${selectedLoginLocation.name} · ${selectedLoginLocation.location}`;
   const launcherTargets = [
     { id: 'today', label: "Today's Summary", icon: 'home', note: 'Open dashboard after login redirect' },
@@ -18534,6 +18551,19 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
     item.status,
     item.id === selectedLoginLocation.id ? 'Selected' : 'Available',
   ]);
+  const buildLocationPickerRouteRows = (packet = selectedLocationPickerPacket) => {
+    if (packet?.id === 'LPP-2') {
+      return [[
+        selectedLoginLocation.id,
+        selectedLoginLocation.name,
+        selectedLoginLocation.location,
+        selectedLoginLocation.manager,
+        '/user/openHomePage',
+        'Continue to dashboard',
+      ]];
+    }
+    return loginPickerPacketRows;
+  };
   const moduleLauncherPacketRows = [[
     selectedLoginLocation.id,
     selectedLoginLocation.name,
@@ -18621,12 +18651,37 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
       ...current,
     ].slice(0, 24));
   };
-  const previewLocationPicker = () =>
-    (openMultiStorePacket({
-      title: 'Location picker review depth',
-      subtitle: `${loginContextLabel} · /user/viewLocations`,
-      headers: ['LocationId', 'Store', 'Location', 'Manager', 'Status', 'Selection'],
-      rows: loginPickerPacketRows,
+  const pushLocationPickerRouteEvent = ({ packetId = selectedLocationPickerPacket?.id, action, status, note }) => {
+    const time = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    setLocationPickerRouteEvents((current) => [
+      {
+        id: `LPP-${Date.now()}`,
+        packetId,
+        time,
+        actor: 'Store manager',
+        route: '/user/viewLocations',
+        action,
+        status,
+        note,
+      },
+      ...current,
+    ].slice(0, 24));
+  };
+  const previewLocationPicker = (packet = selectedLocationPickerPacket) =>
+    (setSelectedLocationPickerPacketId(packet.id),
+    openMultiStorePacket({
+      title: 'Location Picker Endpoint Reconcile',
+      subtitle: `${packet.window} · ${packet.focus} · /user/viewLocations`,
+      headers: packet.id === 'LPP-2'
+        ? ['LocationId', 'Store', 'Location', 'Manager', 'Route', 'Mode']
+        : ['LocationId', 'Store', 'Location', 'Manager', 'Status', 'Selection'],
+      rows: buildLocationPickerRouteRows(packet),
+    }),
+    pushLocationPickerRouteEvent({
+      packetId: packet.id,
+      action: 'Previewed location-picker route packet',
+      status: 'Opened',
+      note: `${packet.packet} preview opened before the live Mercury route was connected.`,
     }),
     pushPickerActionEvent({
       rowId: selectedLoginLocation.id,
@@ -18634,16 +18689,25 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
       status: 'Opened',
       note: `Owner reviewed the ${selectedLoginLocation.name} location-choice packet before the live Mercury route was connected.`,
     }),
-    showNotice('Location-picker packet preview opened in demo mode.'));
-  const saveLocationPickerPacket = () => {
+    showNotice('Location-picker route packet preview opened in demo mode.'));
+  const saveLocationPickerPacket = (packet = selectedLocationPickerPacket) => {
+    setSelectedLocationPickerPacketId(packet.id);
     saveMultiStorePacket({
-      title: 'Location picker review depth',
-      subtitle: `${loginContextLabel} · /user/viewLocations`,
+      title: 'Location Picker Endpoint Reconcile',
+      subtitle: `${packet.window} · ${packet.focus} · /user/viewLocations`,
       route: '/user/viewLocations',
       note: 'Post-auth location picker replacement shell',
-      headers: ['LocationId', 'Store', 'Location', 'Manager', 'Status', 'Selection'],
-      rows: loginPickerPacketRows,
-      filename: 'storecheck-location-picker-review',
+      headers: packet.id === 'LPP-2'
+        ? ['LocationId', 'Store', 'Location', 'Manager', 'Route', 'Mode']
+        : ['LocationId', 'Store', 'Location', 'Manager', 'Status', 'Selection'],
+      rows: buildLocationPickerRouteRows(packet),
+      filename: `storecheck-location-picker-${packet.id.toLowerCase()}`,
+    });
+    pushLocationPickerRouteEvent({
+      packetId: packet.id,
+      action: 'Saved location-picker route packet',
+      status: 'Ready',
+      note: 'Location-picker route packet was exported while the live Mercury route remained demo-only.',
     });
     pushPickerActionEvent({
       rowId: selectedLoginLocation.id,
@@ -18651,13 +18715,29 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
       status: 'Ready',
       note: 'Location-picker packet exported while the live Mercury route remained demo-only.',
     });
-    showNotice('Location-picker packet saved in demo mode.');
+    showNotice('Location-picker route packet saved in demo mode.');
+  };
+  const stageLocationPickerHandoff = (packet = selectedLocationPickerPacket) => {
+    setSelectedLocationPickerPacketId(packet.id);
+    setLocationPickerPacketRows((current) => current.map((row) => (
+      row.id === packet.id
+        ? { ...row, status: 'Queued', note: `Location-picker handoff is staged for ${packet.window}.` }
+        : row
+    )));
+    pushLocationPickerRouteEvent({
+      packetId: packet.id,
+      action: 'Queued location-picker handoff',
+      status: 'Queued',
+      note: `Mercury-style location-picker handoff accepted for ${packet.window}.`,
+    });
+    showNotice(`Location-picker review for ${packet.window} staged in demo mode. Live \`/user/viewLocations\` route still pending.`);
   };
   const reviewLoginLocation = (locationId) => {
     const targetLocation =
       STORE_LOCATIONS.find((item) => item.id === locationId) ||
       selectedLoginLocation;
     setLoginLocationId(targetLocation.id);
+    setSelectedLocationPickerPacketId('LPP-1');
     pushPickerActionEvent({
       rowId: targetLocation.id,
       action: 'Selected location in picker',
@@ -18668,6 +18748,18 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
     showNotice(`${targetLocation.name} selected in the post-login picker.`);
   };
   const openHomeRedirect = () => {
+    setSelectedLocationPickerPacketId('LPP-2');
+    setLocationPickerPacketRows((current) => current.map((row) => (
+      row.id === 'LPP-2'
+        ? { ...row, status: 'Ready', note: `Continue-to-home handoff was reconciled in demo mode for ${selectedLoginLocation.name}.` }
+        : row
+    )));
+    pushLocationPickerRouteEvent({
+      packetId: 'LPP-2',
+      action: 'Opened home from location picker',
+      status: 'Ready',
+      note: `${selectedLoginLocation.name} continued to the dashboard while the live Mercury redirect remained pending.`,
+    });
     setLocationId(selectedLoginLocation.id);
     setView('today');
     stampAuthFlow('Redirect to dashboard', '/user/openHomePage', selectedLoginLocation.name, 'Complete');
@@ -18746,6 +18838,10 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
   const exportPickerEvents = (format) => {
     if (!selectedPickerEvents.length) return;
     downloadTableData(selectedPickerEvents, format, `storecheck-location-picker-events-${slugify(selectedLoginLocation.name)}`);
+  };
+  const exportLocationPickerRouteEvents = (format) => {
+    if (!selectedLocationPickerRouteEvents.length) return;
+    downloadTableData(selectedLocationPickerRouteEvents, format, `storecheck-location-picker-route-events-${slugify(selectedLoginLocation.name)}-${slugify(selectedLocationPickerPacket.packet)}`);
   };
   const exportModuleLauncherEvents = (format) => {
     if (!selectedModuleLauncherEvents.length) return;
@@ -19397,18 +19493,31 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
             <div className="purchase-surface">
               <div className="pricebook-toolbar" style={{ padding: '20px 20px 0' }}>
                 <div>
-                  <div className="pricebook-detail-title">Location picker review depth</div>
+                  <div className="pricebook-detail-title">Location Picker Endpoint Reconcile</div>
                   <div className="pricebook-detail-sub">Mercury route: <strong>/user/viewLocations</strong></div>
                 </div>
                 <div className="pricebook-actions">
                   <input className="pricebook-input" value={loginSearch} onChange={(e) => setLoginSearch(e.target.value)} placeholder="Search stores, manager, or address" />
-                  <button className="pricebook-btn" onClick={() => previewLocationPicker()}>
+                  <button className="pricebook-btn" onClick={() => previewLocationPicker(selectedLocationPickerPacket)}>
                     <Icon name="report" size={15} /> Preview route packet
                   </button>
-                  <button className="pricebook-btn" onClick={() => saveLocationPickerPacket()}>
+                  <button className="pricebook-btn" onClick={() => stageLocationPickerHandoff(selectedLocationPickerPacket)}>
+                    <Icon name="calendar" size={15} /> Stage handoff
+                  </button>
+                  <button className="pricebook-btn" onClick={() => saveLocationPickerPacket(selectedLocationPickerPacket)}>
                     <Icon name="cash" size={15} /> Save route packet
                   </button>
+                  <button className="pricebook-btn primary" onClick={() => exportLocationPickerRouteEvents('CSV')}>
+                    <Icon name="save" size={15} /> Export route log
+                  </button>
                 </div>
+              </div>
+              <div className="purchase-kv-list" style={{ padding: '0 20px 16px' }}>
+                <div className="purchase-kv"><span>Selected packet</span><span>{selectedLocationPickerPacket ? `${selectedLocationPickerPacket.packet} · ${selectedLocationPickerPacket.status}` : 'Pending'}</span></div>
+                <div className="purchase-kv"><span>Route</span><span>/user/viewLocations</span></div>
+                <div className="purchase-kv"><span>Focus</span><span>{selectedLocationPickerPacket?.focus || 'Selected store review'}</span></div>
+                <div className="purchase-kv"><span>Current packet</span><span>{selectedLocationPickerPacket ? `${selectedLocationPickerPacket.window} · ${selectedLocationPickerPacket.source}` : 'Location Picker'}</span></div>
+                <div className="purchase-kv"><span>Latest event</span><span>{selectedLocationPickerRouteEvents[0]?.action || 'No events yet'}</span></div>
               </div>
               <div className="purchase-summary-grid">
                 {filteredLoginLocations.map((item) => (
@@ -19431,8 +19540,30 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
                       <button className="pricebook-btn" onClick={() => reviewLoginLocation(item.id)}>
                         <Icon name="connect" size={15} /> Select store
                       </button>
-                      <button className="pricebook-btn primary" onClick={() => { setLoginLocationId(item.id); setLocationId(item.id); setView('today'); stampAuthFlow('Redirect to dashboard', '/user/openHomePage', item.name, 'Complete'); showNotice(`${item.name} opened from the post-login picker in demo mode.`); }}>
+                      <button className="pricebook-btn primary" onClick={() => { setLoginLocationId(item.id); setSelectedLocationPickerPacketId('LPP-2'); setLocationId(item.id); setView('today'); stampAuthFlow('Redirect to dashboard', '/user/openHomePage', item.name, 'Complete'); pushLocationPickerRouteEvent({ packetId: 'LPP-2', action: 'Opened home from location picker', status: 'Ready', note: `${item.name} continued to the dashboard while the live Mercury redirect remained pending.` }); showNotice(`${item.name} opened from the post-login picker in demo mode.`); }}>
                         <Icon name="home" size={15} /> Continue
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="purchase-queue-list" style={{ padding: '16px 20px 20px' }}>
+                {locationPickerPacketRows.map((row) => (
+                  <div className="purchase-queue-row" key={row.id}>
+                    <div className="purchase-queue-top">
+                      <div>
+                        <div className="purchase-queue-title">{row.packet}</div>
+                        <div className="purchase-queue-meta">{row.window} · {row.focus} · {row.source}</div>
+                      </div>
+                      <span className={`purchase-tag${row.status === 'Needs review' ? ' amber' : row.status === 'Queued' ? ' blue' : ''}`}>{row.status}</span>
+                    </div>
+                    <div className="purchase-queue-meta">{row.note}</div>
+                    <div className="pricebook-actions" style={{ marginTop: 12 }}>
+                      <button className="pricebook-btn" onClick={() => setSelectedLocationPickerPacketId(row.id)}>
+                        <Icon name="report" size={15} /> Review
+                      </button>
+                      <button className="pricebook-btn soft" onClick={() => previewLocationPicker(row)}>
+                        <Icon name="report" size={15} /> Preview
                       </button>
                     </div>
                   </div>
@@ -19445,7 +19576,7 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
             <div className="purchase-note-card">
               <div className="purchase-panel-head">
                 <div>
-                  <h3>Location picker review depth</h3>
+                  <h3>Location Picker Endpoint Reconcile</h3>
                   <p>{selectedLoginLocation.name} · /user/viewLocations</p>
                 </div>
                 <span className="purchase-tag amber">Partial</span>
@@ -19457,10 +19588,13 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
                 <div className="purchase-kv"><span>Home route</span><span>/user/openHomePage</span></div>
               </div>
               <div className="pricebook-actions" style={{ marginTop: 16, flexWrap: 'wrap' }}>
-                <button className="pricebook-btn" onClick={() => previewLocationPicker()}>
+                <button className="pricebook-btn" onClick={() => previewLocationPicker(selectedLocationPickerPacket)}>
                   <Icon name="report" size={15} /> Preview route packet
                 </button>
-                <button className="pricebook-btn" onClick={() => saveLocationPickerPacket()}>
+                <button className="pricebook-btn" onClick={() => stageLocationPickerHandoff(selectedLocationPickerPacket)}>
+                  <Icon name="calendar" size={15} /> Stage handoff
+                </button>
+                <button className="pricebook-btn" onClick={() => saveLocationPickerPacket(selectedLocationPickerPacket)}>
                   <Icon name="cash" size={15} /> Save route packet
                 </button>
                 <button className="pricebook-btn" onClick={() => saveHomeRedirectPacket()}>
@@ -19486,6 +19620,64 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
                 <div className="purchase-kv"><span>Total sales</span><span>{fmt(selectedLoginOverview.total)}</span></div>
                 <div className="purchase-kv"><span>Fuel / Shop</span><span>{fmt(selectedLoginOverview.fuel)} / {fmt(selectedLoginOverview.shop)}</span></div>
                 <div className="purchase-kv"><span>Cash diff</span><span>{fmt(Math.abs(selectedLoginOverview.cashDiff))}</span></div>
+              </div>
+            </div>
+
+            <div className="purchase-note-card">
+              <div className="purchase-panel-head">
+                <div>
+                  <h3>Selected Location Picker Review</h3>
+                  <p>{selectedLocationPickerPacket ? `${selectedLocationPickerPacket.packet} · /user/viewLocations` : '/user/viewLocations'}</p>
+                </div>
+                <span className="purchase-tag amber">Partial</span>
+              </div>
+              {selectedLocationPickerPacket ? (
+                <div className="purchase-kv-list">
+                  <div className="purchase-kv"><span>Packet</span><span>{selectedLocationPickerPacket.packet}</span></div>
+                  <div className="purchase-kv"><span>Window</span><span>{selectedLocationPickerPacket.window}</span></div>
+                  <div className="purchase-kv"><span>Focus</span><span>{selectedLocationPickerPacket.focus}</span></div>
+                  <div className="purchase-kv"><span>Source</span><span>{selectedLocationPickerPacket.source}</span></div>
+                  <div className="purchase-kv"><span>Status</span><span>{selectedLocationPickerPacket.status}</span></div>
+                  <div className="purchase-kv"><span>Note</span><span>{selectedLocationPickerPacket.note}</span></div>
+                </div>
+              ) : (
+                <div className="pricebook-detail-sub">No location-picker packet is selected right now.</div>
+              )}
+            </div>
+
+            <div className="purchase-note-card">
+              <div className="purchase-panel-head">
+                <div>
+                  <h3>Location Picker Route Events</h3>
+                  <p>{selectedLocationPickerPacket ? `${selectedLocationPickerPacket.packet} · /user/viewLocations` : '/user/viewLocations'}</p>
+                </div>
+                <span className="purchase-tag amber">Partial</span>
+              </div>
+              <div className="pricebook-actions" style={{ marginBottom: 16, flexWrap: 'wrap' }}>
+                {['CSV', 'XLS', 'JSON'].map((format) => (
+                  <button key={format} className="pricebook-btn" onClick={() => exportLocationPickerRouteEvents(format)}>
+                    <Icon name="cash" size={15} /> {format}
+                  </button>
+                ))}
+              </div>
+              <div className="alerts-list">
+                {selectedLocationPickerRouteEvents.length ? selectedLocationPickerRouteEvents.map((row) => (
+                  <div key={row.id} className="alert-item" style={{ alignItems: 'flex-start' }}>
+                    <Icon
+                      name={row.action.includes('Saved') ? 'cash' : row.action.includes('Previewed') ? 'report' : row.action.includes('Queued') ? 'calendar' : 'connect'}
+                      size={18}
+                      bg={row.action.includes('Saved') ? iconDefaults.green.bg : row.action.includes('Previewed') ? iconDefaults.blue.bg : row.action.includes('Queued') ? iconDefaults.slate.bg : iconDefaults.green.bg}
+                      fg={row.action.includes('Saved') ? '#15803D' : row.action.includes('Previewed') ? '#3B82F6' : row.action.includes('Queued') ? '#64748B' : '#15803D'}
+                    />
+                    <div className="alert-copy">
+                      <div className="alert-text">{row.action}</div>
+                      <div className="pricebook-detail-sub">{row.time} · {row.actor} · {row.status}</div>
+                      <div className="pricebook-detail-sub">{row.note}</div>
+                    </div>
+                  </div>
+                )) : (
+                  <div className="pricebook-detail-sub">No route-level location-picker history is visible for this packet yet.</div>
+                )}
               </div>
             </div>
 
