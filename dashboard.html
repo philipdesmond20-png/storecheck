@@ -3817,6 +3817,16 @@ const SHIFT_SALES_SUMMARY_ROWS = [
   { id: 'SSS-1219', shiftId: 'SHIFT-240509-2', date: '2026-05-09', shift: 'Shift 2', cashier: 'N. Brooks', transactions: 251, gallons: 968, fuel: 2542.28, grocery: 1448.86, lottery: 190.76, financial: 58.22, tax: 261.44, total: 4501.56, mops: 3098.72, cashDrop: 1086.44, difference: -5.26, status: 'Needs review', note: 'Friday midday closeout is ready for review with one remaining over-short item.' },
 ];
 
+const SHIFT_WASTAGE_ROWS = [
+  { id: 'SWT-1301', date: '2026-05-03', shift: 'Shift 1', cashier: 'N. Brooks', department: 'Cold Drinks', item: 'Coca-Cola 20oz', qty: 3, cost: 3.36, retail: 7.47, reason: 'Leaking cap packout', variance: 0.0, status: 'Logged', note: 'Weekend cooler loss is visible for owner review without blocking closeout.' },
+  { id: 'SWT-1304', date: '2026-05-04', shift: 'Shift 2', cashier: 'A. Patel', department: 'Roller Grill', item: 'Beef Hot Dog', qty: 5, cost: 4.25, retail: 9.95, reason: 'Timed discard window', variance: 1.18, status: 'Needs review', note: 'Prepared-food discard volume is elevated and still needs owner sign-off.' },
+  { id: 'SWT-1307', date: '2026-05-05', shift: 'Shift 3', cashier: 'J. Lopez', department: 'Bakery', item: 'Blueberry Muffin', qty: 4, cost: 3.08, retail: 7.96, reason: 'End-of-day stale pull', variance: 0.42, status: 'Reviewed', note: 'Bakery wastage stayed in range after the final stale pull review.' },
+  { id: 'SWT-1310', date: '2026-05-06', shift: 'Shift 1', cashier: 'N. Brooks', department: 'Dairy', item: '2% Milk Half Gallon', qty: 2, cost: 3.18, retail: 5.98, reason: 'Damaged in cooler reset', variance: 0.0, status: 'Logged', note: 'Cooler reset damage was logged cleanly for the opening shift packet.' },
+  { id: 'SWT-1313', date: '2026-05-07', shift: 'Shift 2', cashier: 'A. Patel', department: 'Snacks', item: 'Doritos Nacho 2.75oz', qty: 6, cost: 5.46, retail: 11.94, reason: 'Crushed case on delivery', variance: 1.04, status: 'Needs review', note: 'Delivery-related snack loss is ready for owner follow-through against the invoice.' },
+  { id: 'SWT-1316', date: '2026-05-08', shift: 'Shift 3', cashier: 'J. Lopez', department: 'Produce', item: 'Banana Pack', qty: 7, cost: 6.3, retail: 13.93, reason: 'Spoilage before close', variance: 0.56, status: 'Reviewed', note: 'Produce spoilage was reviewed and kept visible beside the shift closeout.' },
+  { id: 'SWT-1319', date: '2026-05-09', shift: 'Shift 2', cashier: 'N. Brooks', department: 'Cold Drinks', item: 'Pepsi 20oz', qty: 4, cost: 4.32, retail: 9.56, reason: 'Damaged four-pack breakage', variance: 1.22, status: 'Needs review', note: 'Friday cold-drink breakage is ready for owner review with the current shift packet.' },
+];
+
 const uniqueValues = (rows, key) => [...new Set(rows.map((row) => row[key]))].sort();
 const sumRows = (rows) => rows.reduce((sum, row) => sum + row.amount, 0);
 const groupRows = (rows, key) =>
@@ -4171,6 +4181,9 @@ const TodayView = ({ viewMode, setViewMode }) => {
   const [shiftSalesFilter, setShiftSalesFilter] = useState('All');
   const [selectedShiftSalesId, setSelectedShiftSalesId] = useState(SHIFT_SALES_SUMMARY_ROWS[0].id);
   const [shiftSalesNotice, setShiftSalesNotice] = useState('');
+  const [shiftWastageFilter, setShiftWastageFilter] = useState('All');
+  const [selectedShiftWastageId, setSelectedShiftWastageId] = useState(SHIFT_WASTAGE_ROWS[0].id);
+  const [shiftWastageNotice, setShiftWastageNotice] = useState('');
   const [wastageEvents, setWastageEvents] = useState([
     { id: 'WGE-1601', rowId: 'DWS-214', time: '2026-05-01 06:42', actor: 'Store manager', route: '/shifts/getDailyWastageSummary', action: 'Previewed wastage drilldown packet', status: 'Opened', note: 'Owner reviewed the wastage packet before live Mercury drilldown wiring.' },
     { id: 'WGE-1602', rowId: 'DWS-214', time: '2026-05-01 06:44', actor: 'Store manager', route: '/shifts/getDailyWastageSummary', action: 'Saved wastage drilldown packet', status: 'Ready', note: 'Wastage packet exported while the live Mercury drilldown endpoint remained demo-only.' },
@@ -4226,6 +4239,11 @@ const TodayView = ({ viewMode, setViewMode }) => {
     { id: 'SSE-2602', rowId: 'SSS-1219', time: '2026-05-09 20:22', actor: 'Store manager', route: '/shifts/getShiftSalesSummary', action: 'Saved shift sales packet', status: 'Ready', note: 'Shift sales packet exported while the live shift-summary route remained demo-only.' },
     { id: 'SSE-2603', rowId: 'SSS-1216', time: '2026-05-08 11:18', actor: 'StoreCheck demo', route: '/shifts/getShiftSalesSummary', action: 'Refreshed shift sales review', status: 'Updated', note: 'Shift sales review refreshed with the current StoreCheck shift filter context.' },
   ]);
+  const [shiftWastageEvents, setShiftWastageEvents] = useState([
+    { id: 'SWE-2701', rowId: 'SWT-1319', time: '2026-05-09 20:38', actor: 'Store manager', route: '/shifts/getShiftWastageSummaryItems', action: 'Previewed shift wastage packet', status: 'Opened', note: 'Owner reviewed the Friday shift-wastage packet before the live Mercury route was connected.' },
+    { id: 'SWE-2702', rowId: 'SWT-1319', time: '2026-05-09 20:41', actor: 'Store manager', route: '/shifts/getShiftWastageSummaryItems', action: 'Saved shift wastage packet', status: 'Ready', note: 'Shift-wastage packet exported while the live Mercury route remained demo-only.' },
+    { id: 'SWE-2703', rowId: 'SWT-1316', time: '2026-05-08 11:36', actor: 'StoreCheck demo', route: '/shifts/getShiftWastageSummaryItems', action: 'Refreshed shift wastage review', status: 'Updated', note: 'Shift-wastage review refreshed with the current StoreCheck shift filter context.' },
+  ]);
   const diff = d.totalSales - d.prevDayTotal;
   const isUp = diff > 0;
   const cashShort = d.cashDiff < 0;
@@ -4245,6 +4263,7 @@ const TodayView = ({ viewMode, setViewMode }) => {
   const fuelDiscountProgramOptions = ['All', ...uniqueValues(FUEL_DAILY_DISCOUNT_ROWS, 'program')];
   const groceryDiscountProgramOptions = ['All', ...uniqueValues(GROCERY_DAILY_DISCOUNT_ROWS, 'program')];
   const shiftSalesOptions = ['All', ...uniqueValues(SHIFT_SALES_SUMMARY_ROWS, 'shift')];
+  const shiftWastageOptions = ['All', ...uniqueValues(SHIFT_WASTAGE_ROWS, 'shift')];
   const slugify = (value) => String(value).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
   const buildWastageStamp = () => {
     const now = new Date();
@@ -4320,6 +4339,11 @@ const TodayView = ({ viewMode, setViewMode }) => {
     setShiftSalesNotice(message);
     window.clearTimeout(window.__storecheckShiftSalesNotice);
     window.__storecheckShiftSalesNotice = window.setTimeout(() => setShiftSalesNotice(''), 2800);
+  };
+  const showShiftWastageNotice = (message) => {
+    setShiftWastageNotice(message);
+    window.clearTimeout(window.__storecheckShiftWastageNotice);
+    window.__storecheckShiftWastageNotice = window.setTimeout(() => setShiftWastageNotice(''), 2800);
   };
   const visibleWastageRows = DAILY_WASTAGE_ROWS.filter((row) => {
     if (row.date < wastageFrom || row.date > wastageTo) return false;
@@ -5967,6 +5991,158 @@ const TodayView = ({ viewMode, setViewMode }) => {
   const exportShiftSalesEvents = (format) => {
     if (!selectedShiftSalesEvents.length) return;
     downloadTableData(selectedShiftSalesEvents, format, `storecheck-shift-sales-events-${slugify(selectedShiftSales?.shiftId || 'all')}`);
+  };
+  const visibleShiftWastageRows = SHIFT_WASTAGE_ROWS.filter((row) => {
+    if (shiftWastageFilter !== 'All' && row.shift !== shiftWastageFilter) return false;
+    return true;
+  });
+  const selectedShiftWastage =
+    visibleShiftWastageRows.find((row) => row.id === selectedShiftWastageId) ||
+    SHIFT_WASTAGE_ROWS.find((row) => row.id === selectedShiftWastageId) ||
+    visibleShiftWastageRows[0] ||
+    SHIFT_WASTAGE_ROWS[0] ||
+    null;
+  const selectedShiftWastageEvents = selectedShiftWastage ? shiftWastageEvents.filter((row) => row.rowId === selectedShiftWastage.id) : [];
+  const shiftWastageTotals = visibleShiftWastageRows.reduce((acc, row) => ({
+    qty: acc.qty + row.qty,
+    cost: acc.cost + row.cost,
+    retail: acc.retail + row.retail,
+    variance: acc.variance + Math.abs(row.variance),
+  }), { qty: 0, cost: 0, retail: 0, variance: 0 });
+  const shiftWastageContextLabel = `${shiftWastageFilter === 'All' ? 'All shifts' : shiftWastageFilter} · ${fmtN(visibleShiftWastageRows.length)} visible wastage rows`;
+  const shiftWastageExportRows = visibleShiftWastageRows.map((row) => ({
+    Date: row.date,
+    Shift: row.shift,
+    Cashier: row.cashier,
+    Department: row.department,
+    Item: row.item,
+    Quantity: row.qty,
+    Cost: row.cost.toFixed(2),
+    Retail: row.retail.toFixed(2),
+    Variance: row.variance.toFixed(2),
+    Reason: row.reason,
+    Status: row.status,
+  }));
+  const pushShiftWastageEvent = ({ rowId, action, status, note }) => {
+    setShiftWastageEvents((current) => [
+      {
+        id: `SWE-${Date.now()}`,
+        rowId,
+        time: buildFuelDiscountStamp(),
+        actor: 'Store manager',
+        route: '/shifts/getShiftWastageSummaryItems',
+        action,
+        status,
+        note,
+      },
+      ...current,
+    ].slice(0, 24));
+  };
+  const previewShiftWastagePacket = () => {
+    const item = selectedShiftWastage || visibleShiftWastageRows[0];
+    if (!item || !visibleShiftWastageRows.length) return;
+    const rows = visibleShiftWastageRows.map((row) => [
+      row.date,
+      row.shift,
+      row.department,
+      row.item,
+      fmtN(row.qty, 0),
+      fmt(row.cost),
+      fmt(row.retail),
+      fmt(row.variance),
+      row.status,
+    ]);
+    openPrintPreview({
+      title: 'Shift wastage items drilldown',
+      subtitle: `${shiftWastageContextLabel} · /shifts/getShiftWastageSummaryItems`,
+      rows: [['Date', 'Shift', 'Department', 'Item', 'Qty', 'Cost', 'Retail', 'Variance', 'Status'], ...rows],
+    });
+    pushShiftWastageEvent({
+      rowId: item.id,
+      action: 'Previewed shift wastage packet',
+      status: 'Opened',
+      note: `Owner reviewed the ${item.shift} shift-wastage packet before the live Mercury route was connected.`,
+    });
+    showShiftWastageNotice('Shift wastage packet preview opened in demo mode.');
+  };
+  const saveShiftWastagePacket = () => {
+    const item = selectedShiftWastage || visibleShiftWastageRows[0];
+    if (!item || !visibleShiftWastageRows.length) return;
+    const rows = visibleShiftWastageRows.map((row) => [
+      row.date,
+      row.shift,
+      row.department,
+      row.item,
+      fmtN(row.qty, 0),
+      fmt(row.cost),
+      fmt(row.retail),
+      fmt(row.variance),
+      row.status,
+    ]);
+    const html = `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Shift wastage items drilldown</title>
+  <style>
+    body{font-family:"DM Sans",Arial,sans-serif;background:#F8FAFC;color:#0F172A;padding:28px}
+    .wrap{max-width:980px;margin:0 auto;background:#fff;border:1px solid #E2E8F0;border-radius:18px;padding:28px;box-shadow:0 12px 40px rgba(15,23,42,.08)}
+    h1{margin:0 0 8px;font-size:28px}
+    p{margin:0;color:#475569}
+    .meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin:20px 0}
+    .meta div{background:#F8FAFC;border:1px solid #E2E8F0;border-radius:12px;padding:12px 14px}
+    .meta strong{display:block;font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:#64748B;margin-bottom:6px}
+    table{width:100%;border-collapse:collapse;margin-top:16px}
+    th,td{padding:12px 14px;border-top:1px solid #E2E8F0;text-align:left}
+    th{background:#F8FAFC;font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:#64748B}
+    td{font-weight:600}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Shift wastage items drilldown</h1>
+    <p>${shiftWastageContextLabel}</p>
+    <div class="meta">
+      <div><strong>Mercury Route</strong>/shifts/getShiftWastageSummaryItems</div>
+      <div><strong>Selected Row</strong>${item.id} · ${item.item}</div>
+      <div><strong>Cost in Range</strong>${fmt(shiftWastageTotals.cost)}</div>
+      <div><strong>Variance</strong>${fmt(shiftWastageTotals.variance)}</div>
+    </div>
+    <table>
+      <thead><tr><th>Date</th><th>Shift</th><th>Department</th><th>Item</th><th>Qty</th><th>Cost</th><th>Retail</th><th>Variance</th><th>Status</th></tr></thead>
+      <tbody>${rows.map((row) => `<tr>${row.map((cell) => `<td>${cell}</td>`).join('')}</tr>`).join('')}</tbody>
+    </table>
+  </div>
+</body>
+</html>`;
+    downloadTextData(html, 'text/html', `storecheck-shift-wastage-${slugify(shiftWastageContextLabel)}`, 'html');
+    pushShiftWastageEvent({
+      rowId: item.id,
+      action: 'Saved shift wastage packet',
+      status: 'Ready',
+      note: 'Shift-wastage packet exported while the live Mercury route remained demo-only.',
+    });
+    showShiftWastageNotice('Shift wastage packet saved in demo mode.');
+  };
+  const refreshShiftWastageReview = () => {
+    const item = visibleShiftWastageRows[0] || selectedShiftWastage;
+    if (!item) return;
+    setSelectedShiftWastageId(item.id);
+    pushShiftWastageEvent({
+      rowId: item.id,
+      action: 'Refreshed shift wastage review',
+      status: 'Updated',
+      note: 'Shift-wastage review refreshed with the current StoreCheck shift filter context.',
+    });
+    showShiftWastageNotice('Shift wastage review refreshed in demo mode.');
+  };
+  const exportShiftWastageRows = (format) => {
+    if (!shiftWastageExportRows.length) return;
+    downloadTableData(shiftWastageExportRows, format, `storecheck-shift-wastage-${slugify(shiftWastageContextLabel)}`);
+  };
+  const exportShiftWastageEvents = (format) => {
+    if (!selectedShiftWastageEvents.length) return;
+    downloadTableData(selectedShiftWastageEvents, format, `storecheck-shift-wastage-events-${slugify(selectedShiftWastage?.id || 'all')}`);
   };
 
   if (viewMode === 'default') {
@@ -8242,6 +8418,182 @@ const TodayView = ({ viewMode, setViewMode }) => {
                 </div>
               )) : (
                 <div className="pricebook-detail-sub">No event history is visible for this selected shift row yet.</div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {shiftWastageNotice ? <div className="pricebook-notice" style={{ marginTop: 18 }}><Icon name="report" size={16} /> {shiftWastageNotice}</div> : null}
+
+      <div className="ops-kpis" style={{ marginTop: 18 }}>
+        <div className="ops-kpi">
+          <div className="ops-kpi-label">Visible Shift Rows</div>
+          <div className="ops-kpi-value">{fmtN(visibleShiftWastageRows.length)}</div>
+          <div className="ops-kpi-sub">{shiftWastageContextLabel}</div>
+        </div>
+        <div className="ops-kpi">
+          <div className="ops-kpi-label">Units Wasted</div>
+          <div className="ops-kpi-value">{fmtN(shiftWastageTotals.qty, 0)}</div>
+          <div className="ops-kpi-sub">{fmt(shiftWastageTotals.cost)} in cost across the visible shift wastage packet</div>
+        </div>
+        <div className="ops-kpi">
+          <div className="ops-kpi-label">Retail at Risk</div>
+          <div className="ops-kpi-value">{fmt(shiftWastageTotals.retail)}</div>
+          <div className="ops-kpi-sub">Demo-only handoff for the owner review before live Mercury wiring</div>
+        </div>
+        <div className="ops-kpi">
+          <div className="ops-kpi-label">Variance</div>
+          <div className="ops-kpi-value">{fmt(shiftWastageTotals.variance)}</div>
+          <div className="ops-kpi-sub">Current filter spread across the visible shift-wastage rows</div>
+        </div>
+      </div>
+
+      <div className="bottom-row" style={{ marginTop: 18, alignItems: 'stretch' }}>
+        <div className="week-card">
+          <div className="chart-header">
+            <div>
+              <div className="chart-title">Shift wastage items drilldown</div>
+              <div className="chart-sub">Mercury route: <strong>/shifts/getShiftWastageSummaryItems</strong></div>
+            </div>
+            <span className="purchase-tag amber">Partial</span>
+          </div>
+
+          <div className="shop-tx-toolbar">
+            <div className="shop-tx-filters">
+              <div className="shop-filter-group">
+                <label className="shop-filter-label">Shift</label>
+                <select className="shop-tx-select" value={shiftWastageFilter} onChange={(e) => setShiftWastageFilter(e.target.value)}>
+                  {shiftWastageOptions.map((item) => <option key={item}>{item}</option>)}
+                </select>
+              </div>
+              <button className="pricebook-btn primary" onClick={() => refreshShiftWastageReview()}>
+                <Icon name="calendar" size={15} /> Get Results
+              </button>
+            </div>
+            <div className="shop-tx-exports">
+              <button className="pricebook-btn" onClick={() => previewShiftWastagePacket()}>
+                <Icon name="report" size={15} /> Preview route packet
+              </button>
+              <button className="pricebook-btn" onClick={() => saveShiftWastagePacket()}>
+                <Icon name="cash" size={15} /> Save route packet
+              </button>
+              {['CSV', 'XLS', 'JSON'].map((format) => (
+                <button key={format} className="pricebook-btn" onClick={() => exportShiftWastageRows(format)}>
+                  <Icon name="cash" size={15} /> {format}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="mobile-table-scroll">
+            <table className="purchase-table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Shift</th>
+                  <th>Department</th>
+                  <th>Item</th>
+                  <th className="purchase-right">Qty</th>
+                  <th className="purchase-right">Cost</th>
+                  <th className="purchase-right">Retail</th>
+                  <th className="purchase-right">Variance</th>
+                  <th>Status</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {visibleShiftWastageRows.length ? visibleShiftWastageRows.map((row) => (
+                  <tr key={row.id} style={row.id === selectedShiftWastage?.id ? { background: '#F0FDF4' } : undefined}>
+                    <td>{row.date}<br /><small>{row.cashier}</small></td>
+                    <td>{row.shift}<br /><small>{row.reason}</small></td>
+                    <td>{row.department}</td>
+                    <td>{row.item}</td>
+                    <td className="purchase-right">{fmtN(row.qty, 0)}</td>
+                    <td className="purchase-right">{fmt(row.cost)}</td>
+                    <td className="purchase-right">{fmt(row.retail)}</td>
+                    <td className="purchase-right">{fmt(row.variance)}</td>
+                    <td><span className={`purchase-tag${row.status === 'Reviewed' || row.status === 'Ready' ? ' blue' : row.status === 'Needs review' ? ' amber' : ''}`}>{row.status}</span></td>
+                    <td><button className="pricebook-btn soft" onClick={() => setSelectedShiftWastageId(row.id)}>Review</button></td>
+                  </tr>
+                )) : (
+                  <tr>
+                    <td colSpan="10">No shift wastage rows matched this shift filter.</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+          <div className="settings-card">
+            <div className="chart-header">
+              <div>
+                <div className="chart-title">Selected shift wastage row</div>
+                <div className="chart-sub">{selectedShiftWastage ? `${selectedShiftWastage.id} · ${selectedShiftWastage.shift}` : 'No shift wastage row selected'}</div>
+              </div>
+              {selectedShiftWastage ? <span className={`purchase-tag${selectedShiftWastage.status === 'Reviewed' || selectedShiftWastage.status === 'Ready' ? ' blue' : selectedShiftWastage.status === 'Needs review' ? ' amber' : ''}`}>{selectedShiftWastage.status}</span> : null}
+            </div>
+
+            {selectedShiftWastage ? (
+              <>
+                <div className="purchase-kv-list">
+                  <div className="purchase-kv"><span>Current filter</span><span>{shiftWastageContextLabel}</span></div>
+                  <div className="purchase-kv"><span>Cashier</span><span>{selectedShiftWastage.cashier}</span></div>
+                  <div className="purchase-kv"><span>Department</span><span>{selectedShiftWastage.department}</span></div>
+                  <div className="purchase-kv"><span>Item</span><span>{selectedShiftWastage.item}</span></div>
+                  <div className="purchase-kv"><span>Quantity</span><span>{fmtN(selectedShiftWastage.qty, 0)}</span></div>
+                  <div className="purchase-kv"><span>Cost</span><span>{fmt(selectedShiftWastage.cost)}</span></div>
+                  <div className="purchase-kv"><span>Retail</span><span>{fmt(selectedShiftWastage.retail)}</span></div>
+                  <div className="purchase-kv"><span>Reason</span><span>{selectedShiftWastage.reason}</span></div>
+                  <div className="purchase-kv"><span>Variance</span><span>{fmt(selectedShiftWastage.variance)}</span></div>
+                  <div className="purchase-kv"><span>Summary</span><span>{selectedShiftWastage.note}</span></div>
+                </div>
+                <div className="pricebook-actions" style={{ marginTop: 16, flexWrap: 'wrap' }}>
+                  <button className="pricebook-btn" onClick={() => previewShiftWastagePacket()}>
+                    <Icon name="report" size={15} /> Preview route packet
+                  </button>
+                  <button className="pricebook-btn" onClick={() => saveShiftWastagePacket()}>
+                    <Icon name="cash" size={15} /> Save route packet
+                  </button>
+                  <button className="pricebook-btn primary" onClick={() => refreshShiftWastageReview()}>
+                    <Icon name="calendar" size={15} /> Refresh review
+                  </button>
+                </div>
+              </>
+            ) : (
+              <div className="chart-sub">No selected shift wastage row is available for this filter.</div>
+            )}
+          </div>
+
+          <div className="alerts-card">
+            <div className="alerts-title">Shift wastage events</div>
+            <div className="alerts-sub">{selectedShiftWastage ? `${selectedShiftWastage.id} · /shifts/getShiftWastageSummaryItems` : '/shifts/getShiftWastageSummaryItems'}</div>
+            <div className="pricebook-actions" style={{ margin: '16px 0', flexWrap: 'wrap' }}>
+              {['CSV', 'XLS', 'JSON'].map((format) => (
+                <button key={format} className="pricebook-btn" onClick={() => exportShiftWastageEvents(format)}>
+                  <Icon name="cash" size={15} /> {format}
+                </button>
+              ))}
+            </div>
+            <div className="alerts-list">
+              {selectedShiftWastageEvents.length ? selectedShiftWastageEvents.map((row) => (
+                <div key={row.id} className="alert-item" style={{ alignItems: 'flex-start' }}>
+                  <Icon
+                    name={row.action.includes('Saved') ? 'cash' : row.action.includes('Previewed') ? 'report' : 'calendar'}
+                    size={18}
+                    bg={row.action.includes('Saved') ? iconDefaults.green.bg : row.action.includes('Previewed') ? iconDefaults.blue.bg : iconDefaults.slate.bg}
+                    fg={row.action.includes('Saved') ? '#15803D' : row.action.includes('Previewed') ? '#3B82F6' : '#64748B'}
+                  />
+                  <div className="alert-copy">
+                    <div className="alert-text">{row.action}</div>
+                    <div className="pricebook-detail-sub">{row.time} · {row.actor} · {row.status}</div>
+                    <div className="pricebook-detail-sub">{row.note}</div>
+                  </div>
+                </div>
+              )) : (
+                <div className="pricebook-detail-sub">No event history is visible for this selected shift wastage row yet.</div>
               )}
             </div>
           </div>
