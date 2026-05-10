@@ -19037,7 +19037,7 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
   const previewModuleLauncherPacket = (packet = selectedModuleLauncherPacket) => {
     setSelectedModuleLauncherPacketId(packet.id);
     openMultiStorePacket({
-      title: 'Module Launcher Endpoint Depth',
+      title: 'Module Launcher Endpoint Reconcile',
       subtitle: `${launcherContextLabel} · /user/puzzleMainPage`,
       headers: ['LocationId', 'Store', 'Module', 'Manager', 'Route', 'Context'],
       rows: buildModuleLauncherRows(packet),
@@ -19098,7 +19098,7 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
   const saveModuleLauncherPacket = (packet = selectedModuleLauncherPacket) => {
     setSelectedModuleLauncherPacketId(packet.id);
     saveMultiStorePacket({
-      title: 'Module Launcher Endpoint Depth',
+      title: 'Module Launcher Endpoint Reconcile',
       subtitle: `${launcherContextLabel} · /user/puzzleMainPage`,
       route: '/user/puzzleMainPage',
       note: 'Module launcher replacement shell after location selection',
@@ -20294,7 +20294,7 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
             <div className="purchase-note-card">
               <div className="purchase-panel-head">
                 <div>
-                  <h3>Module Launcher Endpoint Depth</h3>
+                  <h3>Module Launcher Endpoint Reconcile</h3>
                   <p>{launcherContextLabel} · /user/puzzleMainPage</p>
                 </div>
                 <span className="purchase-tag amber">Partial</span>
@@ -20353,7 +20353,7 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
             <div className="purchase-note-card">
               <div className="purchase-panel-head">
                 <div>
-                  <h3>Selected Module Launcher Review</h3>
+                  <h3>Selected Module Launcher Endpoint Review</h3>
                   <p>{selectedModuleLauncherPacket ? `${selectedModuleLauncherPacket.packet} · /user/puzzleMainPage` : '/user/puzzleMainPage'}</p>
                 </div>
                 <span className="purchase-tag amber">Partial</span>
