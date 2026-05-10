@@ -15434,7 +15434,13 @@ const OperationsView = ({ currentLocation, setLocationId }) => {
   const [endDate, setEndDate] = useState('2026-05-09');
   const [selectedStore, setSelectedStore] = useState('All');
   const [selectedShift, setSelectedShift] = useState('All');
+  const [selectedBankDropId, setSelectedBankDropId] = useState(BANK_DROP_ROWS[0].id);
   const [notice, setNotice] = useState('');
+  const [bankDropSearchEvents, setBankDropSearchEvents] = useState([
+    { id: 'BSE-3001', rowId: 'BD-240509-01', time: '2026-05-09 21:04', actor: 'Store manager', route: '/shifts/searchBankDrops', action: 'Previewed bank-drop packet', status: 'Opened', note: 'Owner reviewed the bank-only deposit packet before the live Mercury search route was connected.' },
+    { id: 'BSE-3002', rowId: 'BD-240509-01', time: '2026-05-09 21:08', actor: 'Store manager', route: '/shifts/searchBankDrops', action: 'Saved bank-drop packet', status: 'Ready', note: 'Bank-only deposit packet exported while the live Mercury search route remained demo-only.' },
+    { id: 'BSE-3003', rowId: 'BD-240507-01', time: '2026-05-08 09:18', actor: 'StoreCheck demo', route: '/shifts/searchBankDrops', action: 'Refreshed bank-drop search', status: 'Updated', note: 'Bank-drop search review refreshed with the current StoreCheck filters.' },
+  ]);
   const [formState, setFormState] = useState({
     date: '2026-05-09',
     storeId: currentLocation.id,
@@ -15469,6 +15475,28 @@ const OperationsView = ({ currentLocation, setLocationId }) => {
     }),
     { bankAmount: 0, cashDrop: 0, expected: 0, variance: 0 }
   );
+
+  const selectedBankDrop =
+    filteredRows.find((row) => row.id === selectedBankDropId) ||
+    BANK_DROP_ROWS.find((row) => row.id === selectedBankDropId) ||
+    filteredRows[0] ||
+    BANK_DROP_ROWS[0] ||
+    null;
+  const selectedBankDropEvents = selectedBankDrop ? bankDropSearchEvents.filter((row) => row.rowId === selectedBankDrop.id) : [];
+  const bankDropSearchContextLabel = `${startDate} to ${endDate} · ${selectedStore === 'All' ? 'All stores' : selectedStore} · ${selectedShift === 'All' ? 'All shifts' : selectedShift}`;
+  const bankDropSearchExportRows = filteredRows.map((row) => ({
+    Date: row.date,
+    Store: row.store,
+    Shift: row.shift,
+    Bag: row.bag,
+    Account: row.account,
+    BankDrop: row.bankAmount.toFixed(2),
+    Expected: row.expected.toFixed(2),
+    Variance: row.variance.toFixed(2),
+    PreparedBy: row.preparedBy,
+    Status: row.status,
+  }));
+  const bankDropPacketRows = filteredRows.map((row) => [row.date, row.store, row.shift, row.bag, row.account, fmt(row.bankAmount), fmt(row.expected), fmt(row.variance), row.status]);
 
   const exportRows = filteredRows.map((row) => ({
     Date: row.date,
@@ -15509,6 +15537,112 @@ const OperationsView = ({ currentLocation, setLocationId }) => {
     setLocationId(selectedLocation.id);
     showNotice(`Bank drop saved for ${selectedLocation.name} in demo mode. Real \`/shifts/addBankDrop\` wiring is still pending.`);
     if (addAnother) resetForm();
+  };
+
+  const pushBankDropSearchEvent = ({ rowId, action, status, note }) => {
+    const time = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    setBankDropSearchEvents((current) => [
+      {
+        id: `BSE-${Date.now()}`,
+        rowId,
+        time,
+        actor: 'Store manager',
+        route: '/shifts/searchBankDrops',
+        action,
+        status,
+        note,
+      },
+      ...current,
+    ].slice(0, 24));
+  };
+
+  const previewBankDropSearchPacket = () => {
+    const item = selectedBankDrop || filteredRows[0];
+    if (!item || !bankDropPacketRows.length) return;
+    openPrintPreview({
+      title: 'Bank drop search depth',
+      subtitle: `${bankDropSearchContextLabel} · /shifts/searchBankDrops`,
+      rows: [['Date', 'Store', 'Shift', 'Bag', 'Account', 'Bank Drop', 'Expected', 'Variance', 'Status'], ...bankDropPacketRows],
+    });
+    pushBankDropSearchEvent({
+      rowId: item.id,
+      action: 'Previewed bank-drop packet',
+      status: 'Opened',
+      note: `Owner reviewed the ${item.bag} bank-only deposit packet before the live Mercury search route was connected.`,
+    });
+    showNotice('Bank-drop search packet preview opened in demo mode.');
+  };
+
+  const saveBankDropSearchPacket = () => {
+    const item = selectedBankDrop || filteredRows[0];
+    if (!item || !bankDropPacketRows.length) return;
+    const html = `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Bank drop search depth</title>
+  <style>
+    body{font-family:"DM Sans",Arial,sans-serif;background:#F8FAFC;color:#0F172A;padding:28px}
+    .wrap{max-width:980px;margin:0 auto;background:#fff;border:1px solid #E2E8F0;border-radius:18px;padding:28px;box-shadow:0 12px 40px rgba(15,23,42,.08)}
+    h1{margin:0 0 8px;font-size:28px}
+    p{margin:0;color:#475569}
+    .meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin:20px 0}
+    .meta div{background:#F8FAFC;border:1px solid #E2E8F0;border-radius:12px;padding:12px 14px}
+    .meta strong{display:block;font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:#64748B;margin-bottom:6px}
+    table{width:100%;border-collapse:collapse;margin-top:16px}
+    th,td{padding:12px 14px;border-top:1px solid #E2E8F0;text-align:left}
+    th{background:#F8FAFC;font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:#64748B}
+    td{font-weight:600}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Bank drop search depth</h1>
+    <p>${bankDropSearchContextLabel}</p>
+    <div class="meta">
+      <div><strong>Mercury Route</strong>/shifts/searchBankDrops</div>
+      <div><strong>Selected Deposit</strong>${item.bag} · ${item.store}</div>
+      <div><strong>Banked in Range</strong>${fmt(totals.bankAmount)}</div>
+      <div><strong>Variance Watch</strong>${fmt(totals.variance)}</div>
+    </div>
+    <table>
+      <thead><tr><th>Date</th><th>Store</th><th>Shift</th><th>Bag</th><th>Account</th><th>Bank Drop</th><th>Expected</th><th>Variance</th><th>Status</th></tr></thead>
+      <tbody>${bankDropPacketRows.map((row) => `<tr>${row.map((cell) => `<td>${cell}</td>`).join('')}</tr>`).join('')}</tbody>
+    </table>
+  </div>
+</body>
+</html>`;
+    downloadTextData(html, 'text/html', `storecheck-bank-drop-search-${searchMode}`, 'html');
+    pushBankDropSearchEvent({
+      rowId: item.id,
+      action: 'Saved bank-drop packet',
+      status: 'Ready',
+      note: 'Bank-only deposit packet exported while the live Mercury search route remained demo-only.',
+    });
+    showNotice('Bank-drop search packet saved in demo mode.');
+  };
+
+  const refreshBankDropSearch = () => {
+    const item = filteredRows[0] || selectedBankDrop;
+    if (!item) return;
+    setSelectedBankDropId(item.id);
+    pushBankDropSearchEvent({
+      rowId: item.id,
+      action: 'Refreshed bank-drop search',
+      status: 'Updated',
+      note: 'Bank-drop search review refreshed with the current StoreCheck filters.',
+    });
+    showNotice('Bank-drop search refreshed in demo mode.');
+  };
+
+  const exportBankDropSearchRows = (format) => {
+    if (!bankDropSearchExportRows.length) return;
+    downloadTableData(bankDropSearchExportRows, format, `storecheck-bank-drop-search-${searchMode}`);
+  };
+
+  const exportBankDropSearchEvents = (format) => {
+    if (!selectedBankDropEvents.length) return;
+    downloadTableData(selectedBankDropEvents, format, `storecheck-bank-drop-search-events-${String(selectedBankDrop?.id || 'all').toLowerCase()}`);
   };
 
   const printResults = () => {
@@ -15603,8 +15737,8 @@ const OperationsView = ({ currentLocation, setLocationId }) => {
             <div className="purchase-surface">
               <div className="pricebook-toolbar" style={{ padding: '20px 20px 0' }}>
                 <div>
-                  <div className="pricebook-detail-title">Bank drop search</div>
-                  <div className="pricebook-detail-sub">Switch between bank-only search and bank-plus-cash visibility without leaving the workspace.</div>
+                  <div className="pricebook-detail-title">Bank drop search depth</div>
+                  <div className="pricebook-detail-sub">Switch between bank-only search and bank-plus-cash visibility without leaving the workspace. Mercury route: <strong>/shifts/searchBankDrops</strong></div>
                 </div>
                 <div className="pricebook-actions">
                   <button className={`pricebook-btn${searchMode === 'bank' ? ' primary' : ''}`} onClick={() => setSearchMode('bank')}>
@@ -15625,7 +15759,7 @@ const OperationsView = ({ currentLocation, setLocationId }) => {
                 <select className="pricebook-select" value={selectedShift} onChange={(e) => setSelectedShift(e.target.value)}>
                   {['All', ...uniqueValues(BANK_DROP_ROWS, 'shift')].map((item) => <option key={item}>{item}</option>)}
                 </select>
-                <button className="pricebook-btn primary" onClick={() => showNotice(`${searchMode === 'combined' ? 'Bank + cash' : 'Bank'} drop results refreshed in demo mode.`)}>
+                <button className="pricebook-btn primary" onClick={() => (searchMode === 'bank' ? refreshBankDropSearch() : showNotice('Bank + cash drop results refreshed in demo mode.'))}>
                   <Icon name="calendar" size={15} /> Get Results
                 </button>
               </div>
@@ -15640,6 +15774,12 @@ const OperationsView = ({ currentLocation, setLocationId }) => {
                       <Icon name="cash" size={15} /> {format}
                     </button>
                   ))}
+                  <button className="pricebook-btn" onClick={() => previewBankDropSearchPacket()}>
+                    <Icon name="report" size={15} /> Preview bank route
+                  </button>
+                  <button className="pricebook-btn" onClick={() => saveBankDropSearchPacket()}>
+                    <Icon name="cash" size={15} /> Save bank route
+                  </button>
                 </div>
                 <div className="pricebook-detail-sub">{searchMode === 'combined' ? 'Mirrors `/shifts/searchBankDropsWithCashDrops` with cash visibility turned on.' : 'Mirrors `/shifts/searchBankDrops` with bank-only deposit search.'}</div>
               </div>
@@ -15658,11 +15798,12 @@ const OperationsView = ({ currentLocation, setLocationId }) => {
                       <th className="purchase-right">Expected</th>
                       <th className="purchase-right">Variance</th>
                       <th>Status</th>
+                      <th></th>
                     </tr>
                   </thead>
                   <tbody>
                     {filteredRows.length ? filteredRows.map((row) => (
-                      <tr key={row.id}>
+                      <tr key={row.id} style={row.id === selectedBankDrop?.id ? { background: '#F0FDF4' } : undefined}>
                         <td>{row.date}</td>
                         <td>{row.store}</td>
                         <td>{row.shift}</td>
@@ -15673,10 +15814,11 @@ const OperationsView = ({ currentLocation, setLocationId }) => {
                         <td className="purchase-right">{fmt(row.expected)}</td>
                         <td className="purchase-right">{fmt(row.variance)}</td>
                         <td><span className={`purchase-tag${row.status === 'Deposited' ? ' blue' : row.status === 'Pending' ? '' : ' amber'}`}>{row.status}</span></td>
+                        <td><button className="pricebook-btn soft" onClick={() => setSelectedBankDropId(row.id)}>Review</button></td>
                       </tr>
                     )) : (
                       <tr>
-                        <td colSpan={searchMode === 'combined' ? 10 : 9}>No bank drops matched this filter set.</td>
+                        <td colSpan={searchMode === 'combined' ? 11 : 10}>No bank drops matched this filter set.</td>
                       </tr>
                     )}
                     <tr>
@@ -15687,6 +15829,7 @@ const OperationsView = ({ currentLocation, setLocationId }) => {
                       <td className="purchase-right"><strong>{fmt(totals.expected)}</strong></td>
                       <td className="purchase-right"><strong>{fmt(totals.variance)}</strong></td>
                       <td></td>
+                      <td></td>
                     </tr>
                   </tbody>
                 </table>
@@ -15695,6 +15838,83 @@ const OperationsView = ({ currentLocation, setLocationId }) => {
           </div>
 
           <div className="purchase-stack">
+            <div className="purchase-note-card">
+              <div className="purchase-panel-head">
+                <div>
+                  <h3>Selected bank search row</h3>
+                  <p>{selectedBankDrop ? `${selectedBankDrop.bag} · ${selectedBankDrop.store}` : 'No bank-drop row selected'}</p>
+                </div>
+                {selectedBankDrop ? <span className={`purchase-tag${selectedBankDrop.status === 'Deposited' ? ' blue' : selectedBankDrop.status === 'Pending' ? '' : ' amber'}`}>{selectedBankDrop.status}</span> : null}
+              </div>
+              {selectedBankDrop ? (
+                <>
+                  <div className="purchase-kv-list">
+                    <div className="purchase-kv"><span>Current filter</span><span>{bankDropSearchContextLabel}</span></div>
+                    <div className="purchase-kv"><span>Mercury route</span><span>/shifts/searchBankDrops</span></div>
+                    <div className="purchase-kv"><span>Shift</span><span>{selectedBankDrop.shift}</span></div>
+                    <div className="purchase-kv"><span>Account</span><span>{selectedBankDrop.account}</span></div>
+                    <div className="purchase-kv"><span>Prepared by</span><span>{selectedBankDrop.preparedBy}</span></div>
+                    <div className="purchase-kv"><span>Bank drop</span><span>{fmt(selectedBankDrop.bankAmount)}</span></div>
+                    <div className="purchase-kv"><span>Expected</span><span>{fmt(selectedBankDrop.expected)}</span></div>
+                    <div className="purchase-kv"><span>Variance</span><span>{fmt(selectedBankDrop.variance)}</span></div>
+                    <div className="purchase-kv"><span>Cash visibility</span><span>{fmt(selectedBankDrop.cashDrop)} in combined mode</span></div>
+                  </div>
+                  <div className="pricebook-actions" style={{ marginTop: 16, flexWrap: 'wrap' }}>
+                    <button className="pricebook-btn" onClick={() => previewBankDropSearchPacket()}>
+                      <Icon name="report" size={15} /> Preview bank route
+                    </button>
+                    <button className="pricebook-btn" onClick={() => saveBankDropSearchPacket()}>
+                      <Icon name="cash" size={15} /> Save bank route
+                    </button>
+                    <button className="pricebook-btn primary" onClick={() => refreshBankDropSearch()}>
+                      <Icon name="calendar" size={15} /> Refresh review
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <div className="pricebook-detail-sub">No selected deposit row is available for this filter.</div>
+              )}
+            </div>
+            <div className="purchase-note-card">
+              <div className="purchase-panel-head">
+                <div>
+                  <h3>Bank search events</h3>
+                  <p>{selectedBankDrop ? `${selectedBankDrop.bag} · /shifts/searchBankDrops` : '/shifts/searchBankDrops'}</p>
+                </div>
+                <span className="purchase-tag amber">Partial</span>
+              </div>
+              <div className="pricebook-actions" style={{ marginBottom: 16, flexWrap: 'wrap' }}>
+                {['CSV', 'XLS', 'JSON'].map((format) => (
+                  <button key={format} className="pricebook-btn" onClick={() => exportBankDropSearchEvents(format)}>
+                    <Icon name="cash" size={15} /> {format}
+                  </button>
+                ))}
+                {['CSV', 'XLS', 'JSON'].map((format) => (
+                  <button key={`row-${format}`} className="pricebook-btn" onClick={() => exportBankDropSearchRows(format)}>
+                    <Icon name="report" size={15} /> Row {format}
+                  </button>
+                ))}
+              </div>
+              <div className="alerts-list">
+                {selectedBankDropEvents.length ? selectedBankDropEvents.map((row) => (
+                  <div key={row.id} className="alert-item" style={{ alignItems: 'flex-start' }}>
+                    <Icon
+                      name={row.action.includes('Saved') ? 'cash' : row.action.includes('Previewed') ? 'report' : 'calendar'}
+                      size={18}
+                      bg={row.action.includes('Saved') ? iconDefaults.green.bg : row.action.includes('Previewed') ? iconDefaults.blue.bg : iconDefaults.slate.bg}
+                      fg={row.action.includes('Saved') ? '#15803D' : row.action.includes('Previewed') ? '#3B82F6' : '#64748B'}
+                    />
+                    <div className="alert-copy">
+                      <div className="alert-text">{row.action}</div>
+                      <div className="pricebook-detail-sub">{row.time} · {row.actor} · {row.status}</div>
+                      <div className="pricebook-detail-sub">{row.note}</div>
+                    </div>
+                  </div>
+                )) : (
+                  <div className="pricebook-detail-sub">No bank-search event history is visible for this selected deposit row yet.</div>
+                )}
+              </div>
+            </div>
             <div className="purchase-note-card">
               <div className="purchase-panel-head">
                 <div>
