@@ -24954,7 +24954,7 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
     setSelectedRegisterRefreshId(item.id);
     setSelectedRegisterPacketId(packet.id);
     openSettingsPacket({
-      title: 'Register Status Endpoint Depth',
+      title: 'Register Status Endpoint Reconcile',
       subtitle: `${packet.window} · POST /user/checkRegisterStatus`,
       headers: ['Store', 'Previous', 'Current', 'Status', 'Route', 'Mode'],
       rows: buildRegisterRouteRows(item, packet),
@@ -24988,7 +24988,7 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
     if (!item) return;
     setSelectedRegisterRefreshId(item.id);
     openSettingsPacket({
-      title: 'Register Status Review',
+      title: 'Selected Register Status Endpoint Review',
       subtitle: `${item.store} · ${item.time}`,
       headers: ['Store', 'Previous', 'Current', 'Source', 'Status', 'Note'],
       rows: [[item.store, item.previous, item.current, item.source, item.status, item.note]],
@@ -25009,7 +25009,7 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
     setSelectedRegisterRefreshId(item.id);
     setSelectedRegisterPacketId(packet.id);
     saveSettingsPacket({
-      title: 'Register Status Endpoint Depth',
+      title: 'Register Status Endpoint Reconcile',
       subtitle: `${packet.window} · POST /user/checkRegisterStatus`,
       route: '/user/checkRegisterStatus',
       note: 'Register-status refresh replacement shell',
@@ -25074,7 +25074,7 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
   const saveRegisterRefreshPacket = () => {
     const item = selectedRegisterRefresh || latestRegisterRefresh;
     saveSettingsPacket({
-      title: 'Register Status Depth',
+      title: 'Register Status Endpoint Reconcile',
       subtitle: `${item ? `${item.store} · ${item.time}` : `${currentLocation.name} · session init`}`,
       route: '/user/checkRegisterStatus',
       note: 'Register refresh review replacement shell',
@@ -26078,7 +26078,7 @@ const SettingsView = ({ agreementAccepted, currentLocation, registerStatus, setA
         </div>
 
         <div className="settings-card">
-          <div className="settings-title">Register Status Endpoint Depth</div>
+          <div className="settings-title">Register Status Endpoint Reconcile</div>
           <div className="settings-sub">Owner-facing `POST /user/checkRegisterStatus` review with selected packet, refresh state, and session-start register visibility.</div>
           <div className="purchase-kv-list">
             <div className="purchase-kv"><span>Selected packet</span><span>{selectedRegisterPacket ? `${selectedRegisterPacket.packet} · ${selectedRegisterPacket.status}` : 'Pending'}</span></div>
