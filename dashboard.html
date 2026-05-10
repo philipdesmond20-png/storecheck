@@ -11823,6 +11823,11 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
   const [deliveryNotice, setDeliveryNotice] = useState('');
   const [deliveryEmail, setDeliveryEmail] = useState('owner@mainstreetgas.com');
   const [deliverySelection, setDeliverySelection] = useState('Weekly Summary PDF');
+  const [shiftEmailEvents, setShiftEmailEvents] = useState([
+    { id: 'RSE-1001', time: '2026-05-09 08:06', actor: 'Store manager', route: '/shifts/sendShiftEmail', action: 'Confirmed shift email', status: 'Queued', note: 'Shift email confirmation accepted for the configured store address.' },
+    { id: 'RSE-1002', time: '2026-05-09 08:07', actor: 'Store manager', route: '/shifts/sendShiftEmail', action: 'Saved shift email packet', status: 'Ready', note: 'Shift email packet exported before the live send endpoint was connected.' },
+    { id: 'RSE-1003', time: '2026-05-08 21:18', actor: 'StoreCheck demo', route: '/shifts/sendShiftEmail', action: 'Previewed shift email packet', status: 'Ready', note: 'Previous shift-email packet preview stayed visible in demo mode.' },
+  ]);
   const [dailyPdfEvents, setDailyPdfEvents] = useState([
     { id: 'RDL-981', time: '2026-05-09 07:49', actor: 'Store manager', route: '/shifts/createDailyPdf', action: 'Opened daily PDF preview', status: 'Opened', note: 'Single-day packet preview opened for the custom-day review.' },
     { id: 'RDL-982', time: '2026-05-09 07:50', actor: 'Store manager', route: '/shifts/createDailyPdf', action: 'Saved daily PDF packet', status: 'Ready', note: 'Custom-day PDF packet exported before owner follow-through.' },
@@ -11944,6 +11949,7 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
     { id: 'xml', label: 'XML Export', shortLabel: 'XML Export', group: 'export', route: '/shifts/getDayInfoForXml', surface: 'Reports / Export Center', format: 'XML Download', note: 'POS / accounting XML handoff', params: `date=${customTo}`, previewRows: weekPreviewRows, subtitle: `${currentLocation.name} · XML export`, fileName: 'storecheck-sales-report' },
   ];
   const reportActionMap = Object.fromEntries(reportActionPresets.map((action) => [action.id, action]));
+  const selectedShiftEmailAction = reportActionMap.shiftEmail;
   const selectedDailyPdfAction = reportActionMap.dailyPdf;
   const selectedDaysPdfAction = reportActionMap.daysPdf;
   const selectedSummaryPdfAction = reportActionMap.summaryPdf;
@@ -11957,11 +11963,26 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
   const printActions = reportActionPresets.filter((action) => action.group === 'print');
   const emailActions = reportActionPresets.filter((action) => action.group === 'email');
   const handoffActions = reportActionPresets.filter((action) => action.group === 'download' || action.group === 'export');
+  const selectedShiftEmailEvents = shiftEmailEvents;
   const selectedDailyPdfEvents = dailyPdfEvents;
   const selectedDaysPdfEvents = daysPdfEvents;
   const selectedSummaryPdfEvents = summaryPdfEvents;
   const selectedReportWindowEvents = reportWindowEvents.filter((item) => item.reportName === reportWindowName);
 
+  const pushShiftEmailEvent = ({ action, status, note }) => {
+    setShiftEmailEvents((current) => [
+      {
+        id: `RSE-${current.length + 1001}`,
+        time: buildReportStamp(),
+        actor: 'StoreCheck demo',
+        route: '/shifts/sendShiftEmail',
+        action,
+        status,
+        note,
+      },
+      ...current,
+    ]);
+  };
   const pushDailyPdfEvent = ({ action, status, note }) => {
     setDailyPdfEvents((current) => [
       {
@@ -12018,6 +12039,10 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
       },
       ...current,
     ]);
+  };
+  const exportShiftEmailEvents = (format) => {
+    downloadTableData(selectedShiftEmailEvents, format, 'storecheck-shift-email-events');
+    showDeliveryNotice(`${fmtN(selectedShiftEmailEvents.length)} shift-email events exported in ${format} format.`);
   };
   const exportDailyPdfEvents = (format) => {
     downloadTableData(selectedDailyPdfEvents, format, 'storecheck-daily-pdf-events');
@@ -12104,6 +12129,13 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
     }
     const html = buildReportPackageHtml(action);
     downloadTextData(html, 'text/html', action.fileName, 'html');
+    if (action.id === 'shiftEmail') {
+      pushShiftEmailEvent({
+        action: 'Saved shift email packet',
+        status: 'Ready',
+        note: 'Shift email packet exported while the live send endpoint remained demo-only.',
+      });
+    }
     if (action.id === 'dailyPdf') {
       pushDailyPdfEvent({
         action: 'Saved daily PDF packet',
@@ -12175,6 +12207,11 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
     }
     if (action.group === 'email') {
       if (action.id === 'shiftEmail') {
+        pushShiftEmailEvent({
+          action: 'Confirmed shift email',
+          status: 'Queued',
+          note: `Mercury-style confirmation accepted for ${deliveryEmail}.`,
+        });
         showDeliveryNotice(`Are you sure? You want to send the report to ${deliveryEmail}? Demo confirmation accepted. Live \`${action.route}\` endpoint still pending.`);
         return;
       }
@@ -12417,6 +12454,29 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
             <div className="report-delivery-card">
               <div className="purchase-panel-head">
                 <div>
+                  <h3>Shift email events</h3>
+                  <p>Owner-facing event visibility for the shift-email confirmation handoff.</p>
+                </div>
+              </div>
+              <div className="report-delivery-list">
+                {selectedShiftEmailEvents.length ? selectedShiftEmailEvents.map((item) => (
+                  <div className="report-delivery-row" key={item.id}>
+                    <div className="report-delivery-head">
+                      <div>
+                        <div className="report-delivery-title">{item.action}</div>
+                        <div className="report-delivery-meta">{item.time} · {item.actor} · {item.route}</div>
+                      </div>
+                      <span className={`purchase-tag${item.status === 'Needs review' ? ' amber' : ' blue'}`}>{item.status}</span>
+                    </div>
+                    <div className="report-delivery-meta">{item.note}</div>
+                  </div>
+                )) : <div className="purchase-hint">No shift-email events are recorded yet.</div>}
+              </div>
+            </div>
+
+            <div className="report-delivery-card">
+              <div className="purchase-panel-head">
+                <div>
                   <h3>Daily PDF events</h3>
                   <p>Owner-facing event visibility for the daily PDF packet handoff.</p>
                 </div>
@@ -12480,6 +12540,33 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
                     <div className="report-delivery-meta">{item.note}</div>
                   </div>
                 )) : <div className="purchase-hint">No summary PDF events are recorded yet.</div>}
+              </div>
+            </div>
+
+            <div className="report-delivery-card">
+              <div className="purchase-panel-head">
+                <div>
+                  <h3>Shift email endpoint</h3>
+                  <p>Keep the `/shifts/sendShiftEmail` confirmation handoff visible before the live email sender is connected.</p>
+                </div>
+              </div>
+              <div className="purchase-kv-list">
+                <div className="purchase-kv"><span>Route</span><span>{selectedShiftEmailAction.route}</span></div>
+                <div className="purchase-kv"><span>Recipient</span><span>{deliveryEmail}</span></div>
+                <div className="purchase-kv"><span>Params</span><span>{selectedShiftEmailAction.params}</span></div>
+                <div className="purchase-kv"><span>Current shift</span><span>2026-05-09 · DLV-301</span></div>
+                <div className="purchase-kv"><span>Latest event</span><span>{selectedShiftEmailEvents[0]?.action || 'No events yet'}</span></div>
+              </div>
+              <div className="pricebook-actions" style={{ marginTop: 16 }}>
+                <button className="pricebook-btn" onClick={() => runReportAction(selectedShiftEmailAction)}>
+                  <Icon name="bell" size={15} /> Confirm route send
+                </button>
+                <button className="pricebook-btn" onClick={() => downloadActionPackage(selectedShiftEmailAction)}>
+                  <Icon name="report" size={15} /> Save route packet
+                </button>
+                <button className="pricebook-btn primary" onClick={() => exportShiftEmailEvents('CSV')}>
+                  <Icon name="save" size={15} /> Export route log
+                </button>
               </div>
             </div>
 
