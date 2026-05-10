@@ -18147,8 +18147,8 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
             <div className="report-delivery-card">
               <div className="purchase-panel-head">
                 <div>
-                  <h3>Report window endpoint</h3>
-                  <p>Keep the shared `/administration/openReport?reportName=` handoff visible before the live renderer is connected.</p>
+                  <h3>Report Renderer Endpoint Depth</h3>
+                  <p>Keep the shared `/administration/openReport?reportName=` handoff visible with explicit report-name routing before the live renderer is connected.</p>
                 </div>
               </div>
               <div className="report-delivery-form">
@@ -18160,22 +18160,41 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
                 </div>
               </div>
               <div className="purchase-kv-list">
+                <div className="purchase-kv"><span>Selected renderer</span><span>{selectedReportWindowOption.label}</span></div>
                 <div className="purchase-kv"><span>Route</span><span>{selectedReportWindowAction.route}</span></div>
                 <div className="purchase-kv"><span>Params</span><span>{selectedReportWindowAction.params}</span></div>
-                <div className="purchase-kv"><span>Format</span><span>{selectedReportWindowAction.format}</span></div>
+                <div className="purchase-kv"><span>Print surface</span><span>{selectedReportWindowAction.surface}</span></div>
+                <div className="purchase-kv"><span>Rows in packet</span><span>{fmtN(Math.max(0, selectedReportWindowAction.previewRows.length - 1))}</span></div>
                 <div className="purchase-kv"><span>Window events</span><span>{fmtN(selectedReportWindowEvents.length)}</span></div>
                 <div className="purchase-kv"><span>Latest event</span><span>{selectedReportWindowEvents[0]?.action || 'No events yet'}</span></div>
               </div>
               <div className="pricebook-actions" style={{ marginTop: 16 }}>
                 <button className="pricebook-btn" onClick={() => runReportAction(selectedReportWindowAction)}>
-                  <Icon name="report" size={15} /> Preview route packet
+                  <Icon name="report" size={15} /> Preview renderer
                 </button>
                 <button className="pricebook-btn" onClick={() => downloadActionPackage(selectedReportWindowAction)}>
-                  <Icon name="cash" size={15} /> Save route packet
+                  <Icon name="cash" size={15} /> Save renderer
                 </button>
                 <button className="pricebook-btn primary" onClick={() => exportReportWindowEvents('CSV')}>
                   <Icon name="save" size={15} /> Export route log
                 </button>
+              </div>
+            </div>
+
+            <div className="report-delivery-card">
+              <div className="purchase-panel-head">
+                <div>
+                  <h3>Selected Renderer Review</h3>
+                  <p>Owner-facing visibility for the chosen report window before the live renderer is connected.</p>
+                </div>
+              </div>
+              <div className="purchase-kv-list">
+                <div className="purchase-kv"><span>Renderer</span><span>{selectedReportWindowOption.label}</span></div>
+                <div className="purchase-kv"><span>Report name</span><span>{reportWindowName}</span></div>
+                <div className="purchase-kv"><span>Route</span><span>{selectedReportWindowAction.route}</span></div>
+                <div className="purchase-kv"><span>Params</span><span>{selectedReportWindowAction.params}</span></div>
+                <div className="purchase-kv"><span>Print surface</span><span>{selectedReportWindowAction.surface}</span></div>
+                <div className="purchase-kv"><span>Latest event</span><span>{selectedReportWindowEvents[0]?.action || 'No events yet'}</span></div>
               </div>
             </div>
 
@@ -18651,7 +18670,7 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
             <div className="report-delivery-card">
               <div className="purchase-panel-head">
                 <div>
-                  <h3>Report window events</h3>
+                  <h3>Report Renderer Events</h3>
                   <p>Owner-facing event visibility for the selected shared report-window handoff.</p>
                 </div>
               </div>
