@@ -20524,6 +20524,11 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
     { id: 'MD-2', startDate: '2026-04-01', endDate: '2026-04-30', packet: 'Prior month closeout pack', window: 'Apr 1 to Apr 30', format: 'Download handoff', source: 'Month Download', status: 'Needs review', note: 'Previous month-download packet still needs a final accounting review.' },
   ]);
   const [selectedMonthDownloadId, setSelectedMonthDownloadId] = useState('MD-1');
+  const [monthDownloadPacketRows, setMonthDownloadPacketRows] = useState([
+    { id: 'MDP-1', packet: 'Primary month-download handoff', window: 'Owner month-range review', focus: 'Month-to-date owner packet', source: 'Reports / Export Center', status: 'Queued', note: 'Primary month-download handoff is staged for owner review before the live Mercury file route is connected.' },
+    { id: 'MDP-2', packet: 'Accounting closeout rerun', window: 'Back-office month rerun review', focus: 'Prior-month closeout packet', source: 'Reports / Delivery', status: 'Needs review', note: 'Previous month-download rerun still needs final accounting review before the live Mercury file route is connected.' },
+  ]);
+  const [selectedMonthDownloadPacketId, setSelectedMonthDownloadPacketId] = useState('MDP-1');
   const [quickbooksRows, setQuickbooksRows] = useState([
     { id: 'QB-1', startDate: '2026-05-01', endDate: '2026-05-09', packet: 'Month-to-date IIF export', window: 'May 1 to May 9', format: 'IIF export', source: 'searchDayForm', status: 'Queued', note: 'Primary accounting export is staged for Mercury-style QuickBooks review.' },
     { id: 'QB-2', startDate: '2026-04-01', endDate: '2026-04-30', packet: 'Prior month IIF export', window: 'Apr 1 to Apr 30', format: 'IIF export', source: 'searchDayForm', status: 'Needs review', note: 'Previous QuickBooks export still needs a final accounting review.' },
@@ -20568,6 +20573,11 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
     { id: 'RMD-1301', sendId: 'MD-1', time: '2026-05-10 00:53', actor: 'Store manager', route: '/shifts/downloadShiftDayReport', action: 'Previewed month download packet', status: 'Opened', note: 'Month-range download packet was reviewed before the live file handoff was connected.' },
     { id: 'RMD-1302', sendId: 'MD-1', time: '2026-05-10 00:54', actor: 'Store manager', route: '/shifts/downloadShiftDayReport', action: 'Saved month download packet', status: 'Ready', note: 'Month-range download packet was exported before the live file handoff was connected.' },
     { id: 'RMD-1303', sendId: 'MD-2', time: '2026-05-09 20:58', actor: 'StoreCheck demo', route: '/shifts/downloadShiftDayReport', action: 'Queued month download handoff', status: 'Queued', note: 'Previous month-download handoff remained visible in demo mode.' },
+  ]);
+  const [monthDownloadRouteEvents, setMonthDownloadRouteEvents] = useState([
+    { id: 'RMR-1301', packetId: 'MDP-1', time: '2026-05-10 00:53', actor: 'Store manager', route: 'POST /shifts/downloadShiftDayReport', action: 'Queued month download route handoff', status: 'Queued', note: 'Month-range route handoff was accepted for the owner month-range review.' },
+    { id: 'RMR-1302', packetId: 'MDP-1', time: '2026-05-10 00:54', actor: 'Store manager', route: 'POST /shifts/downloadShiftDayReport', action: 'Saved month download route packet', status: 'Ready', note: 'Month-range route packet was exported before the live file handoff was connected.' },
+    { id: 'RMR-1303', packetId: 'MDP-2', time: '2026-05-09 20:59', actor: 'StoreCheck demo', route: 'POST /shifts/downloadShiftDayReport', action: 'Previewed month download route packet', status: 'Opened', note: 'Previous month-download route preview stayed visible in demo mode.' },
   ]);
   const [quickbooksEvents, setQuickbooksEvents] = useState([
     { id: 'RQB-1401', sendId: 'QB-1', time: '2026-05-10 01:07', actor: 'Store manager', route: '/shifts/eportQuickBookDays', action: 'Previewed QuickBooks export packet', status: 'Opened', note: 'QuickBooks export packet was reviewed before the live accounting handoff was connected.' },
@@ -20780,6 +20790,10 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
     dayDownloadPacketRows[0] ||
     null;
   const selectedMonthDownload = monthDownloadRows.find((item) => item.id === selectedMonthDownloadId) || monthDownloadRows[0];
+  const selectedMonthDownloadPacket =
+    monthDownloadPacketRows.find((item) => item.id === selectedMonthDownloadPacketId) ||
+    monthDownloadPacketRows[0] ||
+    null;
   const selectedQuickbooks = quickbooksRows.find((item) => item.id === selectedQuickbooksId) || quickbooksRows[0];
   const selectedXmlExport = xmlExportRows.find((item) => item.id === selectedXmlExportId) || xmlExportRows[0];
   const selectedDailyPdf = dailyPdfRows.find((item) => item.id === selectedDailyPdfId) || dailyPdfRows[0];
@@ -20807,6 +20821,8 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
   const selectedDayDownloadRouteEvents =
     selectedDayDownloadPacket ? dayDownloadRouteEvents.filter((item) => item.packetId === selectedDayDownloadPacket.id) : dayDownloadRouteEvents;
   const selectedMonthDownloadEvents = selectedMonthDownload ? monthDownloadEvents.filter((item) => item.sendId === selectedMonthDownload.id) : monthDownloadEvents;
+  const selectedMonthDownloadRouteEvents =
+    selectedMonthDownloadPacket ? monthDownloadRouteEvents.filter((item) => item.packetId === selectedMonthDownloadPacket.id) : monthDownloadRouteEvents;
   const selectedQuickbooksEvents = selectedQuickbooks ? quickbooksEvents.filter((item) => item.sendId === selectedQuickbooks.id) : quickbooksEvents;
   const selectedXmlExportEvents = selectedXmlExport ? xmlExportEvents.filter((item) => item.sendId === selectedXmlExport.id) : xmlExportEvents;
   const selectedDailyPdfEvents = selectedDailyPdf ? dailyPdfEvents.filter((item) => item.rowId === selectedDailyPdf.id) : dailyPdfEvents;
@@ -21230,6 +21246,21 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
       ...current,
     ]);
   };
+  const pushMonthDownloadRouteEvent = ({ packetId = selectedMonthDownloadPacket?.id, action, status, note }) => {
+    setMonthDownloadRouteEvents((current) => [
+      {
+        id: `RMR-${current.length + 1301}`,
+        packetId,
+        time: buildReportStamp(),
+        actor: 'StoreCheck demo',
+        route: 'POST /shifts/downloadShiftDayReport',
+        action,
+        status,
+        note,
+      },
+      ...current,
+    ]);
+  };
   const previewMonthDownloadPacket = (item = selectedMonthDownload) => {
     if (!item) return;
     setSelectedMonthDownloadId(item.id);
@@ -21276,6 +21307,63 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
       note: `Mercury-style month-range download handoff accepted for ${item.window}.`,
     });
     showDeliveryNotice(`Month download for ${item.window} staged in demo mode. Live \`${selectedMonthDownloadAction.route}\` endpoint still pending.`);
+  };
+  const buildMonthDownloadRouteAction = (item = selectedMonthDownload, packet = selectedMonthDownloadPacket) => ({
+    ...selectedMonthDownloadAction,
+    route: 'POST /shifts/downloadShiftDayReport',
+    params: `startDate=${item?.startDate || customFrom}; endDate=${item?.endDate || customTo}; isMonth=true; isDownload=true`,
+    subtitle: `${packet?.window || 'Owner month-range review'} · POST /shifts/downloadShiftDayReport`,
+    fileName: `storecheck-month-download-route-${String(packet?.id || 'route').toLowerCase()}`,
+  });
+  const previewMonthDownloadRoutePacket = (item = selectedMonthDownload, packet = selectedMonthDownloadPacket) => {
+    if (!item || !packet) return;
+    setSelectedMonthDownloadId(item.id);
+    setSelectedMonthDownloadPacketId(packet.id);
+    const action = buildMonthDownloadRouteAction(item, packet);
+    openReportSurface('Month Download Endpoint Reconcile', action.subtitle, action.previewRows);
+    pushMonthDownloadRouteEvent({
+      packetId: packet.id,
+      action: 'Previewed month download route packet',
+      status: 'Opened',
+      note: `${packet.packet} preview opened before the live file handoff was connected.`,
+    });
+    showDeliveryNotice(`${item.id} month-download route packet preview opened in demo mode.`);
+  };
+  const stageMonthDownloadRouteHandoff = (item = selectedMonthDownload, packet = selectedMonthDownloadPacket) => {
+    if (!item || !packet) return;
+    setSelectedMonthDownloadId(item.id);
+    setSelectedMonthDownloadPacketId(packet.id);
+    setMonthDownloadPacketRows((current) => current.map((row) => (
+      row.id === packet.id
+        ? { ...row, status: 'Queued', note: `Month-download route handoff is staged for ${packet.window.toLowerCase()}.` }
+        : row
+    )));
+    pushMonthDownloadRouteEvent({
+      packetId: packet.id,
+      action: 'Queued month download route handoff',
+      status: 'Queued',
+      note: `Mercury-style month-download handoff accepted for ${packet.window}.`,
+    });
+    showDeliveryNotice(`${item.id} month-download route handoff staged in demo mode. Live \`POST /shifts/downloadShiftDayReport\` endpoint still pending.`);
+  };
+  const saveMonthDownloadRoutePacket = (item = selectedMonthDownload, packet = selectedMonthDownloadPacket) => {
+    if (!item || !packet) return;
+    setSelectedMonthDownloadId(item.id);
+    setSelectedMonthDownloadPacketId(packet.id);
+    const action = buildMonthDownloadRouteAction(item, packet);
+    const html = buildReportPackageHtml(action);
+    downloadTextData(html, 'text/html', action.fileName, 'html');
+    pushMonthDownloadRouteEvent({
+      packetId: packet.id,
+      action: 'Saved month download route packet',
+      status: 'Ready',
+      note: 'Month-range route packet was exported while the live file handoff remained demo-only.',
+    });
+    showDeliveryNotice(`${item.id} month-download route packet saved in demo mode.`);
+  };
+  const exportMonthDownloadRouteEvents = (format) => {
+    downloadTableData(selectedMonthDownloadRouteEvents, format, `storecheck-month-download-route-events-${String(selectedMonthDownloadPacket?.id || 'route').toLowerCase()}`);
+    showDeliveryNotice(`${fmtN(selectedMonthDownloadRouteEvents.length)} month-download route events exported in ${format} format.`);
   };
   const pushQuickbooksEvent = ({ sendId = selectedQuickbooks?.id, action, status, note }) => {
     setQuickbooksEvents((current) => [
@@ -22917,47 +23005,60 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
             <div className="report-delivery-card">
               <div className="purchase-panel-head">
                 <div>
-                  <h3>Month Download Endpoint Depth</h3>
-                  <p>Keep the `/shifts/downloadShiftDayReport` month-range handoff visible with selected packet context before the live file delivery route is connected.</p>
+                  <h3>Month Download Endpoint Reconcile</h3>
+                  <p>Keep the `POST /shifts/downloadShiftDayReport` month-range packet visible with selected range and route follow-through context before the live file delivery route is connected.</p>
                 </div>
               </div>
               <div className="purchase-kv-list">
-                <div className="purchase-kv"><span>Selected packet</span><span>{selectedMonthDownload ? `${selectedMonthDownload.window} · ${selectedMonthDownload.status}` : 'Pending'}</span></div>
-                <div className="purchase-kv"><span>Route</span><span>{selectedMonthDownloadAction.route}</span></div>
+                <div className="purchase-kv"><span>Selected route packet</span><span>{selectedMonthDownloadPacket ? `${selectedMonthDownloadPacket.packet} · ${selectedMonthDownloadPacket.status}` : 'Pending'}</span></div>
+                <div className="purchase-kv"><span>Selected range</span><span>{selectedMonthDownload ? `${selectedMonthDownload.window} · ${selectedMonthDownload.status}` : 'Pending'}</span></div>
+                <div className="purchase-kv"><span>Route</span><span>POST /shifts/downloadShiftDayReport</span></div>
                 <div className="purchase-kv"><span>Format</span><span>{selectedMonthDownload?.format || selectedMonthDownloadAction.format}</span></div>
                 <div className="purchase-kv"><span>Params</span><span>{`startDate=${selectedMonthDownload?.startDate || customFrom}; endDate=${selectedMonthDownload?.endDate || customTo}; isMonth=true; isDownload=true`}</span></div>
+                <div className="purchase-kv"><span>Packet window</span><span>{selectedMonthDownloadPacket?.window || 'Owner month-range review'}</span></div>
                 <div className="purchase-kv"><span>Current range</span><span>{selectedMonthDownload ? `${selectedMonthDownload.window} · ${selectedMonthDownload.packet}` : `${customFrom} to ${customTo} · Month download`}</span></div>
-                <div className="purchase-kv"><span>Latest event</span><span>{selectedMonthDownloadEvents[0]?.action || 'No events yet'}</span></div>
+                <div className="purchase-kv"><span>Latest route event</span><span>{selectedMonthDownloadRouteEvents[0]?.action || 'No events yet'}</span></div>
               </div>
               <div className="pricebook-actions" style={{ marginTop: 16, flexWrap: 'wrap' }}>
-                <button className="pricebook-btn" onClick={() => previewMonthDownloadPacket(selectedMonthDownload)}>
+                <button className="pricebook-btn" onClick={() => previewMonthDownloadRoutePacket(selectedMonthDownload, selectedMonthDownloadPacket)}>
                   <Icon name="report" size={15} /> Preview route packet
                 </button>
-                <button className="pricebook-btn" onClick={() => stageMonthDownloadHandoff(selectedMonthDownload)}>
+                <button className="pricebook-btn" onClick={() => stageMonthDownloadRouteHandoff(selectedMonthDownload, selectedMonthDownloadPacket)}>
                   <Icon name="cash" size={15} /> Stage handoff
                 </button>
-                <button className="pricebook-btn" onClick={() => saveMonthDownloadPacket(selectedMonthDownload)}>
+                <button className="pricebook-btn primary" onClick={() => saveMonthDownloadRoutePacket(selectedMonthDownload, selectedMonthDownloadPacket)}>
                   <Icon name="cash" size={15} /> Save route packet
                 </button>
-                <button className="pricebook-btn primary" onClick={() => exportMonthDownloadEvents('CSV')}>
-                  <Icon name="save" size={15} /> Export route log
-                </button>
               </div>
-              <div className="report-delivery-list" style={{ marginTop: 18 }}>
+              <div className="purchase-queue-list" style={{ marginTop: 16 }}>
                 {monthDownloadRows.map((row) => (
-                  <div className="report-delivery-row" key={row.id}>
-                    <div className="report-delivery-head">
+                  <div className="purchase-queue-row" key={row.id}>
+                    <div className="purchase-queue-top">
                       <div>
-                        <div className="report-delivery-title">{row.packet}</div>
-                        <div className="report-delivery-meta">{row.window} · {row.source} · {row.startDate} to {row.endDate}</div>
+                        <div className="purchase-queue-title">{row.packet}</div>
+                        <div className="purchase-queue-meta">{row.window} · {row.source} · {row.startDate} to {row.endDate}</div>
                       </div>
-                      <span className={`purchase-tag${row.status === 'Needs review' ? ' amber' : ' blue'}`}>{row.status}</span>
+                      <div className="pricebook-actions" style={{ gap: 8 }}>
+                        <span className={`purchase-tag${row.status === 'Needs review' ? ' amber' : ' blue'}`}>{row.status}</span>
+                        <button className="pricebook-btn soft" onClick={() => setSelectedMonthDownloadId(row.id)}>
+                          Review
+                        </button>
+                      </div>
                     </div>
-                    <div className="report-delivery-actions">
-                      <button className="pricebook-btn" onClick={() => setSelectedMonthDownloadId(row.id)}>
-                        <Icon name="report" size={15} /> Review
-                      </button>
+                  </div>
+                ))}
+              </div>
+              <div className="purchase-queue-list" style={{ marginTop: 12 }}>
+                {monthDownloadPacketRows.map((row) => (
+                  <div className="purchase-queue-row" key={row.id}>
+                    <div className="purchase-queue-top">
+                      <div>
+                        <div className="purchase-queue-title">{row.packet}</div>
+                        <div className="purchase-queue-meta">{row.window} · {row.focus} · {row.source}</div>
+                      </div>
+                      <button className="pricebook-btn soft" onClick={() => setSelectedMonthDownloadPacketId(row.id)}>Review</button>
                     </div>
+                    <div className="purchase-queue-meta">{row.note}</div>
                   </div>
                 ))}
               </div>
@@ -22966,21 +23067,56 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
             <div className="report-delivery-card">
               <div className="purchase-panel-head">
                 <div>
-                  <h3>Selected Month Download Review</h3>
-                  <p>Owner-facing visibility for the chosen month-range download handoff before the live file route is connected.</p>
+                  <h3>Selected Month Download Endpoint Review</h3>
+                  <p>Owner-facing visibility for the chosen month-range download route packet before the live file route is connected.</p>
                 </div>
               </div>
               {selectedMonthDownload ? (
                 <div className="purchase-kv-list">
+                  <div className="purchase-kv"><span>Packet</span><span>{selectedMonthDownloadPacket?.packet || 'Pending'}</span></div>
+                  <div className="purchase-kv"><span>Window</span><span>{selectedMonthDownloadPacket?.window || 'Owner month-range review'}</span></div>
+                  <div className="purchase-kv"><span>Focus</span><span>{selectedMonthDownloadPacket?.focus || 'Month-range owner packet'}</span></div>
+                  <div className="purchase-kv"><span>Packet status</span><span>{selectedMonthDownloadPacket?.status || 'Pending'}</span></div>
                   <div className="purchase-kv"><span>Start date</span><span>{selectedMonthDownload.startDate}</span></div>
                   <div className="purchase-kv"><span>End date</span><span>{selectedMonthDownload.endDate}</span></div>
                   <div className="purchase-kv"><span>Packet</span><span>{selectedMonthDownload.packet}</span></div>
                   <div className="purchase-kv"><span>Window</span><span>{selectedMonthDownload.window}</span></div>
                   <div className="purchase-kv"><span>Source</span><span>{selectedMonthDownload.source}</span></div>
+                  <div className="purchase-kv"><span>Route</span><span>POST /shifts/downloadShiftDayReport</span></div>
                   <div className="purchase-kv"><span>Status</span><span>{selectedMonthDownload.status}</span></div>
                   <div className="purchase-kv"><span>Note</span><span>{selectedMonthDownload.note}</span></div>
                 </div>
               ) : <div className="purchase-hint">No month-download handoff is selected right now.</div>}
+            </div>
+
+            <div className="report-delivery-card">
+              <div className="purchase-panel-head">
+                <div>
+                  <h3>Month Download Route Events</h3>
+                  <p>Track route-specific `POST /shifts/downloadShiftDayReport` packet activity before the live file route is connected.</p>
+                </div>
+              </div>
+              <div className="pricebook-actions" style={{ marginBottom: 16, flexWrap: 'wrap' }}>
+                {['CSV', 'XLS', 'JSON'].map((format) => (
+                  <button key={format} className="pricebook-btn" onClick={() => exportMonthDownloadRouteEvents(format)}>
+                    <Icon name="save" size={15} /> {format}
+                  </button>
+                ))}
+              </div>
+              <div className="report-delivery-list">
+                {selectedMonthDownloadRouteEvents.length ? selectedMonthDownloadRouteEvents.map((item) => (
+                  <div className="report-delivery-row" key={item.id}>
+                    <div className="report-delivery-head">
+                      <div>
+                        <div className="report-delivery-title">{item.action}</div>
+                        <div className="report-delivery-meta">{item.time} · {item.actor} · {item.route}</div>
+                      </div>
+                      <span className={`purchase-tag${item.status === 'Needs review' ? ' amber' : ' blue'}`}>{item.status}</span>
+                    </div>
+                    <div className="report-delivery-meta">{selectedMonthDownloadPacket?.id || 'MDP-1'} · {item.note}</div>
+                  </div>
+                )) : <div className="purchase-hint">No month-download route events are recorded for the selected packet yet.</div>}
+              </div>
             </div>
 
             <div className="report-delivery-card">
