@@ -20534,6 +20534,11 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
     { id: 'QB-2', startDate: '2026-04-01', endDate: '2026-04-30', packet: 'Prior month IIF export', window: 'Apr 1 to Apr 30', format: 'IIF export', source: 'searchDayForm', status: 'Needs review', note: 'Previous QuickBooks export still needs a final accounting review.' },
   ]);
   const [selectedQuickbooksId, setSelectedQuickbooksId] = useState('QB-1');
+  const [quickbooksPacketRows, setQuickbooksPacketRows] = useState([
+    { id: 'QBP-1', packet: 'Primary QuickBooks handoff', window: 'Owner accounting review', focus: 'Month-to-date IIF packet', source: 'Reports / Export Center', status: 'Queued', note: 'Primary QuickBooks handoff is staged for owner accounting review before the live Mercury export route is connected.' },
+    { id: 'QBP-2', packet: 'Accounting rerun follow-through', window: 'Back-office month rerun review', focus: 'Prior-month IIF packet', source: 'Reports / Delivery', status: 'Needs review', note: 'Previous QuickBooks rerun still needs final accounting review before the live Mercury export route is connected.' },
+  ]);
+  const [selectedQuickbooksPacketId, setSelectedQuickbooksPacketId] = useState('QBP-1');
   const [xmlExportRows, setXmlExportRows] = useState([
     { id: 'XML-1', shiftDate: '2026-05-09', packet: 'Daily sales XML handoff', window: '2026-05-09 only', format: 'XML export', source: 'Day report', status: 'Queued', note: 'Primary XML handoff is staged for Mercury-style POS and accounting review.' },
     { id: 'XML-2', shiftDate: '2026-05-08', packet: 'Prior day POS ledger XML', window: '2026-05-08 only', format: 'XML export', source: 'Daily XML review', status: 'Needs review', note: 'Previous XML export still needs a final owner review before live file delivery is wired.' },
@@ -20583,6 +20588,11 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
     { id: 'RQB-1401', sendId: 'QB-1', time: '2026-05-10 01:07', actor: 'Store manager', route: '/shifts/eportQuickBookDays', action: 'Previewed QuickBooks export packet', status: 'Opened', note: 'QuickBooks export packet was reviewed before the live accounting handoff was connected.' },
     { id: 'RQB-1402', sendId: 'QB-1', time: '2026-05-10 01:08', actor: 'Store manager', route: '/shifts/eportQuickBookDays', action: 'Saved QuickBooks export packet', status: 'Ready', note: 'QuickBooks IIF packet was exported before the live accounting handoff was connected.' },
     { id: 'RQB-1403', sendId: 'QB-2', time: '2026-05-09 19:44', actor: 'StoreCheck demo', route: '/shifts/eportQuickBookDays', action: 'Queued QuickBooks export handoff', status: 'Queued', note: 'Previous QuickBooks export handoff remained visible in demo mode.' },
+  ]);
+  const [quickbooksRouteEvents, setQuickbooksRouteEvents] = useState([
+    { id: 'RQR-1401', packetId: 'QBP-1', time: '2026-05-10 01:07', actor: 'Store manager', route: 'POST /shifts/eportQuickBookDays', action: 'Queued QuickBooks route handoff', status: 'Queued', note: 'QuickBooks route handoff was accepted for the owner accounting review.' },
+    { id: 'RQR-1402', packetId: 'QBP-1', time: '2026-05-10 01:08', actor: 'Store manager', route: 'POST /shifts/eportQuickBookDays', action: 'Saved QuickBooks route packet', status: 'Ready', note: 'QuickBooks route packet was exported before the live accounting handoff was connected.' },
+    { id: 'RQR-1403', packetId: 'QBP-2', time: '2026-05-09 19:45', actor: 'StoreCheck demo', route: 'POST /shifts/eportQuickBookDays', action: 'Previewed QuickBooks route packet', status: 'Opened', note: 'Previous QuickBooks route preview stayed visible in demo mode.' },
   ]);
   const [xmlExportEvents, setXmlExportEvents] = useState([
     { id: 'RXML-1501', sendId: 'XML-1', time: '2026-05-10 01:27', actor: 'Store manager', route: '/shifts/getDayInfoForXml', action: 'Previewed XML export packet', status: 'Opened', note: 'XML export packet was reviewed before the live file handoff was connected.' },
@@ -20795,6 +20805,10 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
     monthDownloadPacketRows[0] ||
     null;
   const selectedQuickbooks = quickbooksRows.find((item) => item.id === selectedQuickbooksId) || quickbooksRows[0];
+  const selectedQuickbooksPacket =
+    quickbooksPacketRows.find((item) => item.id === selectedQuickbooksPacketId) ||
+    quickbooksPacketRows[0] ||
+    null;
   const selectedXmlExport = xmlExportRows.find((item) => item.id === selectedXmlExportId) || xmlExportRows[0];
   const selectedDailyPdf = dailyPdfRows.find((item) => item.id === selectedDailyPdfId) || dailyPdfRows[0];
   const selectedDailyPdfPacket =
@@ -20824,6 +20838,8 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
   const selectedMonthDownloadRouteEvents =
     selectedMonthDownloadPacket ? monthDownloadRouteEvents.filter((item) => item.packetId === selectedMonthDownloadPacket.id) : monthDownloadRouteEvents;
   const selectedQuickbooksEvents = selectedQuickbooks ? quickbooksEvents.filter((item) => item.sendId === selectedQuickbooks.id) : quickbooksEvents;
+  const selectedQuickbooksRouteEvents =
+    selectedQuickbooksPacket ? quickbooksRouteEvents.filter((item) => item.packetId === selectedQuickbooksPacket.id) : quickbooksRouteEvents;
   const selectedXmlExportEvents = selectedXmlExport ? xmlExportEvents.filter((item) => item.sendId === selectedXmlExport.id) : xmlExportEvents;
   const selectedDailyPdfEvents = selectedDailyPdf ? dailyPdfEvents.filter((item) => item.rowId === selectedDailyPdf.id) : dailyPdfEvents;
   const selectedDailyPdfRouteEvents =
@@ -21380,6 +21396,21 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
       ...current,
     ]);
   };
+  const pushQuickbooksRouteEvent = ({ packetId = selectedQuickbooksPacket?.id, action, status, note }) => {
+    setQuickbooksRouteEvents((current) => [
+      {
+        id: `RQR-${current.length + 1401}`,
+        packetId,
+        time: buildReportStamp(),
+        actor: 'StoreCheck demo',
+        route: 'POST /shifts/eportQuickBookDays',
+        action,
+        status,
+        note,
+      },
+      ...current,
+    ]);
+  };
   const previewQuickbooksPacket = (item = selectedQuickbooks) => {
     if (!item) return;
     setSelectedQuickbooksId(item.id);
@@ -21420,6 +21451,63 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
       note: `Mercury-style QuickBooks export handoff accepted for ${item.window}.`,
     });
     showDeliveryNotice(`QuickBooks export for ${item.window} staged in demo mode. Live \`${selectedQuickbooksAction.route}\` endpoint still pending.`);
+  };
+  const buildQuickbooksRouteAction = (item = selectedQuickbooks, packet = selectedQuickbooksPacket) => ({
+    ...selectedQuickbooksAction,
+    route: 'POST /shifts/eportQuickBookDays',
+    params: `${item?.source || 'searchDayForm'}; startDate=${item?.startDate || customFrom}; endDate=${item?.endDate || customTo}`,
+    subtitle: `${packet?.window || 'Owner accounting review'} · POST /shifts/eportQuickBookDays`,
+    fileName: `storecheck-quickbooks-route-${String(packet?.id || 'route').toLowerCase()}`,
+  });
+  const previewQuickbooksRoutePacket = (item = selectedQuickbooks, packet = selectedQuickbooksPacket) => {
+    if (!item || !packet) return;
+    setSelectedQuickbooksId(item.id);
+    setSelectedQuickbooksPacketId(packet.id);
+    const action = buildQuickbooksRouteAction(item, packet);
+    openReportSurface('QuickBooks Export Endpoint Reconcile', action.subtitle, action.previewRows);
+    pushQuickbooksRouteEvent({
+      packetId: packet.id,
+      action: 'Previewed QuickBooks route packet',
+      status: 'Opened',
+      note: `${packet.packet} preview opened before the live accounting handoff was connected.`,
+    });
+    showDeliveryNotice(`${item.id} QuickBooks route packet preview opened in demo mode.`);
+  };
+  const stageQuickbooksRouteHandoff = (item = selectedQuickbooks, packet = selectedQuickbooksPacket) => {
+    if (!item || !packet) return;
+    setSelectedQuickbooksId(item.id);
+    setSelectedQuickbooksPacketId(packet.id);
+    setQuickbooksPacketRows((current) => current.map((row) => (
+      row.id === packet.id
+        ? { ...row, status: 'Queued', note: `QuickBooks route handoff is staged for ${packet.window.toLowerCase()}.` }
+        : row
+    )));
+    pushQuickbooksRouteEvent({
+      packetId: packet.id,
+      action: 'Queued QuickBooks route handoff',
+      status: 'Queued',
+      note: `Mercury-style QuickBooks handoff accepted for ${packet.window}.`,
+    });
+    showDeliveryNotice(`${item.id} QuickBooks route handoff staged in demo mode. Live \`POST /shifts/eportQuickBookDays\` endpoint still pending.`);
+  };
+  const saveQuickbooksRoutePacket = (item = selectedQuickbooks, packet = selectedQuickbooksPacket) => {
+    if (!item || !packet) return;
+    setSelectedQuickbooksId(item.id);
+    setSelectedQuickbooksPacketId(packet.id);
+    const action = buildQuickbooksRouteAction(item, packet);
+    const html = buildReportPackageHtml(action);
+    downloadTextData(html, 'text/html', action.fileName, 'html');
+    pushQuickbooksRouteEvent({
+      packetId: packet.id,
+      action: 'Saved QuickBooks route packet',
+      status: 'Ready',
+      note: 'QuickBooks route packet was exported while the live accounting handoff remained demo-only.',
+    });
+    showDeliveryNotice(`${item.id} QuickBooks route packet saved in demo mode.`);
+  };
+  const exportQuickbooksRouteEvents = (format) => {
+    downloadTableData(selectedQuickbooksRouteEvents, format, `storecheck-quickbooks-route-events-${String(selectedQuickbooksPacket?.id || 'route').toLowerCase()}`);
+    showDeliveryNotice(`${fmtN(selectedQuickbooksRouteEvents.length)} QuickBooks route events exported in ${format} format.`);
   };
   const pushXmlExportEvent = ({ sendId = selectedXmlExport?.id, action, status, note }) => {
     setXmlExportEvents((current) => [
@@ -23122,47 +23210,60 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
             <div className="report-delivery-card">
               <div className="purchase-panel-head">
                 <div>
-                  <h3>QuickBooks Export Endpoint Depth</h3>
-                  <p>Keep the `/shifts/eportQuickBookDays` accounting handoff visible with selected export context before the live file delivery route is connected.</p>
+                  <h3>QuickBooks Export Endpoint Reconcile</h3>
+                  <p>Keep the `POST /shifts/eportQuickBookDays` accounting packet visible with selected export and route follow-through context before the live file delivery route is connected.</p>
                 </div>
               </div>
               <div className="purchase-kv-list">
+                <div className="purchase-kv"><span>Selected route packet</span><span>{selectedQuickbooksPacket ? `${selectedQuickbooksPacket.packet} · ${selectedQuickbooksPacket.status}` : 'Pending'}</span></div>
                 <div className="purchase-kv"><span>Selected export</span><span>{selectedQuickbooks ? `${selectedQuickbooks.window} · ${selectedQuickbooks.status}` : 'Pending'}</span></div>
-                <div className="purchase-kv"><span>Route</span><span>{selectedQuickbooksAction.route}</span></div>
+                <div className="purchase-kv"><span>Route</span><span>POST /shifts/eportQuickBookDays</span></div>
                 <div className="purchase-kv"><span>Format</span><span>{selectedQuickbooks?.format || selectedQuickbooksAction.format}</span></div>
                 <div className="purchase-kv"><span>Params</span><span>{`${selectedQuickbooks?.source || 'searchDayForm'}; startDate=${selectedQuickbooks?.startDate || customFrom}; endDate=${selectedQuickbooks?.endDate || customTo}`}</span></div>
+                <div className="purchase-kv"><span>Packet window</span><span>{selectedQuickbooksPacket?.window || 'Owner accounting review'}</span></div>
                 <div className="purchase-kv"><span>Current export</span><span>{selectedQuickbooks ? `${selectedQuickbooks.window} · ${selectedQuickbooks.packet}` : 'QuickBooks export'}</span></div>
-                <div className="purchase-kv"><span>Latest event</span><span>{selectedQuickbooksEvents[0]?.action || 'No events yet'}</span></div>
+                <div className="purchase-kv"><span>Latest route event</span><span>{selectedQuickbooksRouteEvents[0]?.action || 'No events yet'}</span></div>
               </div>
               <div className="pricebook-actions" style={{ marginTop: 16, flexWrap: 'wrap' }}>
-                <button className="pricebook-btn" onClick={() => previewQuickbooksPacket(selectedQuickbooks)}>
+                <button className="pricebook-btn" onClick={() => previewQuickbooksRoutePacket(selectedQuickbooks, selectedQuickbooksPacket)}>
                   <Icon name="report" size={15} /> Preview route packet
                 </button>
-                <button className="pricebook-btn" onClick={() => stageQuickbooksHandoff(selectedQuickbooks)}>
+                <button className="pricebook-btn" onClick={() => stageQuickbooksRouteHandoff(selectedQuickbooks, selectedQuickbooksPacket)}>
                   <Icon name="cash" size={15} /> Stage handoff
                 </button>
-                <button className="pricebook-btn" onClick={() => saveQuickbooksPacket(selectedQuickbooks)}>
+                <button className="pricebook-btn primary" onClick={() => saveQuickbooksRoutePacket(selectedQuickbooks, selectedQuickbooksPacket)}>
                   <Icon name="cash" size={15} /> Save route packet
                 </button>
-                <button className="pricebook-btn primary" onClick={() => exportQuickbooksEvents('CSV')}>
-                  <Icon name="save" size={15} /> Export route log
-                </button>
               </div>
-              <div className="report-delivery-list" style={{ marginTop: 18 }}>
+              <div className="purchase-queue-list" style={{ marginTop: 16 }}>
                 {quickbooksRows.map((row) => (
-                  <div className="report-delivery-row" key={row.id}>
-                    <div className="report-delivery-head">
+                  <div className="purchase-queue-row" key={row.id}>
+                    <div className="purchase-queue-top">
                       <div>
-                        <div className="report-delivery-title">{row.packet}</div>
-                        <div className="report-delivery-meta">{row.window} · {row.source} · {row.startDate} to {row.endDate}</div>
+                        <div className="purchase-queue-title">{row.packet}</div>
+                        <div className="purchase-queue-meta">{row.window} · {row.source} · {row.startDate} to {row.endDate}</div>
                       </div>
-                      <span className={`purchase-tag${row.status === 'Needs review' ? ' amber' : ' blue'}`}>{row.status}</span>
+                      <div className="pricebook-actions" style={{ gap: 8 }}>
+                        <span className={`purchase-tag${row.status === 'Needs review' ? ' amber' : ' blue'}`}>{row.status}</span>
+                        <button className="pricebook-btn soft" onClick={() => setSelectedQuickbooksId(row.id)}>
+                          Review
+                        </button>
+                      </div>
                     </div>
-                    <div className="report-delivery-actions">
-                      <button className="pricebook-btn" onClick={() => setSelectedQuickbooksId(row.id)}>
-                        <Icon name="report" size={15} /> Review
-                      </button>
+                  </div>
+                ))}
+              </div>
+              <div className="purchase-queue-list" style={{ marginTop: 12 }}>
+                {quickbooksPacketRows.map((row) => (
+                  <div className="purchase-queue-row" key={row.id}>
+                    <div className="purchase-queue-top">
+                      <div>
+                        <div className="purchase-queue-title">{row.packet}</div>
+                        <div className="purchase-queue-meta">{row.window} · {row.focus} · {row.source}</div>
+                      </div>
+                      <button className="pricebook-btn soft" onClick={() => setSelectedQuickbooksPacketId(row.id)}>Review</button>
                     </div>
+                    <div className="purchase-queue-meta">{row.note}</div>
                   </div>
                 ))}
               </div>
@@ -23171,21 +23272,56 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
             <div className="report-delivery-card">
               <div className="purchase-panel-head">
                 <div>
-                  <h3>Selected QuickBooks Export Review</h3>
-                  <p>Owner-facing visibility for the chosen QuickBooks export handoff before the live accounting file route is connected.</p>
+                  <h3>Selected QuickBooks Export Endpoint Review</h3>
+                  <p>Owner-facing visibility for the chosen QuickBooks route packet before the live accounting file route is connected.</p>
                 </div>
               </div>
               {selectedQuickbooks ? (
                 <div className="purchase-kv-list">
+                  <div className="purchase-kv"><span>Packet</span><span>{selectedQuickbooksPacket?.packet || 'Pending'}</span></div>
+                  <div className="purchase-kv"><span>Window</span><span>{selectedQuickbooksPacket?.window || 'Owner accounting review'}</span></div>
+                  <div className="purchase-kv"><span>Focus</span><span>{selectedQuickbooksPacket?.focus || 'Month-to-date IIF packet'}</span></div>
+                  <div className="purchase-kv"><span>Packet status</span><span>{selectedQuickbooksPacket?.status || 'Pending'}</span></div>
                   <div className="purchase-kv"><span>Start date</span><span>{selectedQuickbooks.startDate}</span></div>
                   <div className="purchase-kv"><span>End date</span><span>{selectedQuickbooks.endDate}</span></div>
                   <div className="purchase-kv"><span>Packet</span><span>{selectedQuickbooks.packet}</span></div>
                   <div className="purchase-kv"><span>Window</span><span>{selectedQuickbooks.window}</span></div>
                   <div className="purchase-kv"><span>Source</span><span>{selectedQuickbooks.source}</span></div>
+                  <div className="purchase-kv"><span>Route</span><span>POST /shifts/eportQuickBookDays</span></div>
                   <div className="purchase-kv"><span>Status</span><span>{selectedQuickbooks.status}</span></div>
                   <div className="purchase-kv"><span>Note</span><span>{selectedQuickbooks.note}</span></div>
                 </div>
               ) : <div className="purchase-hint">No QuickBooks export handoff is selected right now.</div>}
+            </div>
+
+            <div className="report-delivery-card">
+              <div className="purchase-panel-head">
+                <div>
+                  <h3>QuickBooks Route Events</h3>
+                  <p>Track route-specific `POST /shifts/eportQuickBookDays` packet activity before the live accounting file route is connected.</p>
+                </div>
+              </div>
+              <div className="pricebook-actions" style={{ marginBottom: 16, flexWrap: 'wrap' }}>
+                {['CSV', 'XLS', 'JSON'].map((format) => (
+                  <button key={format} className="pricebook-btn" onClick={() => exportQuickbooksRouteEvents(format)}>
+                    <Icon name="save" size={15} /> {format}
+                  </button>
+                ))}
+              </div>
+              <div className="report-delivery-list">
+                {selectedQuickbooksRouteEvents.length ? selectedQuickbooksRouteEvents.map((item) => (
+                  <div className="report-delivery-row" key={item.id}>
+                    <div className="report-delivery-head">
+                      <div>
+                        <div className="report-delivery-title">{item.action}</div>
+                        <div className="report-delivery-meta">{item.time} · {item.actor} · {item.route}</div>
+                      </div>
+                      <span className={`purchase-tag${item.status === 'Needs review' ? ' amber' : ' blue'}`}>{item.status}</span>
+                    </div>
+                    <div className="report-delivery-meta">{selectedQuickbooksPacket?.id || 'QBP-1'} · {item.note}</div>
+                  </div>
+                )) : <div className="purchase-hint">No QuickBooks route events are recorded for the selected packet yet.</div>}
+              </div>
             </div>
 
             <div className="report-delivery-card">
