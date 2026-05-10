@@ -20589,10 +20589,25 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
     { id: 'RPR-952', packetId: 'DYP-1', time: '2026-05-09 07:55', actor: 'Store manager', route: '/shifts/createDaysPdf', action: 'Saved days PDF route packet', status: 'Ready', note: 'Days-PDF route packet was exported before the live Mercury renderer was connected.' },
     { id: 'RPR-953', packetId: 'DYP-2', time: '2026-05-08 07:56', actor: 'StoreCheck demo', route: '/shifts/createDaysPdf', action: 'Queued days PDF route handoff', status: 'Queued', note: 'Previous days-PDF rerun handoff stayed visible in demo mode.' },
   ]);
+  const [summaryPdfRows, setSummaryPdfRows] = useState([
+    { id: 'SP-1', period: 'May 2026', window: 'May summary review', output: 'PDF Preview', actor: 'Store manager', status: 'Ready', note: 'Primary monthly summary packet stayed aligned for owner review.' },
+    { id: 'SP-2', period: 'April 2026', window: 'April summary rerun', output: 'PDF Preview', actor: 'StoreCheck demo', status: 'Needs review', note: 'Previous monthly summary packet stayed visible for rerun follow-through in demo mode.' },
+  ]);
+  const [selectedSummaryPdfId, setSelectedSummaryPdfId] = useState('SP-1');
+  const [summaryPdfPacketRows, setSummaryPdfPacketRows] = useState([
+    { id: 'SPP-1', packet: 'Primary summary PDF handoff', window: 'Monthly print review', focus: 'Owner month-summary validation', source: 'Reports / Print Center', status: 'Queued', note: 'Primary summary-PDF handoff is staged for owner review before the live Mercury route is connected.' },
+    { id: 'SPP-2', packet: 'Summary PDF rerun follow-through', window: 'Previous month rerun review', focus: 'Monthly reprint follow-up', source: 'Reports / Delivery', status: 'Needs review', note: 'Summary-PDF rerun follow-through still needs final owner review before the live Mercury route is connected.' },
+  ]);
+  const [selectedSummaryPdfPacketId, setSelectedSummaryPdfPacketId] = useState('SPP-1');
   const [summaryPdfEvents, setSummaryPdfEvents] = useState([
-    { id: 'RSP-901', time: '2026-05-09 08:01', actor: 'Store manager', route: '/shifts/createSummaryPdf', action: 'Opened summary PDF preview', status: 'Opened', note: 'Month summary preview opened before the owner packet was shared.' },
-    { id: 'RSP-902', time: '2026-05-09 08:02', actor: 'Store manager', route: '/shifts/createSummaryPdf', action: 'Saved summary PDF packet', status: 'Ready', note: 'Summary packet exported for the weekly owner handoff.' },
-    { id: 'RSP-903', time: '2026-05-08 07:58', actor: 'StoreCheck demo', route: '/shifts/createSummaryPdf', action: 'Previewed summary packet', status: 'Ready', note: 'Previous summary packet preview stayed visible in demo mode.' },
+    { id: 'RSP-901', rowId: 'SP-1', time: '2026-05-09 08:01', actor: 'Store manager', route: '/shifts/createSummaryPdf', action: 'Opened summary PDF preview', status: 'Opened', note: 'Month summary preview opened before the owner packet was shared.' },
+    { id: 'RSP-902', rowId: 'SP-1', time: '2026-05-09 08:02', actor: 'Store manager', route: '/shifts/createSummaryPdf', action: 'Saved summary PDF packet', status: 'Ready', note: 'Summary packet exported for the weekly owner handoff.' },
+    { id: 'RSP-903', rowId: 'SP-2', time: '2026-05-08 07:58', actor: 'StoreCheck demo', route: '/shifts/createSummaryPdf', action: 'Previewed summary packet', status: 'Ready', note: 'Previous summary packet preview stayed visible in demo mode.' },
+  ]);
+  const [summaryPdfRouteEvents, setSummaryPdfRouteEvents] = useState([
+    { id: 'RSR-901', packetId: 'SPP-1', time: '2026-05-09 08:01', actor: 'Store manager', route: '/shifts/createSummaryPdf', action: 'Previewed summary PDF route packet', status: 'Opened', note: 'Route-level summary-PDF packet was reviewed before the live Mercury renderer was connected.' },
+    { id: 'RSR-902', packetId: 'SPP-1', time: '2026-05-09 08:02', actor: 'Store manager', route: '/shifts/createSummaryPdf', action: 'Saved summary PDF route packet', status: 'Ready', note: 'Summary-PDF route packet was exported before the live Mercury renderer was connected.' },
+    { id: 'RSR-903', packetId: 'SPP-2', time: '2026-05-08 08:00', actor: 'StoreCheck demo', route: '/shifts/createSummaryPdf', action: 'Queued summary PDF route handoff', status: 'Queued', note: 'Previous summary-PDF rerun handoff stayed visible in demo mode.' },
   ]);
   const [reportWindowName, setReportWindowName] = useState('weekly-summary');
   const [reportWindowEvents, setReportWindowEvents] = useState([
@@ -20735,6 +20750,11 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
     daysPdfPacketRows.find((item) => item.id === selectedDaysPdfPacketId) ||
     daysPdfPacketRows[0] ||
     null;
+  const selectedSummaryPdf = summaryPdfRows.find((item) => item.id === selectedSummaryPdfId) || summaryPdfRows[0];
+  const selectedSummaryPdfPacket =
+    summaryPdfPacketRows.find((item) => item.id === selectedSummaryPdfPacketId) ||
+    summaryPdfPacketRows[0] ||
+    null;
   const selectedShiftEmailEvents = selectedShiftEmail ? shiftEmailEvents.filter((item) => item.sendId === selectedShiftEmail.id) : shiftEmailEvents;
   const selectedDayReportEmailEvents = selectedDayReportEmail ? dayReportEmailEvents.filter((item) => item.sendId === selectedDayReportEmail.id) : dayReportEmailEvents;
   const selectedDayDownloadEvents = selectedDayDownload ? dayDownloadEvents.filter((item) => item.sendId === selectedDayDownload.id) : dayDownloadEvents;
@@ -20747,7 +20767,9 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
   const selectedDaysPdfEvents = selectedDaysPdf ? daysPdfEvents.filter((item) => item.rowId === selectedDaysPdf.id) : daysPdfEvents;
   const selectedDaysPdfRouteEvents =
     selectedDaysPdfPacket ? daysPdfRouteEvents.filter((item) => item.packetId === selectedDaysPdfPacket.id) : daysPdfRouteEvents;
-  const selectedSummaryPdfEvents = summaryPdfEvents;
+  const selectedSummaryPdfEvents = selectedSummaryPdf ? summaryPdfEvents.filter((item) => item.rowId === selectedSummaryPdf.id) : summaryPdfEvents;
+  const selectedSummaryPdfRouteEvents =
+    selectedSummaryPdfPacket ? summaryPdfRouteEvents.filter((item) => item.packetId === selectedSummaryPdfPacket.id) : summaryPdfRouteEvents;
   const selectedReportWindowEvents = reportWindowEvents.filter((item) => item.reportName === reportWindowName);
 
   const pushShiftEmailEvent = ({ sendId = selectedShiftEmail?.id, action, status, note }) => {
@@ -21157,10 +21179,26 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
       ...current,
     ]);
   };
-  const pushSummaryPdfEvent = ({ action, status, note }) => {
+  const pushSummaryPdfEvent = ({ rowId = selectedSummaryPdf?.id, action, status, note }) => {
     setSummaryPdfEvents((current) => [
       {
         id: `RSP-${current.length + 901}`,
+        rowId,
+        time: buildReportStamp(),
+        actor: 'StoreCheck demo',
+        route: '/shifts/createSummaryPdf',
+        action,
+        status,
+        note,
+      },
+      ...current,
+    ]);
+  };
+  const pushSummaryPdfRouteEvent = ({ packetId = selectedSummaryPdfPacket?.id, action, status, note }) => {
+    setSummaryPdfRouteEvents((current) => [
+      {
+        id: `RSR-${current.length + 901}`,
+        packetId,
         time: buildReportStamp(),
         actor: 'StoreCheck demo',
         route: '/shifts/createSummaryPdf',
@@ -21335,6 +21373,63 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
   const exportSummaryPdfEvents = (format) => {
     downloadTableData(selectedSummaryPdfEvents, format, 'storecheck-summary-pdf-events');
     showDeliveryNotice(`${fmtN(selectedSummaryPdfEvents.length)} summary PDF events exported in ${format} format.`);
+  };
+  const buildSummaryPdfRouteAction = (item = selectedSummaryPdf, packet = selectedSummaryPdfPacket) => ({
+    ...selectedSummaryPdfAction,
+    route: '/shifts/createSummaryPdf',
+    params: `period=${item?.period || 'May 2026'}; window=open`,
+    subtitle: `${packet?.window || 'Monthly print review'} · /shifts/createSummaryPdf`,
+    fileName: `storecheck-summary-pdf-route-${String(packet?.id || 'route').toLowerCase()}`,
+  });
+  const previewSummaryPdfRoutePacket = (item = selectedSummaryPdf, packet = selectedSummaryPdfPacket) => {
+    if (!item || !packet) return;
+    setSelectedSummaryPdfId(item.id);
+    setSelectedSummaryPdfPacketId(packet.id);
+    const action = buildSummaryPdfRouteAction(item, packet);
+    openReportSurface('Summary PDF Endpoint Depth', action.subtitle, action.previewRows);
+    pushSummaryPdfRouteEvent({
+      packetId: packet.id,
+      action: 'Previewed summary PDF route packet',
+      status: 'Opened',
+      note: `${packet.packet} preview opened before the live Mercury renderer was connected.`,
+    });
+    showDeliveryNotice(`${item.id} summary-PDF route packet preview opened in demo mode.`);
+  };
+  const stageSummaryPdfRouteHandoff = (item = selectedSummaryPdf, packet = selectedSummaryPdfPacket) => {
+    if (!item || !packet) return;
+    setSelectedSummaryPdfId(item.id);
+    setSelectedSummaryPdfPacketId(packet.id);
+    setSummaryPdfPacketRows((current) => current.map((row) => (
+      row.id === packet.id
+        ? { ...row, status: 'Queued', note: `Summary-PDF route handoff is staged for ${packet.window.toLowerCase()}.` }
+        : row
+    )));
+    pushSummaryPdfRouteEvent({
+      packetId: packet.id,
+      action: 'Queued summary PDF route handoff',
+      status: 'Queued',
+      note: `Mercury-style summary-PDF handoff accepted for ${packet.window}.`,
+    });
+    showDeliveryNotice(`${item.id} summary-PDF route handoff staged in demo mode. Live \`/shifts/createSummaryPdf\` endpoint still pending.`);
+  };
+  const saveSummaryPdfRoutePacket = (item = selectedSummaryPdf, packet = selectedSummaryPdfPacket) => {
+    if (!item || !packet) return;
+    setSelectedSummaryPdfId(item.id);
+    setSelectedSummaryPdfPacketId(packet.id);
+    const action = buildSummaryPdfRouteAction(item, packet);
+    const html = buildReportPackageHtml(action);
+    downloadTextData(html, 'text/html', action.fileName, 'html');
+    pushSummaryPdfRouteEvent({
+      packetId: packet.id,
+      action: 'Saved summary PDF route packet',
+      status: 'Ready',
+      note: 'Summary-PDF route packet exported while the live renderer remained demo-only.',
+    });
+    showDeliveryNotice(`${item.id} summary-PDF route packet saved in demo mode.`);
+  };
+  const exportSummaryPdfRouteEvents = (format) => {
+    downloadTableData(selectedSummaryPdfRouteEvents, format, `storecheck-summary-pdf-route-events-${String(selectedSummaryPdfPacket?.id || 'route').toLowerCase()}`);
+    showDeliveryNotice(`${fmtN(selectedSummaryPdfRouteEvents.length)} summary-PDF route events exported in ${format} format.`);
   };
   const exportReportWindowEvents = (format) => {
     const rows = selectedReportWindowEvents.length ? selectedReportWindowEvents : reportWindowEvents;
@@ -21797,29 +21892,89 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
             <div className="report-delivery-card">
               <div className="purchase-panel-head">
                 <div>
-                  <h3>Summary PDF endpoint</h3>
-                  <p>Keep the `/shifts/createSummaryPdf` packet and monthly summary context visible before the live PDF renderer is connected.</p>
+                  <h3>Summary PDF Endpoint Depth</h3>
+                  <p>Keep the `/shifts/createSummaryPdf` packet and monthly summary context visible with selected route follow-through before the live PDF renderer is connected.</p>
                 </div>
               </div>
               <div className="purchase-kv-list">
-                <div className="purchase-kv"><span>Route</span><span>{selectedSummaryPdfAction.route}</span></div>
+                <div className="purchase-kv"><span>Selected packet</span><span>{selectedSummaryPdfPacket ? `${selectedSummaryPdfPacket.packet} · ${selectedSummaryPdfPacket.status}` : 'Pending'}</span></div>
+                <div className="purchase-kv"><span>Selected run</span><span>{selectedSummaryPdf ? `${selectedSummaryPdf.period} · ${selectedSummaryPdf.status}` : 'Pending'}</span></div>
+                <div className="purchase-kv"><span>Route</span><span>/shifts/createSummaryPdf</span></div>
                 <div className="purchase-kv"><span>Surface</span><span>{selectedSummaryPdfAction.surface}</span></div>
+                <div className="purchase-kv"><span>Period</span><span>{selectedSummaryPdf?.period || 'May 2026'}</span></div>
                 <div className="purchase-kv"><span>Weeks in packet</span><span>{fmtN(monthlyRows.length)}</span></div>
                 <div className="purchase-kv"><span>Month total</span><span>{fmt(monthlyTotals.total)}</span></div>
                 <div className="purchase-kv"><span>Month gallons</span><span>{fmtN(monthlyTotals.gallons)}</span></div>
-                <div className="purchase-kv"><span>Latest event</span><span>{selectedSummaryPdfEvents[0]?.action || 'No events yet'}</span></div>
+                <div className="purchase-kv"><span>Latest route event</span><span>{selectedSummaryPdfRouteEvents[0]?.action || 'No events yet'}</span></div>
               </div>
-              <div className="pricebook-actions" style={{ marginTop: 16 }}>
-                <button className="pricebook-btn" onClick={() => runReportAction(selectedSummaryPdfAction)}>
+              <div className="pricebook-actions" style={{ marginTop: 16, flexWrap: 'wrap' }}>
+                <button className="pricebook-btn" onClick={() => previewSummaryPdfRoutePacket(selectedSummaryPdf, selectedSummaryPdfPacket)}>
                   <Icon name="report" size={15} /> Preview route packet
                 </button>
-                <button className="pricebook-btn" onClick={() => downloadActionPackage(selectedSummaryPdfAction)}>
+                <button className="pricebook-btn" onClick={() => stageSummaryPdfRouteHandoff(selectedSummaryPdf, selectedSummaryPdfPacket)}>
+                  <Icon name="calendar" size={15} /> Stage handoff
+                </button>
+                <button className="pricebook-btn primary" onClick={() => saveSummaryPdfRoutePacket(selectedSummaryPdf, selectedSummaryPdfPacket)}>
                   <Icon name="cash" size={15} /> Save route packet
                 </button>
-                <button className="pricebook-btn primary" onClick={() => exportSummaryPdfEvents('CSV')}>
-                  <Icon name="save" size={15} /> Export route log
-                </button>
               </div>
+              <div className="purchase-queue-list" style={{ marginTop: 16 }}>
+                {summaryPdfRows.map((item) => (
+                  <div className="purchase-queue-row" key={item.id}>
+                    <div className="purchase-queue-top">
+                      <div>
+                        <div className="purchase-queue-title">{item.period}</div>
+                        <div className="purchase-queue-meta">{item.window} · {item.output} · {item.actor}</div>
+                      </div>
+                      <div className="pricebook-actions" style={{ gap: 8 }}>
+                        <span className={`purchase-tag${item.status === 'Ready' ? ' blue' : item.status === 'Needs review' ? ' amber' : ''}`}>{item.status}</span>
+                        <button className="pricebook-btn soft" onClick={() => setSelectedSummaryPdfId(item.id)}>Review</button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="purchase-queue-list" style={{ marginTop: 12 }}>
+                {summaryPdfPacketRows.map((item) => (
+                  <div className="purchase-queue-row" key={item.id}>
+                    <div className="purchase-queue-top">
+                      <div>
+                        <div className="purchase-queue-title">{item.packet}</div>
+                        <div className="purchase-queue-meta">{item.window} · {item.focus} · {item.source}</div>
+                      </div>
+                      <button className="pricebook-btn soft" onClick={() => setSelectedSummaryPdfPacketId(item.id)}>Review</button>
+                    </div>
+                    <div className="purchase-queue-meta">{item.note}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="report-delivery-card">
+              <div className="purchase-panel-head">
+                <div>
+                  <h3>Selected Summary PDF Review</h3>
+                  <p>Keep the chosen monthly summary response visible before the print-center route hands off.</p>
+                </div>
+              </div>
+              {selectedSummaryPdf ? (
+                <div className="purchase-kv-list">
+                  <div className="purchase-kv"><span>Packet</span><span>{selectedSummaryPdfPacket?.packet || 'Pending'}</span></div>
+                  <div className="purchase-kv"><span>Window</span><span>{selectedSummaryPdfPacket?.window || 'Monthly print review'}</span></div>
+                  <div className="purchase-kv"><span>Focus</span><span>{selectedSummaryPdfPacket?.focus || 'Owner month-summary validation'}</span></div>
+                  <div className="purchase-kv"><span>Source</span><span>{selectedSummaryPdfPacket?.source || 'Reports / Print Center'}</span></div>
+                  <div className="purchase-kv"><span>Packet status</span><span>{selectedSummaryPdfPacket?.status || 'Pending'}</span></div>
+                  <div className="purchase-kv"><span>Period</span><span>{selectedSummaryPdf.period}</span></div>
+                  <div className="purchase-kv"><span>Window</span><span>{selectedSummaryPdf.window}</span></div>
+                  <div className="purchase-kv"><span>Output</span><span>{selectedSummaryPdf.output}</span></div>
+                  <div className="purchase-kv"><span>Actor</span><span>{selectedSummaryPdf.actor}</span></div>
+                  <div className="purchase-kv"><span>Status</span><span>{selectedSummaryPdf.status}</span></div>
+                  <div className="purchase-kv"><span>Route</span><span>/shifts/createSummaryPdf</span></div>
+                  <div className="purchase-kv"><span>Note</span><span>{selectedSummaryPdf.note}</span></div>
+                </div>
+              ) : (
+                <div className="purchase-hint">No summary-PDF review is selected yet.</div>
+              )}
             </div>
 
             <div className="report-delivery-card">
@@ -22114,12 +22269,19 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
             <div className="report-delivery-card">
               <div className="purchase-panel-head">
                 <div>
-                  <h3>Summary PDF events</h3>
-                  <p>Owner-facing event visibility for the summary PDF packet handoff.</p>
+                  <h3>Summary PDF Route Events</h3>
+                  <p>Track route-specific `/shifts/createSummaryPdf` packet activity before the live renderer is connected.</p>
                 </div>
               </div>
+              <div className="pricebook-actions" style={{ marginBottom: 16, flexWrap: 'wrap' }}>
+                {['CSV', 'XLS', 'JSON'].map((format) => (
+                  <button key={format} className="pricebook-btn" onClick={() => exportSummaryPdfRouteEvents(format)}>
+                    <Icon name="cash" size={15} /> {format}
+                  </button>
+                ))}
+              </div>
               <div className="report-delivery-list">
-                {selectedSummaryPdfEvents.length ? selectedSummaryPdfEvents.map((item) => (
+                {selectedSummaryPdfRouteEvents.length ? selectedSummaryPdfRouteEvents.map((item) => (
                   <div className="report-delivery-row" key={item.id}>
                     <div className="report-delivery-head">
                       <div>
@@ -22128,9 +22290,9 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
                       </div>
                       <span className={`purchase-tag${item.status === 'Needs review' ? ' amber' : ' blue'}`}>{item.status}</span>
                     </div>
-                    <div className="report-delivery-meta">{item.note}</div>
+                    <div className="report-delivery-meta">{selectedSummaryPdfPacket?.id || 'SPP-1'} · {item.note}</div>
                   </div>
-                )) : <div className="purchase-hint">No summary PDF events are recorded yet.</div>}
+                )) : <div className="purchase-hint">No summary-PDF route events are recorded yet.</div>}
               </div>
             </div>
 
