@@ -11823,6 +11823,11 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
   const [deliveryNotice, setDeliveryNotice] = useState('');
   const [deliveryEmail, setDeliveryEmail] = useState('owner@mainstreetgas.com');
   const [deliverySelection, setDeliverySelection] = useState('Weekly Summary PDF');
+  const [daysPdfEvents, setDaysPdfEvents] = useState([
+    { id: 'RDP-951', time: '2026-05-09 07:54', actor: 'Store manager', route: '/shifts/createDaysPdf', action: 'Opened days PDF preview', status: 'Opened', note: 'Seven-day packet preview opened for the weekly owner review.' },
+    { id: 'RDP-952', time: '2026-05-09 07:55', actor: 'Store manager', route: '/shifts/createDaysPdf', action: 'Saved days PDF packet', status: 'Ready', note: 'Weekly day-report packet exported before shift closeout.' },
+    { id: 'RDP-953', time: '2026-05-08 07:52', actor: 'StoreCheck demo', route: '/shifts/createDaysPdf', action: 'Previewed days packet', status: 'Ready', note: 'Previous seven-day packet preview stayed visible in demo mode.' },
+  ]);
   const [summaryPdfEvents, setSummaryPdfEvents] = useState([
     { id: 'RSP-901', time: '2026-05-09 08:01', actor: 'Store manager', route: '/shifts/createSummaryPdf', action: 'Opened summary PDF preview', status: 'Opened', note: 'Month summary preview opened before the owner packet was shared.' },
     { id: 'RSP-902', time: '2026-05-09 08:02', actor: 'Store manager', route: '/shifts/createSummaryPdf', action: 'Saved summary PDF packet', status: 'Ready', note: 'Summary packet exported for the weekly owner handoff.' },
@@ -11934,6 +11939,7 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
     { id: 'xml', label: 'XML Export', shortLabel: 'XML Export', group: 'export', route: '/shifts/getDayInfoForXml', surface: 'Reports / Export Center', format: 'XML Download', note: 'POS / accounting XML handoff', params: `date=${customTo}`, previewRows: weekPreviewRows, subtitle: `${currentLocation.name} · XML export`, fileName: 'storecheck-sales-report' },
   ];
   const reportActionMap = Object.fromEntries(reportActionPresets.map((action) => [action.id, action]));
+  const selectedDaysPdfAction = reportActionMap.daysPdf;
   const selectedSummaryPdfAction = reportActionMap.summaryPdf;
   const selectedReportWindowAction = {
     ...reportActionMap.reportWindow,
@@ -11945,9 +11951,24 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
   const printActions = reportActionPresets.filter((action) => action.group === 'print');
   const emailActions = reportActionPresets.filter((action) => action.group === 'email');
   const handoffActions = reportActionPresets.filter((action) => action.group === 'download' || action.group === 'export');
+  const selectedDaysPdfEvents = daysPdfEvents;
   const selectedSummaryPdfEvents = summaryPdfEvents;
   const selectedReportWindowEvents = reportWindowEvents.filter((item) => item.reportName === reportWindowName);
 
+  const pushDaysPdfEvent = ({ action, status, note }) => {
+    setDaysPdfEvents((current) => [
+      {
+        id: `RDP-${current.length + 951}`,
+        time: buildReportStamp(),
+        actor: 'StoreCheck demo',
+        route: '/shifts/createDaysPdf',
+        action,
+        status,
+        note,
+      },
+      ...current,
+    ]);
+  };
   const pushSummaryPdfEvent = ({ action, status, note }) => {
     setSummaryPdfEvents((current) => [
       {
@@ -11976,6 +11997,10 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
       },
       ...current,
     ]);
+  };
+  const exportDaysPdfEvents = (format) => {
+    downloadTableData(selectedDaysPdfEvents, format, 'storecheck-days-pdf-events');
+    showDeliveryNotice(`${fmtN(selectedDaysPdfEvents.length)} days PDF events exported in ${format} format.`);
   };
   const exportSummaryPdfEvents = (format) => {
     downloadTableData(selectedSummaryPdfEvents, format, 'storecheck-summary-pdf-events');
@@ -12054,6 +12079,13 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
     }
     const html = buildReportPackageHtml(action);
     downloadTextData(html, 'text/html', action.fileName, 'html');
+    if (action.id === 'daysPdf') {
+      pushDaysPdfEvent({
+        action: 'Saved days PDF packet',
+        status: 'Ready',
+        note: 'Seven-day PDF packet exported while the live renderer remained demo-only.',
+      });
+    }
     if (action.id === 'summaryPdf') {
       pushSummaryPdfEvent({
         action: 'Saved summary PDF packet',
@@ -12078,6 +12110,13 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
 
   const runReportAction = (action) => {
     if (action.group === 'print') {
+      if (action.id === 'daysPdf') {
+        pushDaysPdfEvent({
+          action: 'Opened days PDF preview',
+          status: 'Opened',
+          note: 'Days PDF preview opened from the print center.',
+        });
+      }
       if (action.id === 'summaryPdf') {
         pushSummaryPdfEvent({
           action: 'Opened summary PDF preview',
@@ -12183,6 +12222,34 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
             <div className="report-delivery-card">
               <div className="purchase-panel-head">
                 <div>
+                  <h3>Days PDF endpoint</h3>
+                  <p>Keep the `/shifts/createDaysPdf` packet and weekly day-report context visible before the live PDF renderer is connected.</p>
+                </div>
+              </div>
+              <div className="purchase-kv-list">
+                <div className="purchase-kv"><span>Route</span><span>{selectedDaysPdfAction.route}</span></div>
+                <div className="purchase-kv"><span>Surface</span><span>{selectedDaysPdfAction.surface}</span></div>
+                <div className="purchase-kv"><span>Days in packet</span><span>{fmtN(rows.length)}</span></div>
+                <div className="purchase-kv"><span>Week total</span><span>{fmt(totals.total)}</span></div>
+                <div className="purchase-kv"><span>Week gallons</span><span>{fmtN(totals.gallons)}</span></div>
+                <div className="purchase-kv"><span>Latest event</span><span>{selectedDaysPdfEvents[0]?.action || 'No events yet'}</span></div>
+              </div>
+              <div className="pricebook-actions" style={{ marginTop: 16 }}>
+                <button className="pricebook-btn" onClick={() => runReportAction(selectedDaysPdfAction)}>
+                  <Icon name="report" size={15} /> Preview route packet
+                </button>
+                <button className="pricebook-btn" onClick={() => downloadActionPackage(selectedDaysPdfAction)}>
+                  <Icon name="cash" size={15} /> Save route packet
+                </button>
+                <button className="pricebook-btn primary" onClick={() => exportDaysPdfEvents('CSV')}>
+                  <Icon name="save" size={15} /> Export route log
+                </button>
+              </div>
+            </div>
+
+            <div className="report-delivery-card">
+              <div className="purchase-panel-head">
+                <div>
                   <h3>Summary PDF endpoint</h3>
                   <p>Keep the `/shifts/createSummaryPdf` packet and monthly summary context visible before the live PDF renderer is connected.</p>
                 </div>
@@ -12280,6 +12347,29 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
           </div>
 
           <div className="report-delivery-stack">
+            <div className="report-delivery-card">
+              <div className="purchase-panel-head">
+                <div>
+                  <h3>Days PDF events</h3>
+                  <p>Owner-facing event visibility for the days PDF packet handoff.</p>
+                </div>
+              </div>
+              <div className="report-delivery-list">
+                {selectedDaysPdfEvents.length ? selectedDaysPdfEvents.map((item) => (
+                  <div className="report-delivery-row" key={item.id}>
+                    <div className="report-delivery-head">
+                      <div>
+                        <div className="report-delivery-title">{item.action}</div>
+                        <div className="report-delivery-meta">{item.time} · {item.actor} · {item.route}</div>
+                      </div>
+                      <span className={`purchase-tag${item.status === 'Needs review' ? ' amber' : ' blue'}`}>{item.status}</span>
+                    </div>
+                    <div className="report-delivery-meta">{item.note}</div>
+                  </div>
+                )) : <div className="purchase-hint">No days PDF events are recorded yet.</div>}
+              </div>
+            </div>
+
             <div className="report-delivery-card">
               <div className="purchase-panel-head">
                 <div>
