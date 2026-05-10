@@ -12845,8 +12845,28 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
   const [selectedReviewId, setSelectedReviewId] = useState(PURCHASE_REVIEW_QUEUE[0].id);
   const [selectedLedgerId, setSelectedLedgerId] = useState(PURCHASE_LEDGER.find((row) => row.status !== 'Cleared')?.id || PURCHASE_LEDGER[0].id);
   const [selectedExpenseId, setSelectedExpenseId] = useState(OPERATING_EXPENSES.find((row) => row.paymentType === 'Cash')?.id || OPERATING_EXPENSES[0].id);
+  const [expenseSummaryPacketRows, setExpenseSummaryPacketRows] = useState([
+    { id: 'OES-1', packet: 'Month-to-date operating summary', window: '2026-05-01 to 2026-05-09', focus: 'Current category mix', source: 'Summary tab', status: 'Queued', note: 'Primary operating-expense summary is staged for owner review before live Mercury wiring.' },
+    { id: 'OES-2', packet: 'Cash expense recap', window: '2026-05-09 only', focus: 'Cash expenses only', source: 'Cash visibility', status: 'Needs review', note: 'Cash-only summary needs final reconciliation before the live route is connected.' },
+  ]);
+  const [selectedExpenseSummaryPacketId, setSelectedExpenseSummaryPacketId] = useState('OES-1');
+  const [expenseLedgerPacketRows, setExpenseLedgerPacketRows] = useState([
+    { id: 'OEL-1', packet: 'Operating expense ledger handoff', window: '2026-05-01 to 2026-05-09', focus: 'Current vendor filter', source: 'Ledger tab', status: 'Queued', note: 'Primary operating-expense ledger is staged for owner follow-through before live Mercury wiring.' },
+    { id: 'OEL-2', packet: 'Cash reconcile ledger', window: '2026-05-09 only', focus: 'Cash expenses only', source: 'Cash reconciliation', status: 'Needs review', note: 'Cash-only ledger still needs a final reconcile review before the live route is connected.' },
+  ]);
+  const [selectedExpenseLedgerPacketId, setSelectedExpenseLedgerPacketId] = useState('OEL-1');
   const [selectedSetupVendorId, setSelectedSetupVendorId] = useState(VENDOR_MASTER[0].vendor);
   const [selectedExpenseTypeId, setSelectedExpenseTypeId] = useState('ET-1');
+  const [expenseSummaryEvents, setExpenseSummaryEvents] = useState([
+    { id: 'OES-101', packetId: 'OES-1', time: '2026-05-10 10:31', actor: 'Store manager', route: '/storeExpenses/purchaseindex', action: 'Previewed operating expense summary packet', status: 'Opened', note: 'Owner reviewed the month-to-date operating summary before the live Mercury route was connected.' },
+    { id: 'OES-102', packetId: 'OES-1', time: '2026-05-10 10:33', actor: 'Store manager', route: '/storeExpenses/purchaseindex', action: 'Saved operating expense summary packet', status: 'Ready', note: 'Operating-expense summary packet exported while the live Mercury route remained demo-only.' },
+    { id: 'OES-103', packetId: 'OES-2', time: '2026-05-09 17:42', actor: 'StoreCheck demo', route: '/storeExpenses/purchaseindex', action: 'Queued operating expense summary handoff', status: 'Queued', note: 'Cash-only summary handoff remained visible in demo mode.' },
+  ]);
+  const [expenseLedgerEvents, setExpenseLedgerEvents] = useState([
+    { id: 'OEL-201', packetId: 'OEL-1', time: '2026-05-10 10:35', actor: 'Store manager', route: '/storeExpenses/purchaseindex', action: 'Previewed operating expense ledger packet', status: 'Opened', note: 'Owner reviewed the operating-expense ledger packet before the live Mercury route was connected.' },
+    { id: 'OEL-202', packetId: 'OEL-1', time: '2026-05-10 10:37', actor: 'Store manager', route: '/storeExpenses/purchaseindex', action: 'Saved operating expense ledger packet', status: 'Ready', note: 'Operating-expense ledger packet exported while the live Mercury route remained demo-only.' },
+    { id: 'OEL-203', packetId: 'OEL-2', time: '2026-05-09 17:55', actor: 'StoreCheck demo', route: '/storeExpenses/purchaseindex', action: 'Queued operating expense ledger handoff', status: 'Queued', note: 'Cash-only ledger handoff remained visible in demo mode.' },
+  ]);
   const [showVendorCreate, setShowVendorCreate] = useState(false);
   const [showExpenseTypeCreate, setShowExpenseTypeCreate] = useState(false);
   const [vendorDraftName, setVendorDraftName] = useState('');
@@ -12934,12 +12954,16 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
   const selectedInvoiceReview = invoiceReviewRows.find((row) => row.id === selectedReviewId) || invoiceReviewRows[0];
   const selectedLedger = filteredPurchaseLedger.find((row) => row.id === selectedLedgerId) || filteredPurchaseLedger[0] || purchaseLedgerRows[0];
   const selectedExpense = filteredExpenses.find((row) => row.id === selectedExpenseId) || filteredExpenses[0] || expenseRows[0];
+  const selectedExpenseSummaryPacket = expenseSummaryPacketRows.find((row) => row.id === selectedExpenseSummaryPacketId) || expenseSummaryPacketRows[0];
+  const selectedExpenseLedgerPacket = expenseLedgerPacketRows.find((row) => row.id === selectedExpenseLedgerPacketId) || expenseLedgerPacketRows[0];
   const selectedSetupVendor =
     filteredVendorMasterRows.find((row) => row.vendor === selectedSetupVendorId) ||
     vendorMasterRows.find((row) => row.vendor === selectedSetupVendorId) ||
     filteredVendorMasterRows[0] ||
     vendorMasterRows[0];
   const selectedExpenseType = expenseTypeRows.find((row) => row.id === selectedExpenseTypeId) || expenseTypeRows[0];
+  const selectedExpenseSummaryEvents = selectedExpenseSummaryPacket ? expenseSummaryEvents.filter((row) => row.packetId === selectedExpenseSummaryPacket.id) : expenseSummaryEvents;
+  const selectedExpenseLedgerEvents = selectedExpenseLedgerPacket ? expenseLedgerEvents.filter((row) => row.packetId === selectedExpenseLedgerPacket.id) : expenseLedgerEvents;
   const selectedDeadRows = deadInventoryRows.filter((row) => deadSelected.includes(row.id));
   const stagedInactiveCount = deadInventoryRows.filter((row) => row.stage === 'Staged InActive').length;
   const selectedLibraryAttachment = attachments.find((row) => row.id === selectedLibraryAttachmentId) || attachments[0];
@@ -13390,6 +13414,49 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
     });
     showNotice(`Invoice review packet prepared for ${row.vendor}.`);
   };
+  const buildExpenseSummaryPacketRows = (packet = selectedExpenseSummaryPacket) => {
+    const summaryRows = packet?.id === 'OES-2'
+      ? expenseCategorySummary.filter((row) => row.cash > 0)
+      : expenseCategorySummary;
+    const safeRows = summaryRows.length ? summaryRows : expenseCategorySummary;
+    return safeRows.map((row) => [row.category, fmtN(row.entries), fmt(row.cash), fmt(row.nonCash), fmt(row.total)]);
+  };
+  const buildExpenseLedgerPacketRows = (packet = selectedExpenseLedgerPacket) => {
+    const ledgerRows = packet?.id === 'OEL-2' ? cashExpenseRows : filteredExpenses;
+    const safeRows = ledgerRows.length ? ledgerRows : filteredExpenses;
+    return safeRows.map((row) => [row.date, row.shift, row.vendor, row.category, row.paymentType, fmt(row.amount), row.reconStatus, row.invoice]);
+  };
+  const pushExpenseSummaryEvent = ({ packetId = selectedExpenseSummaryPacket?.id, action, status, note }) => {
+    setExpenseSummaryEvents((current) => [
+      {
+        id: `OES-${current.length + 101}`,
+        packetId,
+        time: todayStr(),
+        actor: 'StoreCheck demo',
+        route: '/storeExpenses/purchaseindex',
+        action,
+        status,
+        note,
+      },
+      ...current,
+    ]);
+  };
+  const previewExpenseSummaryDepth = (packet = selectedExpenseSummaryPacket) => {
+    if (!packet) return;
+    setSelectedExpenseSummaryPacketId(packet.id);
+    openPacketPreview({
+      title: 'Operating Expense Summary Endpoint Depth',
+      subtitle: `${packet.window} · ${packet.focus} · /storeExpenses/purchaseindex`,
+      headers: ['Category', 'Entries', 'Cash', 'EFT / Check', 'Total'],
+      rows: buildExpenseSummaryPacketRows(packet),
+    });
+    pushExpenseSummaryEvent({
+      packetId: packet.id,
+      action: 'Previewed operating expense summary packet',
+      status: 'Opened',
+      note: `${packet.packet} preview opened before the live Mercury route was connected.`,
+    });
+  };
   const moveInvoiceToCostUpdates = (id) => {
     setInvoiceReviewRows((current) => current.map((row) => (row.id === id ? { ...row, stage: 'Sent to cost updates' } : row)));
     setSelectedReviewId(id);
@@ -13403,22 +13470,45 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
   };
   const printExpenseSummaryPacket = () =>
     openPacketPreview({
-      title: 'Operating Expense Summary',
-      subtitle: 'StoreCheck demo operating-expense summary',
+      title: 'Operating Expense Summary Endpoint Depth',
+      subtitle: `${selectedExpenseSummaryPacket?.window || 'Current summary'} · ${selectedExpenseSummaryPacket?.focus || 'Current category mix'} · /storeExpenses/purchaseindex`,
       headers: ['Category', 'Entries', 'Cash', 'EFT / Check', 'Total'],
-      rows: expenseCategorySummary.map((row) => [row.category, fmtN(row.entries), fmt(row.cash), fmt(row.nonCash), fmt(row.total)]),
+      rows: buildExpenseSummaryPacketRows(selectedExpenseSummaryPacket),
     });
   const saveExpenseSummaryPacket = () => {
+    const packet = selectedExpenseSummaryPacket;
+    if (!packet) return;
+    setSelectedExpenseSummaryPacketId(packet.id);
     savePacket({
-      title: 'Operating Expense Summary Packet',
-      subtitle: `${expenseCategorySummary.length} visible categories`,
+      title: `Operating Expense Summary Packet - ${packet.id}`,
+      subtitle: `${packet.window} · ${packet.focus}`,
       route: '/storeExpenses/purchaseindex',
       note: 'Operating expense summary print replacement shell',
       headers: ['Category', 'Entries', 'Cash', 'EFT / Check', 'Total'],
-      rows: expenseCategorySummary.map((row) => [row.category, fmtN(row.entries), fmt(row.cash), fmt(row.nonCash), fmt(row.total)]),
-      filename: 'storecheck-operating-expense-summary-packet',
+      rows: buildExpenseSummaryPacketRows(packet),
+      filename: `storecheck-operating-expense-summary-${packet.id.toLowerCase()}`,
+    });
+    pushExpenseSummaryEvent({
+      packetId: packet.id,
+      action: 'Saved operating expense summary packet',
+      status: 'Ready',
+      note: 'Operating-expense summary packet exported while the live Mercury route remained demo-only.',
     });
     showNotice('Operating expense summary packet saved in demo mode.');
+  };
+  const stageExpenseSummaryHandoff = (packet = selectedExpenseSummaryPacket) => {
+    if (!packet) return;
+    setSelectedExpenseSummaryPacketId(packet.id);
+    setExpenseSummaryPacketRows((current) => current.map((row) => (
+      row.id === packet.id ? { ...row, status: 'Queued', note: `Operating-expense summary handoff is staged for ${packet.window}.` } : row
+    )));
+    pushExpenseSummaryEvent({
+      packetId: packet.id,
+      action: 'Queued operating expense summary handoff',
+      status: 'Queued',
+      note: `Mercury-style operating-expense summary handoff accepted for ${packet.window}.`,
+    });
+    showNotice(`Operating expense summary for ${packet.window} staged in demo mode. Live \`/storeExpenses/purchaseindex\` endpoint still pending.`);
   };
   const previewExpenseLedger = () =>
     openPacketPreview({
@@ -13439,6 +13529,71 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
       filename: `storecheck-operating-expense-${row.id.toLowerCase()}`,
     });
     showNotice(`Expense packet prepared for ${row.vendor}.`);
+  };
+  const pushExpenseLedgerEvent = ({ packetId = selectedExpenseLedgerPacket?.id, action, status, note }) => {
+    setExpenseLedgerEvents((current) => [
+      {
+        id: `OEL-${current.length + 201}`,
+        packetId,
+        time: todayStr(),
+        actor: 'StoreCheck demo',
+        route: '/storeExpenses/purchaseindex',
+        action,
+        status,
+        note,
+      },
+      ...current,
+    ]);
+  };
+  const previewExpenseLedgerDepth = (packet = selectedExpenseLedgerPacket) => {
+    if (!packet) return;
+    setSelectedExpenseLedgerPacketId(packet.id);
+    openPacketPreview({
+      title: 'Operating Expense Ledger Endpoint Depth',
+      subtitle: `${packet.window} · ${packet.focus} · /storeExpenses/purchaseindex`,
+      headers: ['Date', 'Shift', 'Vendor', 'Category', 'Payment', 'Amount', 'Status', 'Invoice'],
+      rows: buildExpenseLedgerPacketRows(packet),
+    });
+    pushExpenseLedgerEvent({
+      packetId: packet.id,
+      action: 'Previewed operating expense ledger packet',
+      status: 'Opened',
+      note: `${packet.packet} preview opened before the live Mercury route was connected.`,
+    });
+  };
+  const saveExpenseLedgerDepth = (packet = selectedExpenseLedgerPacket) => {
+    if (!packet) return;
+    setSelectedExpenseLedgerPacketId(packet.id);
+    savePacket({
+      title: `Operating Expense Ledger Packet - ${packet.id}`,
+      subtitle: `${packet.window} · ${packet.focus}`,
+      route: '/storeExpenses/purchaseindex',
+      note: 'Operating expense ledger follow-through shell',
+      headers: ['Date', 'Shift', 'Vendor', 'Category', 'Payment', 'Amount', 'Status', 'Invoice'],
+      rows: buildExpenseLedgerPacketRows(packet),
+      filename: `storecheck-operating-expense-ledger-${packet.id.toLowerCase()}`,
+    });
+    pushExpenseLedgerEvent({
+      packetId: packet.id,
+      action: 'Saved operating expense ledger packet',
+      status: 'Ready',
+      note: 'Operating-expense ledger packet exported while the live Mercury route remained demo-only.',
+    });
+    showNotice('Operating expense ledger packet saved in demo mode.');
+  };
+  const stageExpenseLedgerHandoff = (packet = selectedExpenseLedgerPacket) => {
+    if (!packet) return;
+    setSelectedExpenseLedgerPacketId(packet.id);
+    setExpenseLedgerPacketRows((current) => current.map((row) => (
+      row.id === packet.id ? { ...row, status: 'Queued', note: `Operating-expense ledger handoff is staged for ${packet.window}.` } : row
+    )));
+    pushExpenseLedgerEvent({
+      packetId: packet.id,
+      action: 'Queued operating expense ledger handoff',
+      status: 'Queued',
+      note: `Mercury-style operating-expense ledger handoff accepted for ${packet.window}.`,
+    });
+    showNotice(`Operating expense ledger for ${packet.window} staged in demo mode. Live \`/storeExpenses/purchaseindex\` endpoint still pending.`);
   };
   const openExpenseRow = (id) => {
     setSelectedExpenseId(id);
@@ -13555,6 +13710,14 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
     showNotice(`${row.label} staged into the operating-expense draft.`);
   };
   const exportRows = (rows, format, filename) => downloadTableData(rows, format, filename);
+  const exportExpenseSummaryEvents = (format) => {
+    downloadTableData(selectedExpenseSummaryEvents, format, 'storecheck-operating-expense-summary-events');
+    showNotice(`${fmtN(selectedExpenseSummaryEvents.length)} operating-expense summary events exported in ${format} format.`);
+  };
+  const exportExpenseLedgerEvents = (format) => {
+    downloadTableData(selectedExpenseLedgerEvents, format, 'storecheck-operating-expense-ledger-events');
+    showNotice(`${fmtN(selectedExpenseLedgerEvents.length)} operating-expense ledger events exported in ${format} format.`);
+  };
 
   const renderExportButtons = (rows, filename) => (
     <div className="pricebook-actions">
@@ -13964,25 +14127,58 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
             <div className="purchase-note-card">
               <div className="pricebook-toolbar" style={{ padding: 0 }}>
                 <div>
-                  <h3>Operating expense summary</h3>
-                  <p>Current demo totals for visibility while the real `/storeExpenses/purchaseindex` data still needs wiring.</p>
+                  <h3>Operating Expense Summary Endpoint Depth</h3>
+                  <p>Keep the `/storeExpenses/purchaseindex` summary handoff visible with selected packet context before the live Mercury route is connected.</p>
                 </div>
                 <div className="pricebook-actions">
-                  <button className="pricebook-btn" onClick={() => printExpenseSummaryPacket()}>
-                    <Icon name="report" size={15} /> Print
+                  <button className="pricebook-btn" onClick={() => previewExpenseSummaryDepth(selectedExpenseSummaryPacket)}>
+                    <Icon name="report" size={15} /> Preview route packet
+                  </button>
+                  <button className="pricebook-btn" onClick={() => stageExpenseSummaryHandoff(selectedExpenseSummaryPacket)}>
+                    <Icon name="sync" size={15} /> Stage handoff
                   </button>
                   <button className="pricebook-btn" onClick={() => saveExpenseSummaryPacket()}>
-                    <Icon name="cash" size={15} /> Save packet
+                    <Icon name="cash" size={15} /> Save route packet
+                  </button>
+                  <button className="pricebook-btn primary" onClick={() => exportExpenseSummaryEvents('CSV')}>
+                    <Icon name="save" size={15} /> Export route log
                   </button>
                 </div>
               </div>
               <div className="purchase-kv-list">
+                <div className="purchase-kv"><span>Selected packet</span><span>{selectedExpenseSummaryPacket ? `${selectedExpenseSummaryPacket.packet} · ${selectedExpenseSummaryPacket.status}` : 'Pending'}</span></div>
+                <div className="purchase-kv"><span>Route</span><span>/storeExpenses/purchaseindex</span></div>
+                <div className="purchase-kv"><span>Focus</span><span>{selectedExpenseSummaryPacket?.focus || 'Current category mix'}</span></div>
+                <div className="purchase-kv"><span>Current packet</span><span>{selectedExpenseSummaryPacket ? `${selectedExpenseSummaryPacket.window} · ${selectedExpenseSummaryPacket.source}` : 'Summary tab'}</span></div>
+                <div className="purchase-kv"><span>Latest event</span><span>{selectedExpenseSummaryEvents[0]?.action || 'No events yet'}</span></div>
                 <div className="purchase-kv"><span>Month-to-date total</span><span>{fmt(expenseMonthTotal)}</span></div>
                 <div className="purchase-kv"><span>Cash expenses</span><span>{fmt(cashExpenseTotal)}</span></div>
                 <div className="purchase-kv"><span>EFT / Check</span><span>{fmt(expenseMonthTotal - cashExpenseTotal)}</span></div>
                 <div className="purchase-kv"><span>Visible expense types</span><span>{fmtN(expenseTypeRows.length)}</span></div>
                 <div className="purchase-kv"><span>Cash pending reconcile</span><span>{fmtN(pendingExpenseRecon)}</span></div>
                 <div className="purchase-kv"><span>Reconciled rows</span><span>{fmtN(reconciledExpenseCount)}</span></div>
+              </div>
+              <div className="purchase-queue-list" style={{ marginTop: 16 }}>
+                {expenseSummaryPacketRows.map((row) => (
+                  <div className="purchase-queue-row" key={row.id}>
+                    <div className="purchase-queue-top">
+                      <div>
+                        <div className="purchase-queue-title">{row.packet}</div>
+                        <div className="purchase-queue-meta">{row.window} · {row.focus} · {row.source}</div>
+                      </div>
+                      <span className={`purchase-tag${toneClass(row.status)}`}>{row.status}</span>
+                    </div>
+                    <div className="purchase-queue-meta">{row.note}</div>
+                    <div className="pricebook-actions" style={{ marginTop: 12 }}>
+                      <button className="pricebook-btn" onClick={() => setSelectedExpenseSummaryPacketId(row.id)}>
+                        <Icon name="report" size={15} /> Review
+                      </button>
+                      <button className="pricebook-btn soft" onClick={() => previewExpenseSummaryDepth(row)}>
+                        <Icon name="report" size={15} /> Preview
+                      </button>
+                    </div>
+                  </div>
+                ))}
               </div>
               <div className="pricebook-filters" style={{ padding: '14px 0 0' }}>
                 {renderExportButtons(expenseCategorySummary, 'storecheck-operating-expense-summary')}
@@ -14045,6 +14241,40 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
                     <Icon name="sync" size={15} /> Mark reconciled
                   </button>
                 ) : null}
+              </div>
+            </div>
+
+            <div className="purchase-note-card">
+              <h3>Selected Operating Expense Summary Review</h3>
+              <p>Owner-facing visibility for the chosen summary packet before the live Mercury route is connected.</p>
+              {selectedExpenseSummaryPacket ? (
+                <div className="purchase-kv-list">
+                  <div className="purchase-kv"><span>Packet</span><span>{selectedExpenseSummaryPacket.packet}</span></div>
+                  <div className="purchase-kv"><span>Window</span><span>{selectedExpenseSummaryPacket.window}</span></div>
+                  <div className="purchase-kv"><span>Focus</span><span>{selectedExpenseSummaryPacket.focus}</span></div>
+                  <div className="purchase-kv"><span>Source</span><span>{selectedExpenseSummaryPacket.source}</span></div>
+                  <div className="purchase-kv"><span>Status</span><span>{selectedExpenseSummaryPacket.status}</span></div>
+                  <div className="purchase-kv"><span>Note</span><span>{selectedExpenseSummaryPacket.note}</span></div>
+                </div>
+              ) : <div className="purchase-hint">No operating-expense summary packet is selected right now.</div>}
+            </div>
+
+            <div className="purchase-note-card">
+              <h3>Operating Expense Summary Events</h3>
+              <p>Track route-specific `/storeExpenses/purchaseindex` summary activity before live Mercury wiring is connected.</p>
+              <div className="purchase-queue-list">
+                {selectedExpenseSummaryEvents.length ? selectedExpenseSummaryEvents.map((row) => (
+                  <div className="purchase-queue-row" key={row.id}>
+                    <div className="purchase-queue-top">
+                      <div>
+                        <div className="purchase-queue-title">{row.action}</div>
+                        <div className="purchase-queue-meta">{row.time} · {row.actor} · {row.route}</div>
+                      </div>
+                      <span className={`purchase-tag${toneClass(row.status)}`}>{row.status}</span>
+                    </div>
+                    <div className="purchase-queue-meta">{selectedExpenseSummaryPacket?.id || 'OES-1'} · {row.note}</div>
+                  </div>
+                )) : <div className="purchase-hint">No operating-expense summary events are recorded yet.</div>}
               </div>
             </div>
           </div>
@@ -14250,6 +14480,88 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
                 ) : (
                   <div className="purchase-hint">No expense row is visible for the current filter.</div>
                 )}
+              </div>
+
+              <div className="purchase-note-card">
+                <h3>Operating Expense Ledger Endpoint Depth</h3>
+                <p>Keep the `/storeExpenses/purchaseindex` ledger handoff visible with selected packet context before the live Mercury route is connected.</p>
+                <div className="purchase-kv-list">
+                  <div className="purchase-kv"><span>Selected packet</span><span>{selectedExpenseLedgerPacket ? `${selectedExpenseLedgerPacket.packet} · ${selectedExpenseLedgerPacket.status}` : 'Pending'}</span></div>
+                  <div className="purchase-kv"><span>Route</span><span>/storeExpenses/purchaseindex</span></div>
+                  <div className="purchase-kv"><span>Focus</span><span>{selectedExpenseLedgerPacket?.focus || 'Current vendor filter'}</span></div>
+                  <div className="purchase-kv"><span>Current packet</span><span>{selectedExpenseLedgerPacket ? `${selectedExpenseLedgerPacket.window} · ${selectedExpenseLedgerPacket.source}` : 'Ledger tab'}</span></div>
+                  <div className="purchase-kv"><span>Latest event</span><span>{selectedExpenseLedgerEvents[0]?.action || 'No events yet'}</span></div>
+                </div>
+                <div className="pricebook-actions" style={{ marginTop: 16, flexWrap: 'wrap' }}>
+                  <button className="pricebook-btn" onClick={() => previewExpenseLedgerDepth(selectedExpenseLedgerPacket)}>
+                    <Icon name="report" size={15} /> Preview route packet
+                  </button>
+                  <button className="pricebook-btn" onClick={() => stageExpenseLedgerHandoff(selectedExpenseLedgerPacket)}>
+                    <Icon name="sync" size={15} /> Stage handoff
+                  </button>
+                  <button className="pricebook-btn" onClick={() => saveExpenseLedgerDepth(selectedExpenseLedgerPacket)}>
+                    <Icon name="cash" size={15} /> Save route packet
+                  </button>
+                  <button className="pricebook-btn primary" onClick={() => exportExpenseLedgerEvents('CSV')}>
+                    <Icon name="save" size={15} /> Export route log
+                  </button>
+                </div>
+                <div className="purchase-queue-list" style={{ marginTop: 16 }}>
+                  {expenseLedgerPacketRows.map((row) => (
+                    <div className="purchase-queue-row" key={row.id}>
+                      <div className="purchase-queue-top">
+                        <div>
+                          <div className="purchase-queue-title">{row.packet}</div>
+                          <div className="purchase-queue-meta">{row.window} · {row.focus} · {row.source}</div>
+                        </div>
+                        <span className={`purchase-tag${toneClass(row.status)}`}>{row.status}</span>
+                      </div>
+                      <div className="purchase-queue-meta">{row.note}</div>
+                      <div className="pricebook-actions" style={{ marginTop: 12 }}>
+                        <button className="pricebook-btn" onClick={() => setSelectedExpenseLedgerPacketId(row.id)}>
+                          <Icon name="report" size={15} /> Review
+                        </button>
+                        <button className="pricebook-btn soft" onClick={() => previewExpenseLedgerDepth(row)}>
+                          <Icon name="report" size={15} /> Preview
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="purchase-note-card">
+                <h3>Selected Operating Expense Ledger Review</h3>
+                <p>Owner-facing visibility for the chosen ledger packet before the live Mercury route is connected.</p>
+                {selectedExpenseLedgerPacket ? (
+                  <div className="purchase-kv-list">
+                    <div className="purchase-kv"><span>Packet</span><span>{selectedExpenseLedgerPacket.packet}</span></div>
+                    <div className="purchase-kv"><span>Window</span><span>{selectedExpenseLedgerPacket.window}</span></div>
+                    <div className="purchase-kv"><span>Focus</span><span>{selectedExpenseLedgerPacket.focus}</span></div>
+                    <div className="purchase-kv"><span>Source</span><span>{selectedExpenseLedgerPacket.source}</span></div>
+                    <div className="purchase-kv"><span>Status</span><span>{selectedExpenseLedgerPacket.status}</span></div>
+                    <div className="purchase-kv"><span>Note</span><span>{selectedExpenseLedgerPacket.note}</span></div>
+                  </div>
+                ) : <div className="purchase-hint">No operating-expense ledger packet is selected right now.</div>}
+              </div>
+
+              <div className="purchase-note-card">
+                <h3>Operating Expense Ledger Events</h3>
+                <p>Track route-specific `/storeExpenses/purchaseindex` ledger activity before live Mercury wiring is connected.</p>
+                <div className="purchase-queue-list">
+                  {selectedExpenseLedgerEvents.length ? selectedExpenseLedgerEvents.map((row) => (
+                    <div className="purchase-queue-row" key={row.id}>
+                      <div className="purchase-queue-top">
+                        <div>
+                          <div className="purchase-queue-title">{row.action}</div>
+                          <div className="purchase-queue-meta">{row.time} · {row.actor} · {row.route}</div>
+                        </div>
+                        <span className={`purchase-tag${toneClass(row.status)}`}>{row.status}</span>
+                      </div>
+                      <div className="purchase-queue-meta">{selectedExpenseLedgerPacket?.id || 'OEL-1'} · {row.note}</div>
+                    </div>
+                  )) : <div className="purchase-hint">No operating-expense ledger events are recorded yet.</div>}
+                </div>
               </div>
             </div>
           </div>
