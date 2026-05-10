@@ -15441,6 +15441,11 @@ const OperationsView = ({ currentLocation, setLocationId }) => {
     { id: 'BSE-3002', rowId: 'BD-240509-01', time: '2026-05-09 21:08', actor: 'Store manager', route: '/shifts/searchBankDrops', action: 'Saved bank-drop packet', status: 'Ready', note: 'Bank-only deposit packet exported while the live Mercury search route remained demo-only.' },
     { id: 'BSE-3003', rowId: 'BD-240507-01', time: '2026-05-08 09:18', actor: 'StoreCheck demo', route: '/shifts/searchBankDrops', action: 'Refreshed bank-drop search', status: 'Updated', note: 'Bank-drop search review refreshed with the current StoreCheck filters.' },
   ]);
+  const [bankCashSearchEvents, setBankCashSearchEvents] = useState([
+    { id: 'BCS-3101', rowId: 'BD-240509-01', time: '2026-05-09 21:18', actor: 'Store manager', route: '/shifts/searchBankDropsWithCashDrops', action: 'Previewed bank + cash packet', status: 'Opened', note: 'Owner reviewed the combined deposit and cash-drop packet before the live Mercury search route was connected.' },
+    { id: 'BCS-3102', rowId: 'BD-240509-01', time: '2026-05-09 21:21', actor: 'Store manager', route: '/shifts/searchBankDropsWithCashDrops', action: 'Saved bank + cash packet', status: 'Ready', note: 'Combined deposit packet exported while the live Mercury search route remained demo-only.' },
+    { id: 'BCS-3103', rowId: 'BD-240509-02', time: '2026-05-08 09:42', actor: 'StoreCheck demo', route: '/shifts/searchBankDropsWithCashDrops', action: 'Refreshed bank + cash search', status: 'Updated', note: 'Combined deposit and cash-drop review refreshed with the current StoreCheck filters.' },
+  ]);
   const [formState, setFormState] = useState({
     date: '2026-05-09',
     storeId: currentLocation.id,
@@ -15482,8 +15487,9 @@ const OperationsView = ({ currentLocation, setLocationId }) => {
     filteredRows[0] ||
     BANK_DROP_ROWS[0] ||
     null;
-  const selectedBankDropEvents = selectedBankDrop ? bankDropSearchEvents.filter((row) => row.rowId === selectedBankDrop.id) : [];
   const bankDropSearchContextLabel = `${startDate} to ${endDate} · ${selectedStore === 'All' ? 'All stores' : selectedStore} · ${selectedShift === 'All' ? 'All shifts' : selectedShift}`;
+  const bankOnlyEvents = selectedBankDrop ? bankDropSearchEvents.filter((row) => row.rowId === selectedBankDrop.id) : [];
+  const bankCashEvents = selectedBankDrop ? bankCashSearchEvents.filter((row) => row.rowId === selectedBankDrop.id) : [];
   const bankDropSearchExportRows = filteredRows.map((row) => ({
     Date: row.date,
     Store: row.store,
@@ -15496,7 +15502,43 @@ const OperationsView = ({ currentLocation, setLocationId }) => {
     PreparedBy: row.preparedBy,
     Status: row.status,
   }));
+  const bankCashSearchExportRows = filteredRows.map((row) => ({
+    Date: row.date,
+    Store: row.store,
+    Shift: row.shift,
+    Bag: row.bag,
+    Account: row.account,
+    BankDrop: row.bankAmount.toFixed(2),
+    CashDrop: row.cashDrop.toFixed(2),
+    Expected: row.expected.toFixed(2),
+    Variance: row.variance.toFixed(2),
+    PreparedBy: row.preparedBy,
+    Status: row.status,
+  }));
   const bankDropPacketRows = filteredRows.map((row) => [row.date, row.store, row.shift, row.bag, row.account, fmt(row.bankAmount), fmt(row.expected), fmt(row.variance), row.status]);
+  const bankCashPacketRows = filteredRows.map((row) => [row.date, row.store, row.shift, row.bag, row.account, fmt(row.bankAmount), fmt(row.cashDrop), fmt(row.expected), fmt(row.variance), row.status]);
+  const activeSearchTitle = searchMode === 'combined' ? 'Bank + cash search depth' : 'Bank drop search depth';
+  const activeSearchRoute = searchMode === 'combined' ? '/shifts/searchBankDropsWithCashDrops' : '/shifts/searchBankDrops';
+  const activeSearchHeaders = searchMode === 'combined'
+    ? ['Date', 'Store', 'Shift', 'Bag', 'Account', 'Bank Drop', 'Cash Drop', 'Expected', 'Variance', 'Status']
+    : ['Date', 'Store', 'Shift', 'Bag', 'Account', 'Bank Drop', 'Expected', 'Variance', 'Status'];
+  const activeSearchPacketRows = searchMode === 'combined' ? bankCashPacketRows : bankDropPacketRows;
+  const selectedBankDropEvents = searchMode === 'combined' ? bankCashEvents : bankOnlyEvents;
+  const activeSearchExportRows = searchMode === 'combined' ? bankCashSearchExportRows : bankDropSearchExportRows;
+  const activeSearchEventActionPrefix = searchMode === 'combined' ? 'bank + cash' : 'bank-drop';
+  const activeSearchFilePrefix = searchMode === 'combined' ? 'storecheck-bank-cash-search' : 'storecheck-bank-drop-search';
+  const activeSearchEventsTitle = searchMode === 'combined' ? 'Bank + cash search events' : 'Bank search events';
+  const activeSelectedRowTitle = searchMode === 'combined' ? 'Selected bank + cash row' : 'Selected bank search row';
+  const activeSearchRefreshAction = searchMode === 'combined' ? 'Refreshed bank + cash search' : 'Refreshed bank-drop search';
+  const activeSearchRefreshNote = searchMode === 'combined'
+    ? 'Combined deposit and cash-drop review refreshed with the current StoreCheck filters.'
+    : 'Bank-drop search review refreshed with the current StoreCheck filters.';
+  const activeSearchPreviewNote = (item) => (searchMode === 'combined'
+    ? `Owner reviewed the ${item.bag} combined deposit and cash-drop packet before the live Mercury search route was connected.`
+    : `Owner reviewed the ${item.bag} bank-only deposit packet before the live Mercury search route was connected.`);
+  const activeSearchSavedNote = searchMode === 'combined'
+    ? 'Combined deposit packet exported while the live Mercury search route remained demo-only.'
+    : 'Bank-only deposit packet exported while the live Mercury search route remained demo-only.';
 
   const exportRows = filteredRows.map((row) => ({
     Date: row.date,
@@ -15541,13 +15583,16 @@ const OperationsView = ({ currentLocation, setLocationId }) => {
 
   const pushBankDropSearchEvent = ({ rowId, action, status, note }) => {
     const time = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-    setBankDropSearchEvents((current) => [
+    const route = searchMode === 'combined' ? '/shifts/searchBankDropsWithCashDrops' : '/shifts/searchBankDrops';
+    const prefix = searchMode === 'combined' ? 'BCS' : 'BSE';
+    const setter = searchMode === 'combined' ? setBankCashSearchEvents : setBankDropSearchEvents;
+    setter((current) => [
       {
-        id: `BSE-${Date.now()}`,
+        id: `${prefix}-${Date.now()}`,
         rowId,
         time,
         actor: 'Store manager',
-        route: '/shifts/searchBankDrops',
+        route,
         action,
         status,
         note,
@@ -15558,29 +15603,29 @@ const OperationsView = ({ currentLocation, setLocationId }) => {
 
   const previewBankDropSearchPacket = () => {
     const item = selectedBankDrop || filteredRows[0];
-    if (!item || !bankDropPacketRows.length) return;
+    if (!item || !activeSearchPacketRows.length) return;
     openPrintPreview({
-      title: 'Bank drop search depth',
-      subtitle: `${bankDropSearchContextLabel} · /shifts/searchBankDrops`,
-      rows: [['Date', 'Store', 'Shift', 'Bag', 'Account', 'Bank Drop', 'Expected', 'Variance', 'Status'], ...bankDropPacketRows],
+      title: activeSearchTitle,
+      subtitle: `${bankDropSearchContextLabel} · ${activeSearchRoute}`,
+      rows: [activeSearchHeaders, ...activeSearchPacketRows],
     });
     pushBankDropSearchEvent({
       rowId: item.id,
-      action: 'Previewed bank-drop packet',
+      action: `Previewed ${activeSearchEventActionPrefix} packet`,
       status: 'Opened',
-      note: `Owner reviewed the ${item.bag} bank-only deposit packet before the live Mercury search route was connected.`,
+      note: activeSearchPreviewNote(item),
     });
-    showNotice('Bank-drop search packet preview opened in demo mode.');
+    showNotice(`${activeSearchTitle} packet preview opened in demo mode.`);
   };
 
   const saveBankDropSearchPacket = () => {
     const item = selectedBankDrop || filteredRows[0];
-    if (!item || !bankDropPacketRows.length) return;
+    if (!item || !activeSearchPacketRows.length) return;
     const html = `<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>Bank drop search depth</title>
+  <title>${activeSearchTitle}</title>
   <style>
     body{font-family:"DM Sans",Arial,sans-serif;background:#F8FAFC;color:#0F172A;padding:28px}
     .wrap{max-width:980px;margin:0 auto;background:#fff;border:1px solid #E2E8F0;border-radius:18px;padding:28px;box-shadow:0 12px 40px rgba(15,23,42,.08)}
@@ -15597,29 +15642,29 @@ const OperationsView = ({ currentLocation, setLocationId }) => {
 </head>
 <body>
   <div class="wrap">
-    <h1>Bank drop search depth</h1>
+    <h1>${activeSearchTitle}</h1>
     <p>${bankDropSearchContextLabel}</p>
     <div class="meta">
-      <div><strong>Mercury Route</strong>/shifts/searchBankDrops</div>
+      <div><strong>Mercury Route</strong>${activeSearchRoute}</div>
       <div><strong>Selected Deposit</strong>${item.bag} · ${item.store}</div>
       <div><strong>Banked in Range</strong>${fmt(totals.bankAmount)}</div>
       <div><strong>Variance Watch</strong>${fmt(totals.variance)}</div>
     </div>
     <table>
-      <thead><tr><th>Date</th><th>Store</th><th>Shift</th><th>Bag</th><th>Account</th><th>Bank Drop</th><th>Expected</th><th>Variance</th><th>Status</th></tr></thead>
-      <tbody>${bankDropPacketRows.map((row) => `<tr>${row.map((cell) => `<td>${cell}</td>`).join('')}</tr>`).join('')}</tbody>
+      <thead><tr>${activeSearchHeaders.map((cell) => `<th>${cell}</th>`).join('')}</tr></thead>
+      <tbody>${activeSearchPacketRows.map((row) => `<tr>${row.map((cell) => `<td>${cell}</td>`).join('')}</tr>`).join('')}</tbody>
     </table>
   </div>
 </body>
 </html>`;
-    downloadTextData(html, 'text/html', `storecheck-bank-drop-search-${searchMode}`, 'html');
+    downloadTextData(html, 'text/html', activeSearchFilePrefix, 'html');
     pushBankDropSearchEvent({
       rowId: item.id,
-      action: 'Saved bank-drop packet',
+      action: `Saved ${activeSearchEventActionPrefix} packet`,
       status: 'Ready',
-      note: 'Bank-only deposit packet exported while the live Mercury search route remained demo-only.',
+      note: activeSearchSavedNote,
     });
-    showNotice('Bank-drop search packet saved in demo mode.');
+    showNotice(`${activeSearchTitle} packet saved in demo mode.`);
   };
 
   const refreshBankDropSearch = () => {
@@ -15628,21 +15673,21 @@ const OperationsView = ({ currentLocation, setLocationId }) => {
     setSelectedBankDropId(item.id);
     pushBankDropSearchEvent({
       rowId: item.id,
-      action: 'Refreshed bank-drop search',
+      action: activeSearchRefreshAction,
       status: 'Updated',
-      note: 'Bank-drop search review refreshed with the current StoreCheck filters.',
+      note: activeSearchRefreshNote,
     });
-    showNotice('Bank-drop search refreshed in demo mode.');
+    showNotice(`${activeSearchTitle} refreshed in demo mode.`);
   };
 
   const exportBankDropSearchRows = (format) => {
-    if (!bankDropSearchExportRows.length) return;
-    downloadTableData(bankDropSearchExportRows, format, `storecheck-bank-drop-search-${searchMode}`);
+    if (!activeSearchExportRows.length) return;
+    downloadTableData(activeSearchExportRows, format, activeSearchFilePrefix);
   };
 
   const exportBankDropSearchEvents = (format) => {
     if (!selectedBankDropEvents.length) return;
-    downloadTableData(selectedBankDropEvents, format, `storecheck-bank-drop-search-events-${String(selectedBankDrop?.id || 'all').toLowerCase()}`);
+    downloadTableData(selectedBankDropEvents, format, `${activeSearchFilePrefix}-events-${String(selectedBankDrop?.id || 'all').toLowerCase()}`);
   };
 
   const printResults = () => {
@@ -15737,8 +15782,8 @@ const OperationsView = ({ currentLocation, setLocationId }) => {
             <div className="purchase-surface">
               <div className="pricebook-toolbar" style={{ padding: '20px 20px 0' }}>
                 <div>
-                  <div className="pricebook-detail-title">Bank drop search depth</div>
-                  <div className="pricebook-detail-sub">Switch between bank-only search and bank-plus-cash visibility without leaving the workspace. Mercury route: <strong>/shifts/searchBankDrops</strong></div>
+                  <div className="pricebook-detail-title">{activeSearchTitle}</div>
+                  <div className="pricebook-detail-sub">Switch between bank-only search and bank-plus-cash visibility without leaving the workspace. Mercury route: <strong>{activeSearchRoute}</strong></div>
                 </div>
                 <div className="pricebook-actions">
                   <button className={`pricebook-btn${searchMode === 'bank' ? ' primary' : ''}`} onClick={() => setSearchMode('bank')}>
@@ -15759,7 +15804,7 @@ const OperationsView = ({ currentLocation, setLocationId }) => {
                 <select className="pricebook-select" value={selectedShift} onChange={(e) => setSelectedShift(e.target.value)}>
                   {['All', ...uniqueValues(BANK_DROP_ROWS, 'shift')].map((item) => <option key={item}>{item}</option>)}
                 </select>
-                <button className="pricebook-btn primary" onClick={() => (searchMode === 'bank' ? refreshBankDropSearch() : showNotice('Bank + cash drop results refreshed in demo mode.'))}>
+                <button className="pricebook-btn primary" onClick={() => refreshBankDropSearch()}>
                   <Icon name="calendar" size={15} /> Get Results
                 </button>
               </div>
@@ -15775,10 +15820,10 @@ const OperationsView = ({ currentLocation, setLocationId }) => {
                     </button>
                   ))}
                   <button className="pricebook-btn" onClick={() => previewBankDropSearchPacket()}>
-                    <Icon name="report" size={15} /> Preview bank route
+                    <Icon name="report" size={15} /> Preview route packet
                   </button>
                   <button className="pricebook-btn" onClick={() => saveBankDropSearchPacket()}>
-                    <Icon name="cash" size={15} /> Save bank route
+                    <Icon name="cash" size={15} /> Save route packet
                   </button>
                 </div>
                 <div className="pricebook-detail-sub">{searchMode === 'combined' ? 'Mirrors `/shifts/searchBankDropsWithCashDrops` with cash visibility turned on.' : 'Mirrors `/shifts/searchBankDrops` with bank-only deposit search.'}</div>
@@ -15841,7 +15886,7 @@ const OperationsView = ({ currentLocation, setLocationId }) => {
             <div className="purchase-note-card">
               <div className="purchase-panel-head">
                 <div>
-                  <h3>Selected bank search row</h3>
+                  <h3>{activeSelectedRowTitle}</h3>
                   <p>{selectedBankDrop ? `${selectedBankDrop.bag} · ${selectedBankDrop.store}` : 'No bank-drop row selected'}</p>
                 </div>
                 {selectedBankDrop ? <span className={`purchase-tag${selectedBankDrop.status === 'Deposited' ? ' blue' : selectedBankDrop.status === 'Pending' ? '' : ' amber'}`}>{selectedBankDrop.status}</span> : null}
@@ -15850,21 +15895,22 @@ const OperationsView = ({ currentLocation, setLocationId }) => {
                 <>
                   <div className="purchase-kv-list">
                     <div className="purchase-kv"><span>Current filter</span><span>{bankDropSearchContextLabel}</span></div>
-                    <div className="purchase-kv"><span>Mercury route</span><span>/shifts/searchBankDrops</span></div>
+                    <div className="purchase-kv"><span>Mercury route</span><span>{activeSearchRoute}</span></div>
                     <div className="purchase-kv"><span>Shift</span><span>{selectedBankDrop.shift}</span></div>
                     <div className="purchase-kv"><span>Account</span><span>{selectedBankDrop.account}</span></div>
                     <div className="purchase-kv"><span>Prepared by</span><span>{selectedBankDrop.preparedBy}</span></div>
                     <div className="purchase-kv"><span>Bank drop</span><span>{fmt(selectedBankDrop.bankAmount)}</span></div>
+                    {searchMode === 'combined' ? <div className="purchase-kv"><span>Cash drop</span><span>{fmt(selectedBankDrop.cashDrop)}</span></div> : null}
                     <div className="purchase-kv"><span>Expected</span><span>{fmt(selectedBankDrop.expected)}</span></div>
                     <div className="purchase-kv"><span>Variance</span><span>{fmt(selectedBankDrop.variance)}</span></div>
-                    <div className="purchase-kv"><span>Cash visibility</span><span>{fmt(selectedBankDrop.cashDrop)} in combined mode</span></div>
+                    <div className="purchase-kv"><span>Cash visibility</span><span>{searchMode === 'combined' ? `${fmt(selectedBankDrop.cashDrop)} attached to the deposit row` : `${fmt(selectedBankDrop.cashDrop)} available in combined mode`}</span></div>
                   </div>
                   <div className="pricebook-actions" style={{ marginTop: 16, flexWrap: 'wrap' }}>
                     <button className="pricebook-btn" onClick={() => previewBankDropSearchPacket()}>
-                      <Icon name="report" size={15} /> Preview bank route
+                      <Icon name="report" size={15} /> Preview route packet
                     </button>
                     <button className="pricebook-btn" onClick={() => saveBankDropSearchPacket()}>
-                      <Icon name="cash" size={15} /> Save bank route
+                      <Icon name="cash" size={15} /> Save route packet
                     </button>
                     <button className="pricebook-btn primary" onClick={() => refreshBankDropSearch()}>
                       <Icon name="calendar" size={15} /> Refresh review
@@ -15878,8 +15924,8 @@ const OperationsView = ({ currentLocation, setLocationId }) => {
             <div className="purchase-note-card">
               <div className="purchase-panel-head">
                 <div>
-                  <h3>Bank search events</h3>
-                  <p>{selectedBankDrop ? `${selectedBankDrop.bag} · /shifts/searchBankDrops` : '/shifts/searchBankDrops'}</p>
+                  <h3>{activeSearchEventsTitle}</h3>
+                  <p>{selectedBankDrop ? `${selectedBankDrop.bag} · ${activeSearchRoute}` : activeSearchRoute}</p>
                 </div>
                 <span className="purchase-tag amber">Partial</span>
               </div>
