@@ -21798,7 +21798,7 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
     setSelectedDailyPdfId(item.id);
     setSelectedDailyPdfPacketId(packet.id);
     const action = buildDailyPdfRouteAction(item, packet);
-    openReportSurface('Daily PDF Endpoint Depth', action.subtitle, action.previewRows);
+    openReportSurface('Daily PDF Endpoint Reconcile', action.subtitle, action.previewRows);
     pushDailyPdfRouteEvent({
       packetId: packet.id,
       action: 'Previewed daily PDF route packet',
@@ -22249,7 +22249,7 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
             <div className="report-delivery-card">
               <div className="purchase-panel-head">
                 <div>
-                  <h3>Daily PDF Endpoint Depth</h3>
+                  <h3>Daily PDF Endpoint Reconcile</h3>
                   <p>Keep the `POST /shifts/createDailyPdf` packet and custom-day context visible with selected route follow-through before the live PDF renderer is connected.</p>
                 </div>
               </div>
@@ -22310,7 +22310,7 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
             <div className="report-delivery-card">
               <div className="purchase-panel-head">
                 <div>
-                  <h3>Selected Daily PDF Review</h3>
+                  <h3>Selected Daily PDF Endpoint Review</h3>
                   <p>Keep the chosen daily-PDF response visible before the print-center route hands off.</p>
                 </div>
               </div>
