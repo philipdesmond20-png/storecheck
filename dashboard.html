@@ -20504,6 +20504,11 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
     { id: 'DE-2', shiftDate: '2026-05-08', report: 'Shift Closeout Digest', recipient: 'accounting@mainstreetgas.com', window: '2026-05-08 only', source: 'Day Report', status: 'Needs review', note: 'Previous day-report handoff still needs a final recipient check.' },
   ]);
   const [selectedDayReportEmailId, setSelectedDayReportEmailId] = useState('DE-1');
+  const [dayReportEmailPacketRows, setDayReportEmailPacketRows] = useState([
+    { id: 'DEP-1', packet: 'Primary day-report handoff', window: 'Owner day-close review', focus: 'Daily Sales Recap confirmation', source: 'Reports / Email Delivery', status: 'Queued', note: 'Primary day-report email handoff is staged for the configured store recipient before the live Mercury sender is connected.' },
+    { id: 'DEP-2', packet: 'Accounting recap rerun', window: 'Back-office day rerun review', focus: 'Shift Closeout Digest resend', source: 'Reports / Delivery', status: 'Needs review', note: 'Previous day-report rerun still needs final recipient confirmation before the live Mercury sender is connected.' },
+  ]);
+  const [selectedDayReportEmailPacketId, setSelectedDayReportEmailPacketId] = useState('DEP-1');
   const [dayDownloadRows, setDayDownloadRows] = useState([
     { id: 'DD-1', shiftDate: '2026-05-09', packet: 'Daily Sales Recap PDF', window: '2026-05-09 only', format: 'Download handoff', source: 'Daily PDF', status: 'Queued', note: 'Single-day owner packet is staged for Mercury-style download review.' },
     { id: 'DD-2', shiftDate: '2026-05-08', packet: 'Shift Closeout Digest PDF', window: '2026-05-08 only', format: 'Download handoff', source: 'Day Report', status: 'Needs review', note: 'Previous day-download packet still needs a final owner review.' },
@@ -20538,6 +20543,11 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
     { id: 'RDE-1101', sendId: 'DE-1', time: '2026-05-10 00:16', actor: 'Store manager', route: '/shifts/sendDayReport', action: 'Queued day report email', status: 'Queued', note: 'Day-report confirmation was accepted for the configured store address.' },
     { id: 'RDE-1102', sendId: 'DE-1', time: '2026-05-10 00:17', actor: 'Store manager', route: '/shifts/sendDayReport', action: 'Saved day report email packet', status: 'Ready', note: 'Day-report email packet was exported before the live send endpoint was connected.' },
     { id: 'RDE-1103', sendId: 'DE-2', time: '2026-05-09 22:10', actor: 'StoreCheck demo', route: '/shifts/sendDayReport', action: 'Previewed day report email packet', status: 'Ready', note: 'Previous day-report email packet preview stayed visible in demo mode.' },
+  ]);
+  const [dayReportEmailRouteEvents, setDayReportEmailRouteEvents] = useState([
+    { id: 'RDR-1101', packetId: 'DEP-1', time: '2026-05-10 00:16', actor: 'Store manager', route: 'POST /shifts/sendDayReport', action: 'Queued day report email route handoff', status: 'Queued', note: 'Day-report route handoff was accepted for the owner day-close review.' },
+    { id: 'RDR-1102', packetId: 'DEP-1', time: '2026-05-10 00:17', actor: 'Store manager', route: 'POST /shifts/sendDayReport', action: 'Saved day report email route packet', status: 'Ready', note: 'Day-report route packet was exported before the live sender was connected.' },
+    { id: 'RDR-1103', packetId: 'DEP-2', time: '2026-05-09 22:11', actor: 'StoreCheck demo', route: 'POST /shifts/sendDayReport', action: 'Previewed day report email route packet', status: 'Opened', note: 'Previous day-report route preview stayed visible in demo mode.' },
   ]);
   const [dayDownloadEvents, setDayDownloadEvents] = useState([
     { id: 'RDD-1201', sendId: 'DD-1', time: '2026-05-10 00:34', actor: 'Store manager', route: '/shifts/downloadShiftDayReport', action: 'Previewed day download packet', status: 'Opened', note: 'Single-day download packet was reviewed before the live file handoff was connected.' },
@@ -20750,6 +20760,10 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
     shiftEmailPacketRows[0] ||
     null;
   const selectedDayReportEmail = dayReportEmailRows.find((item) => item.id === selectedDayReportEmailId) || dayReportEmailRows[0];
+  const selectedDayReportEmailPacket =
+    dayReportEmailPacketRows.find((item) => item.id === selectedDayReportEmailPacketId) ||
+    dayReportEmailPacketRows[0] ||
+    null;
   const selectedDayDownload = dayDownloadRows.find((item) => item.id === selectedDayDownloadId) || dayDownloadRows[0];
   const selectedMonthDownload = monthDownloadRows.find((item) => item.id === selectedMonthDownloadId) || monthDownloadRows[0];
   const selectedQuickbooks = quickbooksRows.find((item) => item.id === selectedQuickbooksId) || quickbooksRows[0];
@@ -20773,6 +20787,8 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
   const selectedShiftEmailRouteEvents =
     selectedShiftEmailPacket ? shiftEmailRouteEvents.filter((item) => item.packetId === selectedShiftEmailPacket.id) : shiftEmailRouteEvents;
   const selectedDayReportEmailEvents = selectedDayReportEmail ? dayReportEmailEvents.filter((item) => item.sendId === selectedDayReportEmail.id) : dayReportEmailEvents;
+  const selectedDayReportEmailRouteEvents =
+    selectedDayReportEmailPacket ? dayReportEmailRouteEvents.filter((item) => item.packetId === selectedDayReportEmailPacket.id) : dayReportEmailRouteEvents;
   const selectedDayDownloadEvents = selectedDayDownload ? dayDownloadEvents.filter((item) => item.sendId === selectedDayDownload.id) : dayDownloadEvents;
   const selectedMonthDownloadEvents = selectedMonthDownload ? monthDownloadEvents.filter((item) => item.sendId === selectedMonthDownload.id) : monthDownloadEvents;
   const selectedQuickbooksEvents = selectedQuickbooks ? quickbooksEvents.filter((item) => item.sendId === selectedQuickbooks.id) : quickbooksEvents;
@@ -20924,6 +20940,21 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
       ...current,
     ]);
   };
+  const pushDayReportEmailRouteEvent = ({ packetId = selectedDayReportEmailPacket?.id, action, status, note }) => {
+    setDayReportEmailRouteEvents((current) => [
+      {
+        id: `RDR-${current.length + 1101}`,
+        packetId,
+        time: buildReportStamp(),
+        actor: 'StoreCheck demo',
+        route: 'POST /shifts/sendDayReport',
+        action,
+        status,
+        note,
+      },
+      ...current,
+    ]);
+  };
   const previewDayReportEmailPacket = (item = selectedDayReportEmail) => {
     if (!item) return;
     setSelectedDayReportEmailId(item.id);
@@ -20973,6 +21004,66 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
       note: `Mercury-style day-report confirmation accepted for ${item.recipient} on ${item.shiftDate}.`,
     });
     showDeliveryNotice(`Day report for ${item.shiftDate} queued to ${item.recipient}. Live \`${selectedDayReportEmailAction.route}\` endpoint still pending.`);
+  };
+  const buildDayReportEmailRouteAction = (item = selectedDayReportEmail, packet = selectedDayReportEmailPacket) => ({
+    ...selectedDayReportEmailAction,
+    route: 'POST /shifts/sendDayReport',
+    params: `shiftDate=${item?.shiftDate || customTo}; toAddress=${item?.recipient || deliveryEmail}`,
+    subtitle: `${packet?.window || 'Owner day-close review'} · POST /shifts/sendDayReport`,
+    fileName: `storecheck-day-report-email-route-${String(packet?.id || 'route').toLowerCase()}`,
+  });
+  const previewDayReportEmailRoutePacket = (item = selectedDayReportEmail, packet = selectedDayReportEmailPacket) => {
+    if (!item || !packet) return;
+    setSelectedDayReportEmailId(item.id);
+    setSelectedDayReportEmailPacketId(packet.id);
+    setDeliveryEmail(item.recipient);
+    const action = buildDayReportEmailRouteAction(item, packet);
+    openReportSurface('Day Report Email Endpoint Reconcile', action.subtitle, action.previewRows);
+    pushDayReportEmailRouteEvent({
+      packetId: packet.id,
+      action: 'Previewed day report email route packet',
+      status: 'Opened',
+      note: `${packet.packet} preview opened before the live Mercury sender was connected.`,
+    });
+    showDeliveryNotice(`${item.id} day-report email route packet preview opened in demo mode.`);
+  };
+  const stageDayReportEmailRouteHandoff = (item = selectedDayReportEmail, packet = selectedDayReportEmailPacket) => {
+    if (!item || !packet) return;
+    setSelectedDayReportEmailId(item.id);
+    setSelectedDayReportEmailPacketId(packet.id);
+    setDeliveryEmail(item.recipient);
+    setDayReportEmailPacketRows((current) => current.map((row) => (
+      row.id === packet.id
+        ? { ...row, status: 'Queued', note: `Day-report email route handoff is staged for ${packet.window.toLowerCase()}.` }
+        : row
+    )));
+    pushDayReportEmailRouteEvent({
+      packetId: packet.id,
+      action: 'Queued day report email route handoff',
+      status: 'Queued',
+      note: `Mercury-style day-report handoff accepted for ${packet.window}.`,
+    });
+    showDeliveryNotice(`${item.id} day-report email route handoff staged in demo mode. Live \`POST /shifts/sendDayReport\` endpoint still pending.`);
+  };
+  const saveDayReportEmailRoutePacket = (item = selectedDayReportEmail, packet = selectedDayReportEmailPacket) => {
+    if (!item || !packet) return;
+    setSelectedDayReportEmailId(item.id);
+    setSelectedDayReportEmailPacketId(packet.id);
+    setDeliveryEmail(item.recipient);
+    const action = buildDayReportEmailRouteAction(item, packet);
+    const html = buildReportPackageHtml(action);
+    downloadTextData(html, 'text/html', action.fileName, 'html');
+    pushDayReportEmailRouteEvent({
+      packetId: packet.id,
+      action: 'Saved day report email route packet',
+      status: 'Ready',
+      note: 'Day-report email route packet exported while the live sender remained demo-only.',
+    });
+    showDeliveryNotice(`${item.id} day-report email route packet saved in demo mode.`);
+  };
+  const exportDayReportEmailRouteEvents = (format) => {
+    downloadTableData(selectedDayReportEmailRouteEvents, format, `storecheck-day-report-email-route-events-${String(selectedDayReportEmailPacket?.id || 'route').toLowerCase()}`);
+    showDeliveryNotice(`${fmtN(selectedDayReportEmailRouteEvents.length)} day-report email route events exported in ${format} format.`);
   };
   const pushDayDownloadEvent = ({ sendId = selectedDayDownload?.id, action, status, note }) => {
     setDayDownloadEvents((current) => [
@@ -22506,47 +22597,60 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
             <div className="report-delivery-card">
               <div className="purchase-panel-head">
                 <div>
-                  <h3>Day Report Email Endpoint Depth</h3>
-                  <p>Keep the `/shifts/sendDayReport` confirmation handoff visible with selected send context before the live day-report email sender is connected.</p>
+                  <h3>Day Report Email Endpoint Reconcile</h3>
+                  <p>Keep the `POST /shifts/sendDayReport` packet visible with selected send and route follow-through context before the live day-report email sender is connected.</p>
                 </div>
               </div>
               <div className="purchase-kv-list">
+                <div className="purchase-kv"><span>Selected packet</span><span>{selectedDayReportEmailPacket ? `${selectedDayReportEmailPacket.packet} · ${selectedDayReportEmailPacket.status}` : 'Pending'}</span></div>
                 <div className="purchase-kv"><span>Selected send</span><span>{selectedDayReportEmail ? `${selectedDayReportEmail.shiftDate} · ${selectedDayReportEmail.status}` : 'Pending'}</span></div>
-                <div className="purchase-kv"><span>Route</span><span>{selectedDayReportEmailAction.route}</span></div>
+                <div className="purchase-kv"><span>Route</span><span>POST /shifts/sendDayReport</span></div>
                 <div className="purchase-kv"><span>Recipient</span><span>{selectedDayReportEmail?.recipient || deliveryEmail}</span></div>
                 <div className="purchase-kv"><span>Params</span><span>{`shiftDate=${selectedDayReportEmail?.shiftDate || customTo}; toAddress=${selectedDayReportEmail?.recipient || deliveryEmail}`}</span></div>
+                <div className="purchase-kv"><span>Packet window</span><span>{selectedDayReportEmailPacket?.window || 'Owner day-close review'}</span></div>
                 <div className="purchase-kv"><span>Current day</span><span>{selectedDayReportEmail ? `${selectedDayReportEmail.shiftDate} · ${selectedDayReportEmail.report}` : `${customTo} · Day report`}</span></div>
-                <div className="purchase-kv"><span>Latest event</span><span>{selectedDayReportEmailEvents[0]?.action || 'No events yet'}</span></div>
+                <div className="purchase-kv"><span>Latest route event</span><span>{selectedDayReportEmailRouteEvents[0]?.action || 'No events yet'}</span></div>
               </div>
               <div className="pricebook-actions" style={{ marginTop: 16, flexWrap: 'wrap' }}>
-                <button className="pricebook-btn" onClick={() => previewDayReportEmailPacket(selectedDayReportEmail)}>
-                  <Icon name="report" size={15} /> Preview send
+                <button className="pricebook-btn" onClick={() => previewDayReportEmailRoutePacket(selectedDayReportEmail, selectedDayReportEmailPacket)}>
+                  <Icon name="report" size={15} /> Preview route packet
                 </button>
-                <button className="pricebook-btn" onClick={() => confirmDayReportEmailSend(selectedDayReportEmail)}>
-                  <Icon name="bell" size={15} /> Confirm route send
+                <button className="pricebook-btn" onClick={() => stageDayReportEmailRouteHandoff(selectedDayReportEmail, selectedDayReportEmailPacket)}>
+                  <Icon name="bell" size={15} /> Stage handoff
                 </button>
-                <button className="pricebook-btn" onClick={() => saveDayReportEmailPacket(selectedDayReportEmail)}>
+                <button className="pricebook-btn primary" onClick={() => saveDayReportEmailRoutePacket(selectedDayReportEmail, selectedDayReportEmailPacket)}>
                   <Icon name="report" size={15} /> Save route packet
                 </button>
-                <button className="pricebook-btn primary" onClick={() => exportDayReportEmailEvents('CSV')}>
-                  <Icon name="save" size={15} /> Export route log
-                </button>
               </div>
-              <div className="report-delivery-list" style={{ marginTop: 18 }}>
+              <div className="purchase-queue-list" style={{ marginTop: 16 }}>
                 {dayReportEmailRows.map((row) => (
-                  <div className="report-delivery-row" key={row.id}>
-                    <div className="report-delivery-head">
+                  <div className="purchase-queue-row" key={row.id}>
+                    <div className="purchase-queue-top">
                       <div>
-                        <div className="report-delivery-title">{row.report}</div>
-                        <div className="report-delivery-meta">{row.recipient} · {row.shiftDate} · {row.window}</div>
+                        <div className="purchase-queue-title">{row.report}</div>
+                        <div className="purchase-queue-meta">{row.recipient} · {row.shiftDate} · {row.window} · {row.source}</div>
                       </div>
-                      <span className={`purchase-tag${row.status === 'Needs review' ? ' amber' : ' blue'}`}>{row.status}</span>
+                      <div className="pricebook-actions" style={{ gap: 8 }}>
+                        <span className={`purchase-tag${row.status === 'Needs review' ? ' amber' : ' blue'}`}>{row.status}</span>
+                        <button className="pricebook-btn soft" onClick={() => { setSelectedDayReportEmailId(row.id); setDeliveryEmail(row.recipient); }}>
+                          Review
+                        </button>
+                      </div>
                     </div>
-                    <div className="report-delivery-actions">
-                      <button className="pricebook-btn" onClick={() => { setSelectedDayReportEmailId(row.id); setDeliveryEmail(row.recipient); }}>
-                        <Icon name="report" size={15} /> Review
-                      </button>
+                  </div>
+                ))}
+              </div>
+              <div className="purchase-queue-list" style={{ marginTop: 12 }}>
+                {dayReportEmailPacketRows.map((row) => (
+                  <div className="purchase-queue-row" key={row.id}>
+                    <div className="purchase-queue-top">
+                      <div>
+                        <div className="purchase-queue-title">{row.packet}</div>
+                        <div className="purchase-queue-meta">{row.window} · {row.focus} · {row.source}</div>
+                      </div>
+                      <button className="pricebook-btn soft" onClick={() => setSelectedDayReportEmailPacketId(row.id)}>Review</button>
                     </div>
+                    <div className="purchase-queue-meta">{row.note}</div>
                   </div>
                 ))}
               </div>
@@ -22555,16 +22659,21 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
             <div className="report-delivery-card">
               <div className="purchase-panel-head">
                 <div>
-                  <h3>Selected Day Report Email Review</h3>
-                  <p>Owner-facing visibility for the chosen day-report email handoff before the live sender is connected.</p>
+                  <h3>Selected Day Report Email Endpoint Review</h3>
+                  <p>Owner-facing visibility for the chosen day-report route packet before the live sender is connected.</p>
                 </div>
               </div>
               {selectedDayReportEmail ? (
                 <div className="purchase-kv-list">
+                  <div className="purchase-kv"><span>Packet</span><span>{selectedDayReportEmailPacket?.packet || 'Pending'}</span></div>
+                  <div className="purchase-kv"><span>Window</span><span>{selectedDayReportEmailPacket?.window || 'Owner day-close review'}</span></div>
+                  <div className="purchase-kv"><span>Focus</span><span>{selectedDayReportEmailPacket?.focus || 'Day-close confirmation packet'}</span></div>
+                  <div className="purchase-kv"><span>Packet status</span><span>{selectedDayReportEmailPacket?.status || 'Pending'}</span></div>
                   <div className="purchase-kv"><span>Shift date</span><span>{selectedDayReportEmail.shiftDate}</span></div>
                   <div className="purchase-kv"><span>Report</span><span>{selectedDayReportEmail.report}</span></div>
                   <div className="purchase-kv"><span>Recipient</span><span>{selectedDayReportEmail.recipient}</span></div>
                   <div className="purchase-kv"><span>Source</span><span>{selectedDayReportEmail.source}</span></div>
+                  <div className="purchase-kv"><span>Route</span><span>POST /shifts/sendDayReport</span></div>
                   <div className="purchase-kv"><span>Status</span><span>{selectedDayReportEmail.status}</span></div>
                   <div className="purchase-kv"><span>Note</span><span>{selectedDayReportEmail.note}</span></div>
                 </div>
@@ -22574,12 +22683,19 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
             <div className="report-delivery-card">
               <div className="purchase-panel-head">
                 <div>
-                  <h3>Day Report Email Events</h3>
-                  <p>Owner-facing event visibility for the selected day-report email handoff.</p>
+                  <h3>Day Report Email Route Events</h3>
+                  <p>Track route-specific `POST /shifts/sendDayReport` packet activity before the live sender is connected.</p>
                 </div>
               </div>
+              <div className="pricebook-actions" style={{ marginBottom: 16, flexWrap: 'wrap' }}>
+                {['CSV', 'XLS', 'JSON'].map((format) => (
+                  <button key={format} className="pricebook-btn" onClick={() => exportDayReportEmailRouteEvents(format)}>
+                    <Icon name="save" size={15} /> {format}
+                  </button>
+                ))}
+              </div>
               <div className="report-delivery-list">
-                {selectedDayReportEmailEvents.length ? selectedDayReportEmailEvents.map((item) => (
+                {selectedDayReportEmailRouteEvents.length ? selectedDayReportEmailRouteEvents.map((item) => (
                   <div className="report-delivery-row" key={item.id}>
                     <div className="report-delivery-head">
                       <div>
@@ -22588,9 +22704,9 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
                       </div>
                       <span className={`purchase-tag${item.status === 'Needs review' ? ' amber' : ' blue'}`}>{item.status}</span>
                     </div>
-                    <div className="report-delivery-meta">{selectedDayReportEmail?.shiftDate || customTo} · {item.note}</div>
+                    <div className="report-delivery-meta">{selectedDayReportEmailPacket?.id || 'DEP-1'} · {item.note}</div>
                   </div>
-                )) : <div className="purchase-hint">No day-report email events are recorded for the selected handoff yet.</div>}
+                )) : <div className="purchase-hint">No day-report email route events are recorded for the selected packet yet.</div>}
               </div>
             </div>
 
