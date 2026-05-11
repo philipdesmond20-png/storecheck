@@ -19290,7 +19290,7 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
   };
   const previewRedirectPacket = () => {
     openMultiStorePacket({
-      title: 'Multi-dashboard redirect depth',
+      title: 'Multi-Dashboard Redirect Endpoint Reconcile',
       subtitle: `${redirectContextLabel} · /user/redirectMultiDashboard`,
       headers: ['LocationId', 'Store', 'Location', 'Manager', 'Destination', 'Redirect Status'],
       rows: redirectPacketRows,
@@ -19305,7 +19305,7 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
   };
   const saveRedirectPacket = () => {
     saveMultiStorePacket({
-      title: 'Multi-dashboard redirect depth',
+      title: 'Multi-Dashboard Redirect Endpoint Reconcile',
       subtitle: `${redirectContextLabel} · /user/redirectMultiDashboard`,
       route: '/user/redirectMultiDashboard',
       note: 'Multi-dashboard redirect replacement shell',
@@ -19550,7 +19550,7 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
             <div className="purchase-note-card">
               <div className="purchase-panel-head">
                 <div>
-                  <h3>Multi-dashboard redirect depth</h3>
+                  <h3>Multi-Dashboard Redirect Endpoint Reconcile</h3>
                   <p>Mercury route: <strong>/user/redirectMultiDashboard</strong></p>
                 </div>
                 <span className="purchase-tag amber">Partial</span>
@@ -19577,7 +19577,7 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
             <div className="purchase-note-card">
               <div className="purchase-panel-head">
                 <div>
-                  <h3>Selected redirect row</h3>
+                  <h3>Selected Multi-Dashboard Redirect Endpoint Review</h3>
                   <p>{selectedRedirectLocation.name} · {selectedRedirectLocation.location}</p>
                 </div>
                 <span className={`purchase-tag${currentLocation.id === selectedRedirectLocation.id ? ' blue' : ' amber'}`}>{currentLocation.id === selectedRedirectLocation.id ? 'Ready now' : 'Queued redirect'}</span>
@@ -19594,7 +19594,7 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
             <div className="purchase-note-card">
               <div className="purchase-panel-head">
                 <div>
-                  <h3>Redirect events</h3>
+                  <h3>Multi-Dashboard Redirect Route Events</h3>
                   <p>{selectedRedirectLocation.name} · /user/redirectMultiDashboard</p>
                 </div>
                 <span className="purchase-tag amber">Partial</span>
