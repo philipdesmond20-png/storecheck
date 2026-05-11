@@ -13431,7 +13431,7 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
     if (!packet) return;
     setSelectedCostUpdatePacketId(packet.id);
     openPacketPreview({
-      title: 'Cost Updates Endpoint Depth',
+      title: 'Cost Updates Endpoint Reconcile',
       subtitle: `${packet.window} · ${packet.focus} · /storeExpenses/index`,
       headers: ['Update Time', 'UPC', 'Item', 'Category', 'Prev Cost', 'New Cost', 'Retail', 'Rebate', 'Margin', 'Group', 'Status'],
       rows: buildCostUpdatePacketRows(packet),
@@ -13459,7 +13459,7 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
     if (!packet) return;
     setSelectedCostUpdatePacketId(packet.id);
     savePacket({
-      title: `Cost Update Packet - ${packet.id}`,
+      title: 'Cost Updates Endpoint Reconcile',
       subtitle: `${packet.window} · ${packet.focus}`,
       route: '/storeExpenses/index',
       note: 'Cost updates e-mail replacement shell',
@@ -16012,7 +16012,7 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
             <div className="purchase-surface">
               <div className="pricebook-toolbar" style={{ padding: '20px 20px 0' }}>
                 <div>
-                  <div className="pricebook-detail-title">Cost Updates Endpoint Depth</div>
+                  <div className="pricebook-detail-title">Cost Updates Endpoint Reconcile</div>
                   <div className="pricebook-detail-sub">Keep the `/storeExpenses/index` cost-update handoff visible with selected packet context before the live Mercury route is connected.</div>
                 </div>
                 <div className="pricebook-actions">
@@ -16173,7 +16173,7 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
             </div>
 
             <div className="purchase-note-card">
-              <h3>Selected Cost Update Review</h3>
+              <h3>Selected Cost Update Endpoint Review</h3>
               <p>Owner-facing visibility for the chosen cost-update packet before the live Mercury route is connected.</p>
               {selectedCostUpdatePacket ? (
                 <div className="purchase-kv-list">
@@ -16188,7 +16188,7 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
             </div>
 
             <div className="purchase-note-card">
-              <h3>Cost Update Events</h3>
+              <h3>Cost Update Route Events</h3>
               <p>Track route-specific `/storeExpenses/index` cost-update activity before live Mercury wiring is connected.</p>
               <div className="purchase-queue-list">
                 {selectedCostUpdateEvents.length ? selectedCostUpdateEvents.map((row) => (
