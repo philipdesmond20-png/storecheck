@@ -13696,7 +13696,7 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
     if (!packet) return;
     setSelectedPurchaseSavePacketId(packet.id);
     openPacketPreview({
-      title: 'Add Purchase Save Depth',
+      title: 'Add Purchase Save Endpoint Reconcile',
       subtitle: `${packet.window} · ${packet.focus} · /storeExpenses/index`,
       headers: ['Date', 'Shift', 'Amount', 'Payment', 'Check #', 'Vendor', 'Comments', 'Invoice', 'Mode'],
       rows: buildPurchaseSavePacketRows(packet),
@@ -13712,7 +13712,7 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
     if (!packet) return;
     setSelectedPurchaseSavePacketId(packet.id);
     savePacket({
-      title: `Add Purchase Packet - ${packet.id}`,
+      title: 'Add Purchase Save Endpoint Reconcile',
       subtitle: `${packet.window} · ${packet.focus}`,
       route: '/storeExpenses/index',
       note: 'Add Purchase save replacement shell',
@@ -15205,7 +15205,7 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
           <div className="purchase-note-card">
             <div className="purchase-panel-head">
               <div>
-                <h3>Add Purchase Save Depth</h3>
+                <h3>Add Purchase Save Endpoint Reconcile</h3>
                 <p>Keep the `/storeExpenses/index` purchase-save handoff visible with selected packet context before the live Mercury route is connected.</p>
               </div>
               <div className="pricebook-actions">
@@ -15277,7 +15277,7 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
 
           <div className="purchase-stack">
             <div className="purchase-note-card">
-              <h3>Selected Purchase Save Review</h3>
+              <h3>Selected Purchase Save Endpoint Review</h3>
               <p>Owner-facing visibility for the chosen add-purchase packet before the live Mercury route is connected.</p>
               {selectedPurchaseSavePacket ? (
                 <div className="purchase-kv-list">
@@ -15292,7 +15292,7 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
             </div>
 
             <div className="purchase-note-card">
-              <h3>Purchase Save Events</h3>
+              <h3>Purchase Save Route Events</h3>
               <p>Track route-specific `/storeExpenses/index` purchase-save activity before live Mercury wiring is connected.</p>
               <div className="purchase-queue-list">
                 {selectedPurchaseSaveEvents.length ? selectedPurchaseSaveEvents.map((row) => (
