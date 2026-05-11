@@ -9206,7 +9206,7 @@ const FuelView = () => {
   const openDraftDetailEndpointPacket = (row = selectedDraft) => {
     if (!row) return;
     openFuelPacket({
-      title: `Fuel Draft Detail Endpoint - ${row.id}`,
+      title: `Fuel Draft Detail Endpoint Reconcile - ${row.id}`,
       subtitle: `/jobberBatches/getDraftDetails/${row.id}`,
       headers: ['Draft', 'Status', 'Deliveries', 'Invoices', 'Linked Batches', 'Attachments', 'Amount'],
       rows: [[
@@ -9231,16 +9231,16 @@ const FuelView = () => {
       },
       ...current,
     ].slice(0, 18));
-    showNotice(`${row.id} endpoint review opened in demo mode.`);
+    showNotice(`${row.id} draft-detail route review opened in demo mode.`);
   };
 
   const saveDraftDetailEndpointPacket = (row = selectedDraft) => {
     if (!row) return;
     saveFuelPacket({
-      title: `Fuel Draft Detail Endpoint - ${row.id}`,
+      title: `Fuel Draft Detail Endpoint Reconcile - ${row.id}`,
       subtitle: `/jobberBatches/getDraftDetails/${row.id}`,
       route: `/jobberBatches/getDraftDetails/${row.id}`,
-      note: 'Fuel draft-detail endpoint replacement shell',
+      note: 'Fuel draft-detail endpoint reconcile shell',
       headers: ['Draft', 'Status', 'Deliveries', 'Invoices', 'Linked Batches', 'Attachments', 'Amount'],
       rows: [[
         row.id,
@@ -9265,7 +9265,7 @@ const FuelView = () => {
       },
       ...current,
     ].slice(0, 18));
-    showNotice(`${row.id} endpoint packet prepared in demo mode.`);
+    showNotice(`${row.id} draft-detail route packet prepared in demo mode.`);
   };
 
   const openNetworkBatchPacket = (row = selectedNetworkBatch) => {
@@ -10334,7 +10334,7 @@ const FuelView = () => {
             <div className="purchase-note-card">
               <div className="purchase-panel-head">
                 <div>
-                  <h3>Draft detail</h3>
+                  <h3>Fuel Draft Detail Endpoint Reconcile</h3>
                   <p>StoreCheck drilldown replacement for the Mercury `getDraftDetails` request.</p>
                 </div>
                 <span className={`purchase-tag${selectedDraft.status === 'Submitted' ? ' blue' : ' amber'}`}>{selectedDraft.status}</span>
@@ -10353,7 +10353,7 @@ const FuelView = () => {
                   <Icon name="report" size={15} /> Review docs
                 </button>
                 <button className="pricebook-btn" onClick={() => openDraftDetailEndpointPacket(selectedDraft)}>
-                  <Icon name="cash" size={15} /> Preview endpoint
+                  <Icon name="cash" size={15} /> Preview route packet
                 </button>
                 <button className="pricebook-btn primary" onClick={() => showNotice(`${selectedDraft.id} reopened for edit in demo mode.`)}>
                   <Icon name="item" size={15} /> Open draft
@@ -10362,7 +10362,7 @@ const FuelView = () => {
             </div>
 
             <div className="purchase-note-card">
-              <h3>Draft detail endpoint</h3>
+              <h3>Selected Draft Detail Endpoint Review</h3>
               <p>Keep route-specific packet review and event visibility beside the selected draft until the live detail endpoint is connected.</p>
               <div className="purchase-kv-list">
                 <div className="purchase-kv"><span>Endpoint route</span><span>{`/jobberBatches/getDraftDetails/${selectedDraft.id}`}</span></div>
@@ -10372,13 +10372,13 @@ const FuelView = () => {
               </div>
               <div className="pricebook-actions" style={{ marginTop: 16 }}>
                 <button className="pricebook-btn" onClick={() => openDraftDetailEndpointPacket(selectedDraft)}>
-                  <Icon name="report" size={15} /> Preview packet
+                  <Icon name="report" size={15} /> Preview route packet
                 </button>
                 <button className="pricebook-btn" onClick={() => saveDraftDetailEndpointPacket(selectedDraft)}>
-                  <Icon name="cash" size={15} /> Save endpoint packet
+                  <Icon name="cash" size={15} /> Save route packet
                 </button>
                 <button className="pricebook-btn primary" onClick={() => exportDraftDetailEvents('CSV')}>
-                  <Icon name="save" size={15} /> Export event log
+                  <Icon name="save" size={15} /> Export route log
                 </button>
               </div>
             </div>
@@ -10406,7 +10406,7 @@ const FuelView = () => {
             </div>
 
             <div className="purchase-note-card">
-              <h3>Draft detail events</h3>
+              <h3>Draft Detail Route Events</h3>
               <p>Owner-facing event visibility for the selected draft detail route.</p>
               <div className="purchase-queue-list">
                 {selectedDraftDetailEvents.length ? selectedDraftDetailEvents.map((item) => (
