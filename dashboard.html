@@ -21572,7 +21572,7 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
     if (!item) return;
     setSelectedXmlExportId(item.id);
     openReportSurface(
-      'XML Export Endpoint Depth',
+      'XML Export Endpoint Reconcile',
       `${currentLocation.name} · ${item.shiftDate} · ${item.packet}`,
       selectedXmlAction.previewRows
     );
