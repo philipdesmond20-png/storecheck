@@ -19360,7 +19360,7 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
     const row = selectedCompareRow || filteredCompare[0];
     if (!row || !comparePacketRows.length) return;
     openMultiStorePacket({
-      title: 'Multi-store comparison search depth',
+      title: 'Multi-Store Comparison Search Endpoint Reconcile',
       subtitle: `${compareContextLabel} · /shifts/searchMultiStoreReport`,
       headers: ['Store', 'Date', 'Fuel', 'Shop', 'Lottery', 'Total', 'Gallons', 'Cash Diff'],
       rows: comparePacketRows,
@@ -19377,7 +19377,7 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
     const row = selectedCompareRow || filteredCompare[0];
     if (!row || !comparePacketRows.length) return;
     saveMultiStorePacket({
-      title: 'Multi-store comparison search depth',
+      title: 'Multi-Store Comparison Search Endpoint Reconcile',
       subtitle: `${compareContextLabel} · /shifts/searchMultiStoreReport`,
       route: '/shifts/searchMultiStoreReport',
       note: 'Multi-store comparison replacement shell',
@@ -19646,7 +19646,7 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
             <div className="purchase-surface">
             <div className="pricebook-toolbar" style={{ padding: '20px 20px 0' }}>
               <div>
-                <div className="pricebook-detail-title">Multi-store comparison search depth</div>
+                <div className="pricebook-detail-title">Multi-Store Comparison Search Endpoint Reconcile</div>
                 <div className="pricebook-detail-sub">Mercury route: <strong>/shifts/searchMultiStoreReport</strong></div>
               </div>
               <div className="pricebook-actions">
@@ -19710,7 +19710,7 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
             <div className="purchase-note-card">
               <div className="purchase-panel-head">
                 <div>
-                  <h3>Selected compare row</h3>
+                  <h3>Selected Multi-Store Comparison Endpoint Review</h3>
                   <p>{selectedCompareRow ? `${selectedCompareRow.store} · ${compareDate}` : 'No compare row selected'}</p>
                 </div>
                 <span className="purchase-tag amber">Partial</span>
@@ -19747,7 +19747,7 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
             <div className="purchase-note-card">
               <div className="purchase-panel-head">
                 <div>
-                  <h3>Compare search events</h3>
+                  <h3>Multi-Store Comparison Route Events</h3>
                   <p>{selectedCompareRow ? `${selectedCompareRow.store} · /shifts/searchMultiStoreReport` : '/shifts/searchMultiStoreReport'}</p>
                 </div>
                 <span className="purchase-tag amber">Partial</span>
