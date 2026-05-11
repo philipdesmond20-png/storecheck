@@ -17752,7 +17752,7 @@ const OperationsView = ({ currentLocation, setLocationId }) => {
     formState.preparedBy,
     formState.comments || 'No comments',
   ]];
-  const activeSearchTitle = searchMode === 'combined' ? 'Bank + cash search depth' : 'Bank Drop Search Endpoint Reconcile';
+  const activeSearchTitle = searchMode === 'combined' ? 'Bank + Cash Search Endpoint Reconcile' : 'Bank Drop Search Endpoint Reconcile';
   const activeSearchRoute = searchMode === 'combined' ? '/shifts/searchBankDropsWithCashDrops' : '/shifts/searchBankDrops';
   const activeSearchHeaders = searchMode === 'combined'
     ? ['Date', 'Store', 'Shift', 'Bag', 'Account', 'Bank Drop', 'Cash Drop', 'Expected', 'Variance', 'Status']
@@ -17762,8 +17762,8 @@ const OperationsView = ({ currentLocation, setLocationId }) => {
   const activeSearchExportRows = searchMode === 'combined' ? bankCashSearchExportRows : bankDropSearchExportRows;
   const activeSearchEventActionPrefix = searchMode === 'combined' ? 'bank + cash' : 'bank-drop';
   const activeSearchFilePrefix = searchMode === 'combined' ? 'storecheck-bank-cash-search' : 'storecheck-bank-drop-search';
-  const activeSearchEventsTitle = searchMode === 'combined' ? 'Bank + cash search events' : 'Bank Drop Search Route Events';
-  const activeSelectedRowTitle = searchMode === 'combined' ? 'Selected bank + cash row' : 'Selected Bank Drop Search Endpoint Review';
+  const activeSearchEventsTitle = searchMode === 'combined' ? 'Bank + Cash Search Route Events' : 'Bank Drop Search Route Events';
+  const activeSelectedRowTitle = searchMode === 'combined' ? 'Selected Bank + Cash Search Endpoint Review' : 'Selected Bank Drop Search Endpoint Review';
   const activeSearchRefreshAction = searchMode === 'combined' ? 'Refreshed bank + cash search' : 'Refreshed bank-drop search';
   const activeSearchRefreshNote = searchMode === 'combined'
     ? 'Combined deposit and cash-drop review refreshed with the current StoreCheck filters.'
