@@ -14274,7 +14274,7 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
     if (!packet) return;
     setSelectedExpenseSummaryPacketId(packet.id);
     openPacketPreview({
-      title: 'Operating Expense Summary Endpoint Depth',
+      title: 'Operating Expense Summary Endpoint Reconcile',
       subtitle: `${packet.window} · ${packet.focus} · /storeExpenses/purchaseindex`,
       headers: ['Category', 'Entries', 'Cash', 'EFT / Check', 'Total'],
       rows: buildExpenseSummaryPacketRows(packet),
@@ -14299,7 +14299,7 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
   };
   const printExpenseSummaryPacket = () =>
     openPacketPreview({
-      title: 'Operating Expense Summary Endpoint Depth',
+      title: 'Operating Expense Summary Endpoint Reconcile',
       subtitle: `${selectedExpenseSummaryPacket?.window || 'Current summary'} · ${selectedExpenseSummaryPacket?.focus || 'Current category mix'} · /storeExpenses/purchaseindex`,
       headers: ['Category', 'Entries', 'Cash', 'EFT / Check', 'Total'],
       rows: buildExpenseSummaryPacketRows(selectedExpenseSummaryPacket),
@@ -14309,7 +14309,7 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
     if (!packet) return;
     setSelectedExpenseSummaryPacketId(packet.id);
     savePacket({
-      title: `Operating Expense Summary Packet - ${packet.id}`,
+      title: 'Operating Expense Summary Endpoint Reconcile',
       subtitle: `${packet.window} · ${packet.focus}`,
       route: '/storeExpenses/purchaseindex',
       note: 'Operating expense summary print replacement shell',
@@ -15496,7 +15496,7 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
             <div className="purchase-note-card">
               <div className="pricebook-toolbar" style={{ padding: 0 }}>
                 <div>
-                  <h3>Operating Expense Summary Endpoint Depth</h3>
+                  <h3>Operating Expense Summary Endpoint Reconcile</h3>
                   <p>Keep the `/storeExpenses/purchaseindex` summary handoff visible with selected packet context before the live Mercury route is connected.</p>
                 </div>
                 <div className="pricebook-actions">
@@ -15614,7 +15614,7 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
             </div>
 
             <div className="purchase-note-card">
-              <h3>Selected Operating Expense Summary Review</h3>
+              <h3>Selected Operating Expense Summary Endpoint Review</h3>
               <p>Owner-facing visibility for the chosen summary packet before the live Mercury route is connected.</p>
               {selectedExpenseSummaryPacket ? (
                 <div className="purchase-kv-list">
@@ -15629,7 +15629,7 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
             </div>
 
             <div className="purchase-note-card">
-              <h3>Operating Expense Summary Events</h3>
+              <h3>Operating Expense Summary Route Events</h3>
               <p>Track route-specific `/storeExpenses/purchaseindex` summary activity before live Mercury wiring is connected.</p>
               <div className="purchase-queue-list">
                 {selectedExpenseSummaryEvents.length ? selectedExpenseSummaryEvents.map((row) => (
