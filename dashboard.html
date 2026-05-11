@@ -14378,7 +14378,7 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
     if (!packet) return;
     setSelectedExpenseLedgerPacketId(packet.id);
     openPacketPreview({
-      title: 'Operating Expense Ledger Endpoint Depth',
+      title: 'Operating Expense Ledger Endpoint Reconcile',
       subtitle: `${packet.window} · ${packet.focus} · /storeExpenses/purchaseindex`,
       headers: ['Date', 'Shift', 'Vendor', 'Category', 'Payment', 'Amount', 'Status', 'Invoice'],
       rows: buildExpenseLedgerPacketRows(packet),
@@ -14394,7 +14394,7 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
     if (!packet) return;
     setSelectedExpenseLedgerPacketId(packet.id);
     savePacket({
-      title: `Operating Expense Ledger Packet - ${packet.id}`,
+      title: 'Operating Expense Ledger Endpoint Reconcile',
       subtitle: `${packet.window} · ${packet.focus}`,
       route: '/storeExpenses/purchaseindex',
       note: 'Operating expense ledger follow-through shell',
@@ -15921,7 +15921,7 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
               </div>
 
               <div className="purchase-note-card">
-                <h3>Operating Expense Ledger Endpoint Depth</h3>
+                <h3>Operating Expense Ledger Endpoint Reconcile</h3>
                 <p>Keep the `/storeExpenses/purchaseindex` ledger handoff visible with selected packet context before the live Mercury route is connected.</p>
                 <div className="purchase-kv-list">
                   <div className="purchase-kv"><span>Selected packet</span><span>{selectedExpenseLedgerPacket ? `${selectedExpenseLedgerPacket.packet} · ${selectedExpenseLedgerPacket.status}` : 'Pending'}</span></div>
@@ -15969,7 +15969,7 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
               </div>
 
               <div className="purchase-note-card">
-                <h3>Selected Operating Expense Ledger Review</h3>
+              <h3>Selected Operating Expense Ledger Endpoint Review</h3>
                 <p>Owner-facing visibility for the chosen ledger packet before the live Mercury route is connected.</p>
                 {selectedExpenseLedgerPacket ? (
                   <div className="purchase-kv-list">
@@ -15984,7 +15984,7 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
               </div>
 
               <div className="purchase-note-card">
-                <h3>Operating Expense Ledger Events</h3>
+              <h3>Operating Expense Ledger Route Events</h3>
                 <p>Track route-specific `/storeExpenses/purchaseindex` ledger activity before live Mercury wiring is connected.</p>
                 <div className="purchase-queue-list">
                   {selectedExpenseLedgerEvents.length ? selectedExpenseLedgerEvents.map((row) => (
