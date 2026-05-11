@@ -11828,10 +11828,11 @@ const PricebookView = ({ pricebookPage, setPricebookPage }) => {
   const previewUploadPacket = (item = selectedUploadRow) => {
     if (!item) return;
     openPrintPreview({
-      title: 'Bulk Upload Packet',
+      title: 'Bulk Items Upload Endpoint Reconcile',
       subtitle: `${item.id} · ${item.fileName}`,
       rows: [
         ['Field', 'Value'],
+        ['Route', '/pricebook/dealsMain → Items Upload'],
         ['File', item.fileName],
         ['Type', item.type],
         ['Template', item.template],
@@ -11848,7 +11849,7 @@ const PricebookView = ({ pricebookPage, setPricebookPage }) => {
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>Bulk Upload Packet</title>
+  <title>Bulk Items Upload Endpoint Reconcile</title>
   <style>
     body{font-family:"DM Sans",Arial,sans-serif;background:#F8FAFC;color:#0F172A;padding:28px}
     .wrap{max-width:980px;margin:0 auto;background:#fff;border:1px solid #E2E8F0;border-radius:18px;padding:28px;box-shadow:0 12px 40px rgba(15,23,42,.08)}
@@ -11865,7 +11866,7 @@ const PricebookView = ({ pricebookPage, setPricebookPage }) => {
 </head>
 <body>
   <div class="wrap">
-    <h1>Bulk Upload Packet</h1>
+    <h1>Bulk Items Upload Endpoint Reconcile</h1>
     <p>${item.id} · ${item.fileName}</p>
     <div class="meta">
       <div><strong>Mercury Route</strong>/pricebook/dealsMain → Items Upload</div>
@@ -12504,7 +12505,7 @@ const PricebookView = ({ pricebookPage, setPricebookPage }) => {
           <div className="pricebook-table-card">
             <div className="pricebook-toolbar">
               <div>
-                <div className="pricebook-detail-title">Bulk items upload</div>
+                <div className="pricebook-detail-title">Bulk Items Upload Endpoint Reconcile</div>
                 <div className="pricebook-detail-sub">Mercury returned “Couldn't load this tab” here, so StoreCheck keeps the upload handoff, queue review, and template flow visible for owners.</div>
               </div>
               {renderExportButtons(exportUploads)}
@@ -12551,7 +12552,7 @@ const PricebookView = ({ pricebookPage, setPricebookPage }) => {
                   <Icon name="cash" size={15} /> Export event log
                 </button>
                 <button className="pricebook-btn primary" onClick={() => saveUploadPacket()}>
-                  <Icon name="save" size={15} /> Save import packet
+                  <Icon name="save" size={15} /> Save route packet
                 </button>
               </div>
             </div>
@@ -12560,9 +12561,10 @@ const PricebookView = ({ pricebookPage, setPricebookPage }) => {
           <div className="pricebook-detail-card">
             {selectedUploadRow ? (
               <>
-                <div className="pricebook-detail-title">Selected import batch</div>
+                <div className="pricebook-detail-title">Selected Bulk Upload Endpoint Review</div>
                 <div className="pricebook-detail-sub">{selectedUploadRow.id} · {selectedUploadRow.type} · {selectedUploadRow.source}</div>
                 <div className="pricebook-metric-list">
+                  <div className="pricebook-metric"><span>Route</span><span>/pricebook/dealsMain → Items Upload</span></div>
                   <div className="pricebook-metric"><span>File</span><span>{selectedUploadRow.fileName}</span></div>
                   <div className="pricebook-metric"><span>Template</span><span>{selectedUploadRow.template}</span></div>
                   <div className="pricebook-metric"><span>Rows</span><span>{fmtN(selectedUploadRow.records)}</span></div>
@@ -12572,7 +12574,7 @@ const PricebookView = ({ pricebookPage, setPricebookPage }) => {
                 </div>
                 <div className="pricebook-actions" style={{ marginTop: 16 }}>
                   <button className="pricebook-btn" onClick={() => previewUploadPacket()}>
-                    <Icon name="report" size={15} /> Preview packet
+                    <Icon name="report" size={15} /> Preview route packet
                   </button>
                   <button className="pricebook-btn" onClick={() => markUploadReviewed()}>
                     <Icon name="item" size={15} /> Mark validated
@@ -12606,7 +12608,7 @@ const PricebookView = ({ pricebookPage, setPricebookPage }) => {
                 </div>
 
                 <div className="pricebook-draft" style={{ marginTop: 18 }}>
-                  <h3>Import events</h3>
+                  <h3>Bulk Upload Route Events</h3>
                   <div className="purchase-queue-list">
                     {selectedUploadEvents.map((event) => (
                       <div className="purchase-queue-row" key={event.id}>
