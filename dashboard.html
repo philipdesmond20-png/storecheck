@@ -14544,7 +14544,7 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
     if (!packet) return;
     setSelectedVendorSetupPacketId(packet.id);
     openPacketPreview({
-      title: 'Vendor Setup Endpoint Depth',
+      title: 'Vendor Setup Endpoint Reconcile',
       subtitle: `${packet.window} · ${packet.focus} · /administration/manageOperatingExpenses`,
       headers: ['Vendor', 'Agent', 'Terminal', 'Status', 'Last Order', 'Mode'],
       rows: buildVendorSetupPacketRows(packet),
@@ -14560,7 +14560,7 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
     if (!packet) return;
     setSelectedVendorSetupPacketId(packet.id);
     savePacket({
-      title: `Vendor Setup Packet - ${packet.id}`,
+      title: 'Vendor Setup Endpoint Reconcile',
       subtitle: `${packet.window} · ${packet.focus}`,
       route: '/administration/manageOperatingExpenses',
       note: 'Vendor master setup replacement shell',
@@ -16619,7 +16619,7 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
             <div className="purchase-setup-card">
               <div className="purchase-panel-head">
                 <div>
-                  <h3>Vendor Setup Endpoint Depth</h3>
+                  <h3>Vendor Setup Endpoint Reconcile</h3>
                   <p>Keep the `/administration/manageOperatingExpenses` vendor-setup handoff visible with selected packet context before the live Mercury route is connected.</p>
                 </div>
                 <div className="pricebook-actions">
@@ -16843,7 +16843,7 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
             </div>
 
             <div className="purchase-note-card">
-              <h3>Selected Vendor Setup Review</h3>
+              <h3>Selected Vendor Setup Endpoint Review</h3>
               <p>Owner-facing visibility for the chosen vendor-setup packet before the live Mercury route is connected.</p>
               {selectedVendorSetupPacket ? (
                 <div className="purchase-kv-list">
@@ -16858,7 +16858,7 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
             </div>
 
             <div className="purchase-note-card">
-              <h3>Vendor Setup Events</h3>
+              <h3>Vendor Setup Route Events</h3>
               <p>Track route-specific `/administration/manageOperatingExpenses` vendor activity before live Mercury wiring is connected.</p>
               <div className="purchase-queue-list">
                 {selectedVendorSetupEvents.length ? selectedVendorSetupEvents.map((row) => (
