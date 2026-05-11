@@ -19431,7 +19431,7 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
   };
   const previewSwitchPacket = () => {
     openMultiStorePacket({
-      title: 'Store switch action depth',
+      title: 'Store Switch Action Endpoint Reconcile',
       subtitle: `${switchContextLabel} · /user/switchLocation?locationId=`,
       headers: ['LocationId', 'Store', 'Location', 'Manager', 'Store Status', 'Switch Status'],
       rows: switchPacketRows,
@@ -19446,7 +19446,7 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
   };
   const saveSwitchPacket = () => {
     saveMultiStorePacket({
-      title: 'Store switch action depth',
+      title: 'Store Switch Action Endpoint Reconcile',
       subtitle: `${switchContextLabel} · /user/switchLocation?locationId=`,
       route: '/user/switchLocation?locationId=',
       note: 'Store-switch replacement shell',
@@ -19819,7 +19819,7 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
             <div className="purchase-note-card">
               <div className="purchase-panel-head">
                 <div>
-                  <h3>Store switch action depth</h3>
+                  <h3>Store Switch Action Endpoint Reconcile</h3>
                   <p>Mercury route: <strong>/user/switchLocation?locationId=</strong></p>
                 </div>
                 <span className="purchase-tag amber">Partial</span>
@@ -19846,7 +19846,7 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
             <div className="purchase-note-card">
               <div className="purchase-panel-head">
                 <div>
-                  <h3>Selected switch row</h3>
+                  <h3>Selected Store Switch Endpoint Review</h3>
                   <p>{selectedSwitchLocation.name} · {selectedSwitchLocation.location}</p>
                 </div>
                 <span className={`purchase-tag${currentLocation.id === selectedSwitchLocation.id ? ' blue' : ' amber'}`}>{currentLocation.id === selectedSwitchLocation.id ? 'Active' : 'Pending switch'}</span>
@@ -19863,7 +19863,7 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
             <div className="purchase-note-card">
               <div className="purchase-panel-head">
                 <div>
-                  <h3>Store switch events</h3>
+                  <h3>Store Switch Route Events</h3>
                   <p>{selectedSwitchLocation.name} · /user/switchLocation?locationId=</p>
                 </div>
                 <span className="purchase-tag amber">Partial</span>
