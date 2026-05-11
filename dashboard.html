@@ -13964,7 +13964,7 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
     if (!packet) return;
     setSelectedPurchaseSummaryPacketId(packet.id);
     openPacketPreview({
-      title: 'Purchases Summary Endpoint Depth',
+      title: 'Purchases Summary Endpoint Reconcile',
       subtitle: `${packet.window} · ${packet.focus} · /storeExpenses/index`,
       headers: ['Panel', 'Name', 'Amount', 'Retail / Notes', 'Mix'],
       rows: buildPurchaseSummaryPacketRows(packet),
@@ -13978,7 +13978,7 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
   };
   const printPurchaseSummaryPacket = () =>
     openPacketPreview({
-      title: 'Purchases Summary Endpoint Depth',
+      title: 'Purchases Summary Endpoint Reconcile',
       subtitle: `${selectedPurchaseSummaryPacket?.window || 'Current summary'} · ${selectedPurchaseSummaryPacket?.focus || 'Category and retail mix'} · /storeExpenses/index`,
       headers: ['Panel', 'Name', 'Amount', 'Retail / Notes', 'Mix'],
       rows: buildPurchaseSummaryPacketRows(selectedPurchaseSummaryPacket),
@@ -13988,7 +13988,7 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
     if (!packet) return;
     setSelectedPurchaseSummaryPacketId(packet.id);
     savePacket({
-      title: `Purchases Summary Packet - ${packet.id}`,
+      title: 'Purchases Summary Endpoint Reconcile',
       subtitle: `${packet.window} · ${packet.focus}`,
       route: '/storeExpenses/index',
       note: 'Purchases Summary print replacement shell',
@@ -14811,7 +14811,7 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
               <div className="purchase-surface">
                 <div className="pricebook-toolbar" style={{ padding: '20px 20px 0' }}>
                   <div>
-                    <div className="pricebook-detail-title">Purchases Summary Endpoint Depth</div>
+                    <div className="pricebook-detail-title">Purchases Summary Endpoint Reconcile</div>
                     <div className="pricebook-detail-sub">Keep the `/storeExpenses/index` summary handoff visible with selected packet context before the live Mercury route is connected.</div>
                   </div>
                   <div className="pricebook-actions">
@@ -15022,7 +15022,7 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
 
           <div className="purchase-stack">
             <div className="purchase-note-card">
-              <h3>Selected Purchases Summary Review</h3>
+              <h3>Selected Purchases Summary Endpoint Review</h3>
               <p>Owner-facing visibility for the chosen purchases-summary packet before the live Mercury route is connected.</p>
               {selectedPurchaseSummaryPacket ? (
                 <div className="purchase-kv-list">
@@ -15037,7 +15037,7 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
             </div>
 
             <div className="purchase-note-card">
-              <h3>Purchases Summary Events</h3>
+              <h3>Purchases Summary Route Events</h3>
               <p>Track route-specific `/storeExpenses/index` summary activity before live Mercury wiring is connected.</p>
               <div className="purchase-queue-list">
                 {selectedPurchaseSummaryEvents.length ? selectedPurchaseSummaryEvents.map((row) => (
