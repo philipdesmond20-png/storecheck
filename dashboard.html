@@ -8933,7 +8933,7 @@ const FuelView = () => {
 
   const previewAddDeliveryPacket = () => {
     openFuelPacket({
-      title: 'Fuel Add Delivery Save Packet',
+      title: 'Add Delivery Save Endpoint Reconcile',
       subtitle: `${deliveryDraft.date} · ${deliveryDraft.shift}`,
       headers: ['Field', 'Value'],
       rows: [
@@ -8952,15 +8952,15 @@ const FuelView = () => {
       ],
     });
     pushDeliverySaveEvent(selectedDelivery?.id || 'Draft Save', 'Add Delivery packet previewed', 'StoreCheck owner', 'Preview');
-    showNotice('Add Delivery save packet opened in demo mode.');
+    showNotice('Add Delivery save route packet opened in demo mode.');
   };
 
   const saveAddDeliveryPacket = () => {
     saveFuelPacket({
-      title: 'Fuel Add Delivery Save Packet',
+      title: 'Add Delivery Save Endpoint Reconcile',
       subtitle: `${deliveryDraft.date} · ${deliveryDraft.shift}`,
       route: '/jobberBatches/index',
-      note: 'Fuel Add Delivery save replacement shell',
+      note: 'Add delivery save endpoint reconcile shell',
       headers: ['Field', 'Value'],
       rows: [[
         'Delivery Date',
@@ -8984,7 +8984,7 @@ const FuelView = () => {
       filename: 'storecheck-fuel-add-delivery-save',
     });
     pushDeliverySaveEvent(selectedDelivery?.id || 'Draft Save', 'Add Delivery packet saved', 'StoreCheck owner', 'Packet saved');
-    showNotice('Add Delivery save packet prepared in demo mode.');
+    showNotice('Add Delivery save route packet prepared in demo mode.');
   };
 
   const stageDeliveryAttachment = (file, type) => {
@@ -9783,10 +9783,10 @@ const FuelView = () => {
                   </div>
                   <div className="pricebook-actions" style={{ marginTop: 16 }}>
                     <button className="pricebook-btn" onClick={() => previewAddDeliveryPacket()}>
-                      <Icon name="report" size={15} /> Preview save packet
+                      <Icon name="report" size={15} /> Preview route packet
                     </button>
                     <button className="pricebook-btn" onClick={() => saveAddDeliveryPacket()}>
-                      <Icon name="cash" size={15} /> Save packet
+                      <Icon name="cash" size={15} /> Save route packet
                     </button>
                     <button className="pricebook-btn primary" onClick={() => saveDelivery()}>
                       <Icon name="cash" size={15} /> Save
@@ -9799,7 +9799,7 @@ const FuelView = () => {
               ) : null}
 
               <div className="purchase-note-card">
-                <h3>Add Delivery save route</h3>
+                <h3>Add Delivery Save Endpoint Reconcile</h3>
                 <p>Keep the save packet and route-specific handoff visible while the delivery modal is still demo-wired.</p>
                 <div className="purchase-kv-list">
                   <div className="purchase-kv"><span>Route</span><span>/jobberBatches/index</span></div>
@@ -9815,7 +9815,7 @@ const FuelView = () => {
                     <Icon name="cash" size={15} /> Save route packet
                   </button>
                   <button className="pricebook-btn primary" onClick={() => exportDeliverySaveEvents('CSV')}>
-                    <Icon name="save" size={15} /> Export save log
+                    <Icon name="save" size={15} /> Export route log
                   </button>
                 </div>
               </div>
@@ -9869,7 +9869,7 @@ const FuelView = () => {
               </div>
 
               <div className="purchase-note-card">
-                <h3>Add Delivery save events</h3>
+                <h3>Add Delivery Save Route Events</h3>
                 <p>Owner-facing event visibility for the save path, including rack, freight, and attachment handoff.</p>
                 <div className="purchase-queue-list">
                   {selectedDeliverySaveEvents.length ? selectedDeliverySaveEvents.map((item) => (
