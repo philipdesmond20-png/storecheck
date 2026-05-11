@@ -11723,10 +11723,11 @@ const PricebookView = ({ pricebookPage, setPricebookPage }) => {
   const previewAuditPacket = (item = selectedAuditRow) => {
     if (!item) return;
     openPrintPreview({
-      title: 'Inventory Audit Packet',
+      title: 'Inventory Audit Endpoint Reconcile',
       subtitle: `${item.id} · ${item.department} · ${item.view}`,
       rows: [
         ['Field', 'Value'],
+        ['Route', '/pricebook/inventory'],
         ['Title', item.title],
         ['Scope', item.scope],
         ['Department', item.department],
@@ -11745,7 +11746,7 @@ const PricebookView = ({ pricebookPage, setPricebookPage }) => {
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>Inventory Audit Packet</title>
+  <title>Inventory Audit Endpoint Reconcile</title>
   <style>
     body{font-family:"DM Sans",Arial,sans-serif;background:#F8FAFC;color:#0F172A;padding:28px}
     .wrap{max-width:980px;margin:0 auto;background:#fff;border:1px solid #E2E8F0;border-radius:18px;padding:28px;box-shadow:0 12px 40px rgba(15,23,42,.08)}
@@ -11762,7 +11763,7 @@ const PricebookView = ({ pricebookPage, setPricebookPage }) => {
 </head>
 <body>
   <div class="wrap">
-    <h1>Inventory Audit Packet</h1>
+    <h1>Inventory Audit Endpoint Reconcile</h1>
     <p>${item.id} · ${item.department} · ${item.view}</p>
     <div class="meta">
       <div><strong>Mercury Route</strong>/pricebook/inventory</div>
@@ -12351,7 +12352,7 @@ const PricebookView = ({ pricebookPage, setPricebookPage }) => {
           <div className="pricebook-table-card">
             <div className="pricebook-toolbar">
               <div>
-                <div className="pricebook-detail-title">Inventory audit</div>
+                <div className="pricebook-detail-title">Inventory Audit Endpoint Reconcile</div>
                 <div className="pricebook-detail-sub">Mercury-style audit review with a `Pre Audit` versus `Reports` switch and owner-facing packet handling.</div>
               </div>
               {renderExportButtons(exportAudit)}
@@ -12398,7 +12399,7 @@ const PricebookView = ({ pricebookPage, setPricebookPage }) => {
                   <Icon name="cash" size={15} /> Export event log
                 </button>
                 <button className="pricebook-btn primary" onClick={() => saveAuditPacket()}>
-                  <Icon name="save" size={15} /> Save audit packet
+                  <Icon name="save" size={15} /> Save route packet
                 </button>
               </div>
             </div>
@@ -12407,9 +12408,10 @@ const PricebookView = ({ pricebookPage, setPricebookPage }) => {
           <div className="pricebook-detail-card">
             {selectedAuditRow ? (
               <>
-                <div className="pricebook-detail-title">Selected audit</div>
+                <div className="pricebook-detail-title">Selected Inventory Audit Endpoint Review</div>
                 <div className="pricebook-detail-sub">{selectedAuditRow.id} · {selectedAuditRow.department} · {selectedAuditRow.view}</div>
                 <div className="pricebook-metric-list">
+                  <div className="pricebook-metric"><span>Route</span><span>/pricebook/inventory</span></div>
                   <div className="pricebook-metric"><span>Title</span><span>{selectedAuditRow.title}</span></div>
                   <div className="pricebook-metric"><span>Scope</span><span>{selectedAuditRow.scope}</span></div>
                   <div className="pricebook-metric"><span>Owner</span><span>{selectedAuditRow.owner}</span></div>
@@ -12421,7 +12423,7 @@ const PricebookView = ({ pricebookPage, setPricebookPage }) => {
                 </div>
                 <div className="pricebook-actions" style={{ marginTop: 16 }}>
                   <button className="pricebook-btn" onClick={() => previewAuditPacket()}>
-                    <Icon name="report" size={15} /> Preview packet
+                    <Icon name="report" size={15} /> Preview route packet
                   </button>
                   <button className="pricebook-btn" onClick={() => flagAuditRecount()}>
                     <Icon name="alert" size={15} /> Request recount
@@ -12437,7 +12439,7 @@ const PricebookView = ({ pricebookPage, setPricebookPage }) => {
                 </div>
 
                 <div className="pricebook-draft" style={{ marginTop: 18 }}>
-                  <h3>Audit events</h3>
+                  <h3>Inventory Audit Route Events</h3>
                   <div className="purchase-queue-list">
                     {selectedAuditEvents.map((event) => (
                       <div className="purchase-queue-row" key={event.id}>
