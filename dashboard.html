@@ -13231,21 +13231,21 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
       note: 'Owner opened the module upload packet before live binary upload wiring.',
     });
     openPacketPreview({
-      title: `Module Attachment Upload Packet - ${item.fileName}`,
+      title: `Document Upload Endpoint Reconcile - ${item.fileName}`,
       subtitle: `${item.module} · ${item.record}`,
       headers: ['Module', 'Record', 'File', 'Type', 'Route', 'Added', 'Note'],
       rows: [[item.module, item.record, item.fileName, item.type, '/localCredits/uploadDocument', item.added, item.note]],
     });
-    showNotice(`Module upload packet preview opened for ${item.fileName}.`);
+    showNotice(`Document upload route packet preview opened for ${item.fileName}.`);
   };
   const saveAttachmentUploadPacket = (item = selectedLibraryAttachment) => {
     if (!item) return;
     const itemEvents = attachmentUploadEvents.filter((row) => row.attachmentId === item.id);
     savePacket({
-      title: `Module Attachment Upload Route Packet - ${item.fileName}`,
+      title: `Document Upload Endpoint Reconcile - ${item.fileName}`,
       subtitle: `${item.module} · ${item.record}`,
       route: '/localCredits/uploadDocument',
-      note: 'Module attachment upload replacement shell',
+      note: 'Document upload replacement shell',
       headers: ['Module', 'Record', 'File', 'Type', 'Added', 'Review State', 'Note'],
       rows: [[item.module, item.record, item.fileName, item.type, item.added, itemEvents[0]?.status || 'Queued', item.note]],
       filename: `storecheck-module-upload-${slugify(item.module)}-${slugify(item.fileName.replace(/\.[^.]+$/, ''))}`,
@@ -13259,7 +13259,7 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
       status: 'Queued',
       note: 'Route packet exported while the live upload endpoint remained demo-only.',
     });
-    showNotice(`Module upload packet prepared for ${item.fileName}.`);
+    showNotice(`Document upload route packet prepared for ${item.fileName}.`);
   };
   const exportAttachmentUploadEvents = (format) => {
     const rows = selectedAttachmentUploadEvents.length ? selectedAttachmentUploadEvents : attachmentUploadEvents;
@@ -16500,7 +16500,7 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
             <div className="attachment-card">
               <div className="purchase-panel-head">
                 <div>
-                  <h3>Module attachment upload route</h3>
+                  <h3>Document Upload Endpoint Reconcile</h3>
                   <p>Keep the `/localCredits/uploadDocument` packet and event trail visible for shared attachments before live binary upload wiring.</p>
                 </div>
               </div>
@@ -16513,13 +16513,13 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
               </div>
               <div className="pricebook-actions" style={{ marginTop: 16 }}>
                 <button className="pricebook-btn" onClick={() => previewAttachmentUploadPacket(selectedLibraryAttachment)}>
-                  <Icon name="report" size={15} /> Preview module upload packet
+                  <Icon name="report" size={15} /> Preview route packet
                 </button>
                 <button className="pricebook-btn" onClick={() => saveAttachmentUploadPacket(selectedLibraryAttachment)}>
-                  <Icon name="cash" size={15} /> Save module upload packet
+                  <Icon name="cash" size={15} /> Save route packet
                 </button>
                 <button className="pricebook-btn primary" onClick={() => exportAttachmentUploadEvents('CSV')}>
-                  <Icon name="save" size={15} /> Export module upload log
+                  <Icon name="save" size={15} /> Export route log
                 </button>
               </div>
             </div>
@@ -16571,7 +16571,7 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
             <div className="attachment-card">
               <div className="purchase-panel-head">
                 <div>
-                  <h3>Module attachment upload events</h3>
+                  <h3>Document Upload Route Events</h3>
                   <p>Owner-facing event visibility for the selected shared attachment upload handoff.</p>
                 </div>
               </div>
@@ -17236,21 +17236,21 @@ const FinancialView = ({ currentLocation }) => {
       note: 'Owner opened the upload packet before live binary upload wiring.',
     });
     openPacket({
-      title: `House Account Upload Packet - ${item.customer}`,
+      title: `Document Upload Endpoint Reconcile - ${item.customer}`,
       subtitle: `${item.fileName} · ${item.type}`,
-      headers: ['Customer', 'File', 'Type', 'Status', 'Upload Route', 'Added', 'Note'],
+      headers: ['Customer', 'File', 'Type', 'Status', 'Route', 'Added', 'Note'],
       rows: [[item.customer, item.fileName, item.type, item.status, '/localCredits/uploadDocument', item.added, item.note]],
     });
-    showFinancialNotice(`Upload packet preview opened for ${item.customer}.`);
+    showFinancialNotice(`Document upload route packet preview opened for ${item.customer}.`);
   };
   const saveHouseUploadPacket = (item = selectedAttachment) => {
     if (!item) return;
     const itemEvents = houseUploadEvents.filter((row) => row.attachmentId === item.id);
     savePacket({
-      title: `House Account Upload Route Packet - ${item.customer}`,
+      title: `Document Upload Endpoint Reconcile - ${item.customer}`,
       subtitle: `${item.fileName} · ${item.type}`,
       route: '/localCredits/uploadDocument',
-      note: 'House account attachment upload replacement shell',
+      note: 'Document upload replacement shell',
       headers: ['Customer', 'File', 'Type', 'Status', 'Added', 'Review State', 'Note'],
       rows: [[item.customer, item.fileName, item.type, item.status, item.added, itemEvents[0]?.status || 'Queued', item.note]],
       filename: `storecheck-house-account-upload-${slugify(item.customer)}-${slugify(item.fileName.replace(/\.[^.]+$/, ''))}`,
@@ -17263,7 +17263,7 @@ const FinancialView = ({ currentLocation }) => {
       status: 'Queued',
       note: 'Endpoint packet exported while the live upload endpoint remained demo-only.',
     });
-    showFinancialNotice(`Upload packet prepared for ${item.customer}. Real binary upload is still pending.`);
+    showFinancialNotice(`Document upload route packet prepared for ${item.customer}. Real binary upload is still pending.`);
   };
   const exportHouseUploadEvents = (format) => {
     const rows = selectedHouseUploadEvents.length ? selectedHouseUploadEvents : visibleHouseUploadEvents;
@@ -17514,7 +17514,7 @@ const FinancialView = ({ currentLocation }) => {
             <div className="attachment-card">
               <div className="purchase-panel-head">
                 <div>
-                  <h3>House account upload route</h3>
+                  <h3>Document Upload Endpoint Reconcile</h3>
                   <p>Keep the `/localCredits/uploadDocument` packet and event trail visible before live binary upload wiring.</p>
                 </div>
               </div>
@@ -17526,13 +17526,13 @@ const FinancialView = ({ currentLocation }) => {
               </div>
               <div className="pricebook-actions" style={{ marginTop: 16 }}>
                 <button className="pricebook-btn" onClick={() => previewHouseUploadPacket(selectedAttachment)}>
-                  <Icon name="report" size={15} /> Preview upload packet
+                  <Icon name="report" size={15} /> Preview route packet
                 </button>
                 <button className="pricebook-btn" onClick={() => saveHouseUploadPacket(selectedAttachment)}>
-                  <Icon name="cash" size={15} /> Save upload packet
+                  <Icon name="cash" size={15} /> Save route packet
                 </button>
                 <button className="pricebook-btn primary" onClick={() => exportHouseUploadEvents('CSV')}>
-                  <Icon name="save" size={15} /> Export upload log
+                  <Icon name="save" size={15} /> Export route log
                 </button>
               </div>
             </div>
@@ -17598,7 +17598,7 @@ const FinancialView = ({ currentLocation }) => {
             <div className="attachment-card">
               <div className="purchase-panel-head">
                 <div>
-                  <h3>House account upload events</h3>
+                  <h3>Document Upload Route Events</h3>
                   <p>Owner-facing event visibility for the selected house-account upload handoff.</p>
                 </div>
               </div>
