@@ -13278,21 +13278,21 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
       note: 'Owner opened the module download packet before live binary download wiring.',
     });
     openPacketPreview({
-      title: `Module Attachment Download Packet - ${item.fileName}`,
+      title: `Document Download Endpoint Reconcile - ${item.fileName}`,
       subtitle: `${item.module} · ${item.record}`,
       headers: ['Module', 'Record', 'File', 'Type', 'Route', 'Added', 'Note'],
       rows: [[item.module, item.record, item.fileName, item.type, `/localCredits/downloadDocument?fileName=${item.fileName}`, item.added, item.note]],
     });
-    showNotice(`Module download packet preview opened for ${item.fileName}.`);
+    showNotice(`Document download route packet preview opened for ${item.fileName}.`);
   };
   const saveAttachmentDownloadPacket = (item = selectedLibraryAttachment) => {
     if (!item) return;
     const itemEvents = attachmentDownloadEvents.filter((row) => row.attachmentId === item.id);
     savePacket({
-      title: `Module Attachment Download Route Packet - ${item.fileName}`,
+      title: `Document Download Endpoint Reconcile - ${item.fileName}`,
       subtitle: `${item.module} · ${item.record}`,
       route: '/localCredits/downloadDocument?fileName=',
-      note: 'Module attachment download replacement shell',
+      note: 'Document download replacement shell',
       headers: ['Module', 'Record', 'File', 'Type', 'Added', 'Review State', 'Note'],
       rows: [[item.module, item.record, item.fileName, item.type, item.added, itemEvents[0]?.status || 'Ready', item.note]],
       filename: `storecheck-module-download-${slugify(item.module)}-${slugify(item.fileName.replace(/\.[^.]+$/, ''))}`,
@@ -13306,7 +13306,7 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
       status: 'Ready',
       note: 'Route packet exported while the live download endpoint remained demo-only.',
     });
-    showNotice(`Module download packet prepared for ${item.fileName}.`);
+    showNotice(`Document download route packet prepared for ${item.fileName}.`);
   };
   const exportAttachmentDownloadEvents = (format) => {
     const rows = selectedAttachmentDownloadEvents.length ? selectedAttachmentDownloadEvents : attachmentDownloadEvents;
@@ -16527,7 +16527,7 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
             <div className="attachment-card">
               <div className="purchase-panel-head">
                 <div>
-                  <h3>Module attachment download route</h3>
+                  <h3>Document Download Endpoint Reconcile</h3>
                   <p>Keep the `/localCredits/downloadDocument?fileName=` packet and event trail visible for shared attachments before live binary download wiring.</p>
                 </div>
               </div>
@@ -16540,13 +16540,13 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
               </div>
               <div className="pricebook-actions" style={{ marginTop: 16 }}>
                 <button className="pricebook-btn" onClick={() => previewAttachmentDownloadPacket(selectedLibraryAttachment)}>
-                  <Icon name="report" size={15} /> Preview module download packet
+                  <Icon name="report" size={15} /> Preview route packet
                 </button>
                 <button className="pricebook-btn" onClick={() => saveAttachmentDownloadPacket(selectedLibraryAttachment)}>
-                  <Icon name="cash" size={15} /> Save module download packet
+                  <Icon name="cash" size={15} /> Save route packet
                 </button>
                 <button className="pricebook-btn primary" onClick={() => exportAttachmentDownloadEvents('CSV')}>
-                  <Icon name="save" size={15} /> Export module download log
+                  <Icon name="save" size={15} /> Export route log
                 </button>
               </div>
             </div>
@@ -16594,7 +16594,7 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
             <div className="attachment-card">
               <div className="purchase-panel-head">
                 <div>
-                  <h3>Module attachment download events</h3>
+                  <h3>Document Download Route Events</h3>
                   <p>Owner-facing event visibility for the selected shared attachment download handoff.</p>
                 </div>
               </div>
@@ -17281,20 +17281,20 @@ const FinancialView = ({ currentLocation }) => {
       note: 'Owner opened the route packet before live binary download wiring.',
     });
     openPacket({
-      title: `House Account Download Packet - ${item.customer}`,
+      title: `Document Download Endpoint Reconcile - ${item.customer}`,
       subtitle: `${item.fileName} · ${item.type}`,
-      headers: ['Customer', 'File', 'Type', 'Status', 'Download Route', 'Added', 'Note'],
+      headers: ['Customer', 'File', 'Type', 'Status', 'Route', 'Added', 'Note'],
       rows: [[item.customer, item.fileName, item.type, item.status, `/localCredits/downloadDocument?fileName=${item.fileName}`, item.added, item.note]],
     });
-    showFinancialNotice(`Download packet preview opened for ${item.customer}.`);
+    showFinancialNotice(`Document download route packet preview opened for ${item.customer}.`);
   };
   const saveAttachmentPacket = (item = selectedAttachment) => {
     if (!item) return;
     savePacket({
-      title: `House Account Attachment - ${item.customer}`,
+      title: `Document Download Endpoint Reconcile - ${item.customer}`,
       subtitle: `${item.fileName} · ${item.type}`,
       route: '/localCredits/downloadDocument?fileName=',
-      note: 'House account attachment download replacement shell',
+      note: 'Document download replacement shell',
       headers: ['Customer', 'File', 'Type', 'Status', 'Added', 'Note'],
       rows: [[item.customer, item.fileName, item.type, item.status, item.added, item.note]],
       filename: `storecheck-house-account-attachment-${slugify(item.customer)}`,
@@ -17307,7 +17307,7 @@ const FinancialView = ({ currentLocation }) => {
       status: 'Ready',
       note: 'Download route packet exported while the live endpoint remained demo-only.',
     });
-    showFinancialNotice(`Download packet prepared for ${item.customer}.`);
+    showFinancialNotice(`Document download route packet prepared for ${item.customer}.`);
   };
   const exportHouseDownloadEvents = (format) => {
     const rows = selectedHouseDownloadEvents.length ? selectedHouseDownloadEvents : visibleHouseDownloadEvents;
@@ -17572,7 +17572,7 @@ const FinancialView = ({ currentLocation }) => {
             <div className="attachment-card">
               <div className="purchase-panel-head">
                 <div>
-                  <h3>House account download route</h3>
+                  <h3>Document Download Endpoint Reconcile</h3>
                   <p>Keep the `/localCredits/downloadDocument?fileName=` packet and event trail visible before live binary download wiring.</p>
                 </div>
               </div>
@@ -17584,13 +17584,13 @@ const FinancialView = ({ currentLocation }) => {
               </div>
               <div className="pricebook-actions" style={{ marginTop: 16 }}>
                 <button className="pricebook-btn" onClick={() => previewHouseDownloadPacket(selectedAttachment)}>
-                  <Icon name="report" size={15} /> Preview download packet
+                  <Icon name="report" size={15} /> Preview route packet
                 </button>
                 <button className="pricebook-btn" onClick={() => saveAttachmentPacket(selectedAttachment)}>
-                  <Icon name="cash" size={15} /> Save download packet
+                  <Icon name="cash" size={15} /> Save route packet
                 </button>
                 <button className="pricebook-btn primary" onClick={() => exportHouseDownloadEvents('CSV')}>
-                  <Icon name="save" size={15} /> Export download log
+                  <Icon name="save" size={15} /> Export route log
                 </button>
               </div>
             </div>
@@ -17621,7 +17621,7 @@ const FinancialView = ({ currentLocation }) => {
             <div className="attachment-card">
               <div className="purchase-panel-head">
                 <div>
-                  <h3>House account download events</h3>
+                  <h3>Document Download Route Events</h3>
                   <p>Owner-facing event visibility for the selected house-account download handoff.</p>
                 </div>
               </div>
