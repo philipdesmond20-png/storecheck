@@ -13554,7 +13554,7 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
     if (!packet) return;
     setSelectedDeadInventoryPacketId(packet.id);
     openPacketPreview({
-      title: 'Dead Inventory Endpoint Depth',
+      title: 'Dead Inventory Endpoint Reconcile',
       subtitle: `${packet.window} · ${packet.focus} · /storeExpenses/index`,
       headers: ['UPC', 'Department', 'Item', 'Retail', 'Cost', 'Inventory', 'Total Cost', 'Total Retail', 'Criteria', 'Stage'],
       rows: buildDeadInventoryPacketRows(packet),
@@ -13570,7 +13570,7 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
     if (!packet) return;
     setSelectedDeadInventoryPacketId(packet.id);
     savePacket({
-      title: `Dead Inventory Packet - ${packet.id}`,
+      title: 'Dead Inventory Endpoint Reconcile',
       subtitle: `${packet.window} · ${packet.focus}`,
       route: '/storeExpenses/index',
       note: 'Dead Inventory InActive replacement shell',
@@ -16215,7 +16215,7 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
             <div className="purchase-surface">
               <div className="pricebook-toolbar" style={{ padding: '20px 20px 0' }}>
                 <div>
-                  <div className="pricebook-detail-title">Dead Inventory Endpoint Depth</div>
+                  <div className="pricebook-detail-title">Dead Inventory Endpoint Reconcile</div>
                   <div className="pricebook-detail-sub">Keep the `/storeExpenses/index` dead-inventory handoff visible with selected packet context before the live Mercury route is connected.</div>
                 </div>
                 <div className="pricebook-actions">
@@ -16406,7 +16406,7 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
             </div>
 
             <div className="purchase-note-card">
-              <h3>Selected Dead Inventory Review</h3>
+              <h3>Selected Dead Inventory Endpoint Review</h3>
               <p>Owner-facing visibility for the chosen dead-inventory packet before the live Mercury route is connected.</p>
               {selectedDeadInventoryPacket ? (
                 <div className="purchase-kv-list">
@@ -16421,7 +16421,7 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
             </div>
 
             <div className="purchase-note-card">
-              <h3>Dead Inventory Events</h3>
+              <h3>Dead Inventory Route Events</h3>
               <p>Track route-specific `/storeExpenses/index` dead-inventory activity before live Mercury wiring is connected.</p>
               <div className="purchase-queue-list">
                 {selectedDeadInventoryEvents.length ? selectedDeadInventoryEvents.map((row) => (
