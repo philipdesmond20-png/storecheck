@@ -13893,7 +13893,7 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
     if (!packet) return;
     setSelectedVendorCodePacketId(packet.id);
     openPacketPreview({
-      title: 'Vendor Codes Reference Depth',
+      title: 'Vendor Codes Reference Reconcile',
       subtitle: `${packet.window} · ${packet.focus} · /storeExpenses/index`,
       headers: ['Vendor'],
       rows: buildVendorCodePacketRows(),
@@ -13909,7 +13909,7 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
     if (!packet) return;
     setSelectedVendorCodePacketId(packet.id);
     savePacket({
-      title: `Vendor Codes Packet - ${packet.id}`,
+      title: 'Vendor Codes Reference Reconcile',
       subtitle: `${packet.window} · ${packet.focus}`,
       route: '/storeExpenses/index',
       note: 'Vendor Codes reference replacement shell',
@@ -16940,7 +16940,7 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
           </div>
 
           <div className="purchase-note-card">
-            <h3>Vendor Codes Reference Depth</h3>
+            <h3>Vendor Codes Reference Reconcile</h3>
             <p>Keep the `/storeExpenses/index` vendor-code reference visible with selected packet context before the live Mercury route is connected.</p>
             <div className="purchase-kv-list">
               <div className="purchase-kv"><span>Selected packet</span><span>{selectedVendorCodePacket ? `${selectedVendorCodePacket.packet} · ${selectedVendorCodePacket.status}` : 'Pending'}</span></div>
@@ -17018,7 +17018,7 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
             </div>
 
             <div className="purchase-note-card">
-              <h3>Selected Vendor Code Reference</h3>
+              <h3>Selected Vendor Code Endpoint Review</h3>
               <p>Owner-facing visibility for the chosen vendor-code packet before the live Mercury route is connected.</p>
               {selectedVendorCodePacket ? (
                 <div className="purchase-kv-list">
@@ -17033,7 +17033,7 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
             </div>
 
             <div className="purchase-note-card">
-              <h3>Vendor Code Events</h3>
+              <h3>Vendor Code Route Events</h3>
               <p>Track route-specific `/storeExpenses/index` vendor-code activity before live Mercury wiring is connected.</p>
               <div className="purchase-queue-list">
                 {selectedVendorCodeEvents.length ? selectedVendorCodeEvents.map((row) => (
