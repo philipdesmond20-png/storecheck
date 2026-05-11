@@ -18417,6 +18417,11 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
   const [loginSearch, setLoginSearch] = useState('');
   const [loginLocationId, setLoginLocationId] = useState(currentLocation.id);
   const [launchTarget, setLaunchTarget] = useState('today');
+  const [loginPagePacketRows, setLoginPagePacketRows] = useState([
+    { id: 'LGP-1', packet: 'Primary login page handoff', window: 'Visible sign-in shell', focus: 'Username + password entry review', source: 'Login page', status: 'Queued', note: 'Primary login-page handoff is staged for owner review before live Mercury entry wiring is connected.' },
+    { id: 'LGP-2', packet: 'Submit CTA follow-through', window: 'Credential entry to auth submit', focus: 'Sign-in CTA pre-submit review', source: 'Sign-in CTA', status: 'Needs review', note: 'Login-page follow-through still needs final owner review before the live Mercury entry route is connected.' },
+  ]);
+  const [selectedLoginPagePacketId, setSelectedLoginPagePacketId] = useState('LGP-1');
   const [loginSubmitPacketRows, setLoginSubmitPacketRows] = useState([
     { id: 'LSP-1', packet: 'Primary login submit handoff', window: 'Credential submit review', focus: 'Username + password payload', source: 'Login page', status: 'Queued', note: 'Primary login submit handoff is staged for owner review before live Mercury auth wiring is connected.' },
     { id: 'LSP-2', packet: 'Submit + picker follow-through', window: 'Credential submit to location picker', focus: 'Post-auth store selection handoff', source: 'Login redirect', status: 'Needs review', note: 'Credential submit follow-through still needs final owner review before the live Mercury auth route is connected.' },
@@ -18438,8 +18443,14 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
   ]);
   const [selectedLocationPickerPacketId, setSelectedLocationPickerPacketId] = useState('LPP-1');
   const [authFlowRows, setAuthFlowRows] = useState([
+    { id: 'AUTH-0', time: '08:40', step: 'Login page opened', route: '/user/homepage', store: 'Mercury sign-in', status: 'Ready' },
     { id: 'AUTH-1', time: '08:42', step: 'Location picker opened', route: '/user/viewLocations', store: 'Main Street Gas & Go', status: 'Ready' },
     { id: 'AUTH-2', time: '08:43', step: 'Redirect to dashboard', route: '/user/openHomePage', store: 'Main Street Gas & Go', status: 'Complete' },
+  ]);
+  const [loginPageEvents, setLoginPageEvents] = useState([
+    { id: 'LPE-3801', packetId: 'LGP-1', time: '2026-05-10 14:31', actor: 'Store manager', route: 'GET /user/homepage', action: 'Previewed login page packet', status: 'Opened', note: 'Owner reviewed the visible login-page packet before the live Mercury entry route was connected.' },
+    { id: 'LPE-3802', packetId: 'LGP-1', time: '2026-05-10 14:34', actor: 'Store manager', route: 'GET /user/homepage', action: 'Saved login page route packet', status: 'Ready', note: 'Login-page packet was exported while the live Mercury entry route remained demo-only.' },
+    { id: 'LPE-3803', packetId: 'LGP-2', time: '2026-05-10 14:36', actor: 'StoreCheck demo', route: 'GET /user/homepage', action: 'Queued login page handoff', status: 'Queued', note: 'Login-page follow-through remained visible inside StoreCheck while the Mercury entry route stayed demo-only.' },
   ]);
   const [loginSubmitEvents, setLoginSubmitEvents] = useState([
     { id: 'LSE-3901', packetId: 'LSP-1', time: '2026-05-10 14:42', actor: 'Store manager', route: 'POST /user/authenticateLogin/loginForm', action: 'Previewed login submit packet', status: 'Opened', note: 'Owner reviewed the credential submit packet before the live Mercury auth route was connected.' },
@@ -18530,6 +18541,13 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
   const selectedLoginOverview =
     MULTI_STORE_OVERVIEW.find((row) => row.id === selectedLoginLocation.id) ||
     MULTI_STORE_OVERVIEW[0];
+  const selectedLoginPagePacket =
+    loginPagePacketRows.find((row) => row.id === selectedLoginPagePacketId) ||
+    loginPagePacketRows[0];
+  const selectedLoginPageEvents =
+    selectedLoginPagePacket
+      ? loginPageEvents.filter((row) => row.packetId === selectedLoginPagePacket.id)
+      : loginPageEvents;
   const selectedPickerEvents = pickerActionEvents.filter((row) => row.rowId === selectedLoginLocation.id);
   const selectedLocationPickerRouteEvents =
     selectedLocationPickerPacket
@@ -18557,6 +18575,7 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
     selectedModuleLauncherPacket
       ? moduleLauncherRouteEvents.filter((row) => row.packetId === selectedModuleLauncherPacket.id)
       : moduleLauncherRouteEvents;
+  const loginPageContextLabel = `${loginUserName || 'Mercury sign-in'} · GET /user/homepage`;
   const loginSubmitContextLabel = `${loginUserName || 'No username'} · ${selectedLoginLocation.name}`;
   const homeRedirectContextLabel = `${selectedLoginLocation.name} · Today's Summary`;
   const loginContextLabel = `${selectedLoginLocation.name} · ${selectedLoginLocation.location}`;
@@ -18599,6 +18618,14 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
     CashDiff: row.cashDiff.toFixed(2),
   }));
   const comparePacketRows = filteredCompare.map((row) => [row.store, compareDate, fmt(row.fuel), fmt(row.shop), fmt(row.lottery), fmt(row.total), fmtN(row.gallons, 0), fmt(Math.abs(row.cashDiff))]);
+  const buildLoginPageRows = (packet = selectedLoginPagePacket) => [[
+    'Mercury sign-in',
+    loginUserName || '—',
+    maskedLoginPassword,
+    'Submit credentials',
+    'POST /user/authenticateLogin/loginForm',
+    packet?.id === 'LGP-2' ? 'Sign-in CTA follow-through' : 'Visible login shell review',
+  ]];
   const buildLoginSubmitRows = (packet = selectedLoginSubmitPacket) => [[
     loginUserName || '—',
     maskedLoginPassword,
@@ -18707,6 +18734,22 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
       ...current,
     ].slice(0, 6));
   };
+  const pushLoginPageEvent = ({ packetId = selectedLoginPagePacket?.id, action, status, note }) => {
+    const time = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    setLoginPageEvents((current) => [
+      {
+        id: `LPE-${Date.now()}`,
+        packetId,
+        time,
+        actor: 'Store manager',
+        route: 'GET /user/homepage',
+        action,
+        status,
+        note,
+      },
+      ...current,
+    ].slice(0, 24));
+  };
   const pushLoginSubmitEvent = ({ packetId = selectedLoginSubmitPacket?.id, action, status, note }) => {
     const time = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
     setLoginSubmitEvents((current) => [
@@ -18754,6 +18797,73 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
       },
       ...current,
     ].slice(0, 24));
+  };
+  const previewLoginPagePacket = (packet = selectedLoginPagePacket) =>
+    (setSelectedLoginPagePacketId(packet.id),
+    openMultiStorePacket({
+      title: 'Login Page Endpoint Reconcile',
+      subtitle: `${packet.window} · GET /user/homepage`,
+      headers: ['Page', 'Username', 'Password', 'Primary action', 'Next route', 'Mode'],
+      rows: buildLoginPageRows(packet),
+    }),
+    pushLoginPageEvent({
+      packetId: packet.id,
+      action: 'Previewed login page packet',
+      status: 'Opened',
+      note: `${packet.packet} preview opened before the live Mercury entry route was connected.`,
+    }),
+    showNotice('Login page packet preview opened in demo mode.'));
+  const saveLoginPagePacket = (packet = selectedLoginPagePacket) => {
+    setSelectedLoginPagePacketId(packet.id);
+    saveMultiStorePacket({
+      title: 'Login Page Endpoint Reconcile',
+      subtitle: `${packet.window} · GET /user/homepage`,
+      route: 'GET /user/homepage',
+      note: 'Login page entry replacement shell before live Mercury auth wiring',
+      headers: ['Page', 'Username', 'Password', 'Primary action', 'Next route', 'Mode'],
+      rows: buildLoginPageRows(packet),
+      filename: `storecheck-login-page-${packet.id.toLowerCase()}`,
+    });
+    pushLoginPageEvent({
+      packetId: packet.id,
+      action: 'Saved login page route packet',
+      status: 'Ready',
+      note: 'Login-page route packet was exported while the live Mercury entry route remained demo-only.',
+    });
+    showNotice('Login page route packet saved in demo mode.');
+  };
+  const stageLoginPageHandoff = (packet = selectedLoginPagePacket) => {
+    setSelectedLoginPagePacketId(packet.id);
+    setLoginPagePacketRows((current) => current.map((row) => (
+      row.id === packet.id
+        ? { ...row, status: 'Queued', note: `Login-page handoff is staged for ${packet.window.toLowerCase()}.` }
+        : row
+    )));
+    pushLoginPageEvent({
+      packetId: packet.id,
+      action: 'Queued login page handoff',
+      status: 'Queued',
+      note: `Mercury-style login-page handoff accepted for ${packet.window}.`,
+    });
+    showNotice(`Login page review for ${packet.window} staged in demo mode. Live \`GET /user/homepage\` route still pending.`);
+  };
+  const openLoginPage = () => {
+    setSelectedLoginPagePacketId('LGP-2');
+    setLoginPagePacketRows((current) => current.map((row) => (
+      row.id === 'LGP-1'
+        ? { ...row, status: 'Opened', note: 'Visible login shell was reviewed in demo mode before credential submit.' }
+        : row.id === 'LGP-2'
+          ? { ...row, status: 'Ready', note: `Credential entry stayed ready for ${loginUserName || 'the selected operator'} before live Mercury submit wiring.` }
+          : row
+    )));
+    pushLoginPageEvent({
+      packetId: 'LGP-1',
+      action: 'Opened login page',
+      status: 'Opened',
+      note: 'Mercury sign-in shell opened inside StoreCheck while the live entry route remained pending.',
+    });
+    stampAuthFlow('Login page opened', '/user/homepage', 'Mercury sign-in', 'Opened');
+    showNotice('Login page opened in demo mode.');
   };
   const previewLoginSubmitPacket = (packet = selectedLoginSubmitPacket) =>
     (setSelectedLoginSubmitPacketId(packet.id),
@@ -18805,6 +18915,14 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
     showNotice(`Login submit review for ${packet.window} staged in demo mode. Live \`POST /user/authenticateLogin/loginForm\` route still pending.`);
   };
   const submitLoginCredentials = () => {
+    setSelectedLoginPagePacketId('LGP-2');
+    setLoginPagePacketRows((current) => current.map((row) => (
+      row.id === 'LGP-1'
+        ? { ...row, status: 'Ready', note: 'Visible login shell was reviewed in demo mode before submit.' }
+        : row.id === 'LGP-2'
+          ? { ...row, status: 'Submitted', note: `Credential-entry CTA advanced to Mercury auth submit for ${selectedLoginLocation.name} in demo mode.` }
+          : row
+    )));
     setSelectedLoginSubmitPacketId('LSP-2');
     setSelectedLocationPickerPacketId('LPP-1');
     setLoginSubmitPacketRows((current) => current.map((row) => (
@@ -18819,6 +18937,12 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
       action: 'Submitted login credentials',
       status: 'Submitted',
       note: `Credentials were submitted for ${selectedLoginLocation.name} inside StoreCheck while the live Mercury auth route remained pending.`,
+    });
+    pushLoginPageEvent({
+      packetId: 'LGP-2',
+      action: 'Submitted login page CTA',
+      status: 'Submitted',
+      note: `Login-page CTA advanced to credential submit for ${selectedLoginLocation.name} while the live Mercury entry route remained pending.`,
     });
     stampAuthFlow('Credentials submitted', 'POST /user/authenticateLogin/loginForm', selectedLoginLocation.name, 'Submitted');
     showNotice(`Login credentials submitted for ${selectedLoginLocation.name} in demo mode.`);
@@ -19138,6 +19262,10 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
   const exportLoginSubmitEvents = (format) => {
     if (!selectedLoginSubmitEvents.length) return;
     downloadTableData(selectedLoginSubmitEvents, format, `storecheck-login-submit-events-${slugify(loginUserName || selectedLoginLocation.name)}-${slugify(selectedLoginSubmitPacket?.packet || 'review')}`);
+  };
+  const exportLoginPageEvents = (format) => {
+    if (!selectedLoginPageEvents.length) return;
+    downloadTableData(selectedLoginPageEvents, format, `storecheck-login-page-events-${slugify(loginUserName || 'mercury-sign-in')}-${slugify(selectedLoginPagePacket?.packet || 'review')}`);
   };
   const exportHomeRedirectEvents = (format) => {
     if (!selectedHomeRedirectEvents.length) return;
@@ -19789,6 +19917,65 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
             <div className="purchase-surface">
               <div className="pricebook-toolbar" style={{ padding: '20px 20px 0' }}>
                 <div>
+                  <div className="pricebook-detail-title">Login Page Endpoint Reconcile</div>
+                  <div className="pricebook-detail-sub">Mercury route: <strong>GET /user/homepage</strong></div>
+                </div>
+                <div className="pricebook-actions">
+                  <button className="pricebook-btn" onClick={() => previewLoginPagePacket(selectedLoginPagePacket)}>
+                    <Icon name="report" size={15} /> Preview route packet
+                  </button>
+                  <button className="pricebook-btn" onClick={() => stageLoginPageHandoff(selectedLoginPagePacket)}>
+                    <Icon name="calendar" size={15} /> Stage handoff
+                  </button>
+                  <button className="pricebook-btn" onClick={() => saveLoginPagePacket(selectedLoginPagePacket)}>
+                    <Icon name="cash" size={15} /> Save route packet
+                  </button>
+                  <button className="pricebook-btn primary" onClick={() => exportLoginPageEvents('CSV')}>
+                    <Icon name="save" size={15} /> Export route log
+                  </button>
+                </div>
+              </div>
+              <div className="pricebook-filters" style={{ padding: '0 20px 16px' }}>
+                <input className="pricebook-input" value={loginUserName} onChange={(e) => setLoginUserName(e.target.value)} placeholder="Username" />
+                <input className="pricebook-input" type="password" value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} placeholder="Password" />
+                <button className="pricebook-btn primary" onClick={() => openLoginPage()}>
+                  <Icon name="home" size={15} /> Open login page
+                </button>
+              </div>
+              <div className="purchase-kv-list" style={{ padding: '0 20px 16px' }}>
+                <div className="purchase-kv"><span>Selected packet</span><span>{selectedLoginPagePacket ? `${selectedLoginPagePacket.packet} · ${selectedLoginPagePacket.status}` : 'Pending'}</span></div>
+                <div className="purchase-kv"><span>Route</span><span>GET /user/homepage</span></div>
+                <div className="purchase-kv"><span>Primary action</span><span>Submit credentials</span></div>
+                <div className="purchase-kv"><span>Next step</span><span>POST /user/authenticateLogin/loginForm</span></div>
+                <div className="purchase-kv"><span>Latest event</span><span>{selectedLoginPageEvents[0]?.action || 'No events yet'}</span></div>
+              </div>
+              <div className="purchase-queue-list" style={{ padding: '0 20px 20px' }}>
+                {loginPagePacketRows.map((row) => (
+                  <div className="purchase-queue-row" key={row.id}>
+                    <div className="purchase-queue-top">
+                      <div>
+                        <div className="purchase-queue-title">{row.packet}</div>
+                        <div className="purchase-queue-meta">{row.window} · {row.focus} · {row.source}</div>
+                      </div>
+                      <span className={`purchase-tag${row.status === 'Needs review' ? ' amber' : row.status === 'Queued' || row.status === 'Opened' || row.status === 'Submitted' ? ' blue' : ''}`}>{row.status}</span>
+                    </div>
+                    <div className="purchase-queue-meta">{row.note}</div>
+                    <div className="pricebook-actions" style={{ marginTop: 12 }}>
+                      <button className="pricebook-btn" onClick={() => setSelectedLoginPagePacketId(row.id)}>
+                        <Icon name="report" size={15} /> Review
+                      </button>
+                      <button className="pricebook-btn soft" onClick={() => previewLoginPagePacket(row)}>
+                        <Icon name="report" size={15} /> Preview
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="purchase-surface">
+              <div className="pricebook-toolbar" style={{ padding: '20px 20px 0' }}>
+                <div>
                   <div className="pricebook-detail-title">Login Submit Endpoint Reconcile</div>
                   <div className="pricebook-detail-sub">Mercury route: <strong>POST /user/authenticateLogin/loginForm</strong></div>
                 </div>
@@ -19931,6 +20118,95 @@ const MultiStoreView = ({ currentLocation, setLocationId, setView }) => {
           </div>
 
           <div className="purchase-stack">
+            <div className="purchase-note-card">
+              <div className="purchase-panel-head">
+                <div>
+                  <h3>Login Page Endpoint Reconcile</h3>
+                  <p>{loginPageContextLabel}</p>
+                </div>
+                <span className="purchase-tag amber">Partial</span>
+              </div>
+              <div className="purchase-kv-list">
+                <div className="purchase-kv"><span>Username</span><span>{loginUserName || '—'}</span></div>
+                <div className="purchase-kv"><span>Password</span><span>{maskedLoginPassword}</span></div>
+                <div className="purchase-kv"><span>Entry route</span><span>GET /user/homepage</span></div>
+                <div className="purchase-kv"><span>Next route</span><span>POST /user/authenticateLogin/loginForm</span></div>
+                <div className="purchase-kv"><span>Latest event</span><span>{selectedLoginPageEvents[0]?.action || 'No events yet'}</span></div>
+              </div>
+              <div className="pricebook-actions" style={{ marginTop: 16, flexWrap: 'wrap' }}>
+                <button className="pricebook-btn" onClick={() => previewLoginPagePacket(selectedLoginPagePacket)}>
+                  <Icon name="report" size={15} /> Preview route packet
+                </button>
+                <button className="pricebook-btn" onClick={() => stageLoginPageHandoff(selectedLoginPagePacket)}>
+                  <Icon name="calendar" size={15} /> Stage handoff
+                </button>
+                <button className="pricebook-btn" onClick={() => saveLoginPagePacket(selectedLoginPagePacket)}>
+                  <Icon name="cash" size={15} /> Save route packet
+                </button>
+                <button className="pricebook-btn primary" onClick={() => openLoginPage()}>
+                  <Icon name="home" size={15} /> Open login page
+                </button>
+              </div>
+            </div>
+
+            <div className="purchase-note-card">
+              <div className="purchase-panel-head">
+                <div>
+                  <h3>Selected Login Page Endpoint Review</h3>
+                  <p>{selectedLoginPagePacket ? `${selectedLoginPagePacket.packet} · GET /user/homepage` : 'GET /user/homepage'}</p>
+                </div>
+                <span className="purchase-tag amber">Partial</span>
+              </div>
+              {selectedLoginPagePacket ? (
+                <div className="purchase-kv-list">
+                  <div className="purchase-kv"><span>Packet</span><span>{selectedLoginPagePacket.packet}</span></div>
+                  <div className="purchase-kv"><span>Window</span><span>{selectedLoginPagePacket.window}</span></div>
+                  <div className="purchase-kv"><span>Focus</span><span>{selectedLoginPagePacket.focus}</span></div>
+                  <div className="purchase-kv"><span>Source</span><span>{selectedLoginPagePacket.source}</span></div>
+                  <div className="purchase-kv"><span>Status</span><span>{selectedLoginPagePacket.status}</span></div>
+                  <div className="purchase-kv"><span>Note</span><span>{selectedLoginPagePacket.note}</span></div>
+                </div>
+              ) : (
+                <div className="pricebook-detail-sub">No login-page packet is selected right now.</div>
+              )}
+            </div>
+
+            <div className="purchase-note-card">
+              <div className="purchase-panel-head">
+                <div>
+                  <h3>Login Page Route Events</h3>
+                  <p>{selectedLoginPagePacket ? `${selectedLoginPagePacket.packet} · GET /user/homepage` : 'GET /user/homepage'}</p>
+                </div>
+                <span className="purchase-tag amber">Partial</span>
+              </div>
+              <div className="pricebook-actions" style={{ marginBottom: 16, flexWrap: 'wrap' }}>
+                {['CSV', 'XLS', 'JSON'].map((format) => (
+                  <button key={format} className="pricebook-btn" onClick={() => exportLoginPageEvents(format)}>
+                    <Icon name="cash" size={15} /> {format}
+                  </button>
+                ))}
+              </div>
+              <div className="alerts-list">
+                {selectedLoginPageEvents.length ? selectedLoginPageEvents.map((row) => (
+                  <div key={row.id} className="alert-item" style={{ alignItems: 'flex-start' }}>
+                    <Icon
+                      name={row.action.includes('Saved') ? 'cash' : row.action.includes('Previewed') ? 'report' : row.action.includes('Queued') ? 'calendar' : 'home'}
+                      size={18}
+                      bg={row.action.includes('Saved') ? iconDefaults.green.bg : row.action.includes('Previewed') ? iconDefaults.blue.bg : row.action.includes('Queued') ? iconDefaults.slate.bg : iconDefaults.green.bg}
+                      fg={row.action.includes('Saved') ? '#15803D' : row.action.includes('Previewed') ? '#3B82F6' : row.action.includes('Queued') ? '#64748B' : '#15803D'}
+                    />
+                    <div className="alert-copy">
+                      <div className="alert-text">{row.action}</div>
+                      <div className="pricebook-detail-sub">{row.time} · {row.actor} · {row.status}</div>
+                      <div className="pricebook-detail-sub">{row.note}</div>
+                    </div>
+                  </div>
+                )) : (
+                  <div className="pricebook-detail-sub">No login-page route history is visible for this packet yet.</div>
+                )}
+              </div>
+            </div>
+
             <div className="purchase-note-card">
               <div className="purchase-panel-head">
                 <div>
