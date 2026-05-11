@@ -14060,7 +14060,7 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
     if (!packet) return;
     setSelectedVendorOrderPacketId(packet.id);
     openPacketPreview({
-      title: 'Vendor Orders Endpoint Depth',
+      title: 'Vendor Orders Endpoint Reconcile',
       subtitle: `${packet.window} · ${packet.focus} · /storeExpenses/index`,
       headers: ['Order Date', 'Delivery Date', 'Vendor', 'Total', 'Grocery', 'Operating', 'Retail', 'Status'],
       rows: buildVendorOrderPacketRows(packet),
@@ -14154,7 +14154,7 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
     if (!packet) return;
     setSelectedVendorOrderPacketId(packet.id);
     savePacket({
-      title: `Vendor Orders Packet - ${packet.id}`,
+      title: 'Vendor Orders Endpoint Reconcile',
       subtitle: `${packet.window} · ${packet.focus}`,
       route: '/storeExpenses/index',
       note: 'Vendor Orders order/delivery replacement shell',
@@ -14931,7 +14931,7 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
             <div className="purchase-surface">
               <div className="pricebook-toolbar" style={{ padding: '20px 20px 0' }}>
                 <div>
-                  <div className="pricebook-detail-title">Vendor Orders Endpoint Depth</div>
+                  <div className="pricebook-detail-title">Vendor Orders Endpoint Reconcile</div>
                   <div className="pricebook-detail-sub">Keep the `/storeExpenses/index` vendor-order handoff visible with selected packet context before the live Mercury route is connected.</div>
                 </div>
                 <div className="pricebook-actions">
@@ -15056,7 +15056,7 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
             </div>
 
             <div className="purchase-note-card">
-              <h3>Selected Vendor Orders Review</h3>
+              <h3>Selected Vendor Orders Endpoint Review</h3>
               <p>Owner-facing visibility for the chosen vendor-order packet before the live Mercury route is connected.</p>
               {selectedVendorOrderPacket ? (
                 <div className="purchase-kv-list">
@@ -15071,7 +15071,7 @@ const PurchasesView = ({ purchasePage, setPurchasePage }) => {
             </div>
 
             <div className="purchase-note-card">
-              <h3>Vendor Orders Events</h3>
+              <h3>Vendor Orders Route Events</h3>
               <p>Track route-specific `/storeExpenses/index` vendor-order activity before live Mercury wiring is connected.</p>
               <div className="purchase-queue-list">
                 {selectedVendorOrderEvents.length ? selectedVendorOrderEvents.map((row) => (
