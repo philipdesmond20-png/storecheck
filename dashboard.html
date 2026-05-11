@@ -12024,7 +12024,7 @@ const PricebookView = ({ pricebookPage, setPricebookPage }) => {
   const openPendingPacket = (item = selectedPendingRow) => {
     if (!item) return;
     openPrintPreview({
-      title: 'Pending POS Packet',
+      title: 'Pending To POS Endpoint Reconcile',
       subtitle: `${item.id} · ${item.store}`,
       rows: [
         ['Field', 'Value'],
@@ -12046,7 +12046,7 @@ const PricebookView = ({ pricebookPage, setPricebookPage }) => {
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>Pending POS Packet</title>
+  <title>Pending To POS Endpoint Reconcile</title>
   <style>
     body{font-family:"DM Sans",Arial,sans-serif;background:#F8FAFC;color:#0F172A;padding:28px}
     .wrap{max-width:980px;margin:0 auto;background:#fff;border:1px solid #E2E8F0;border-radius:18px;padding:28px;box-shadow:0 12px 40px rgba(15,23,42,.08)}
@@ -12063,7 +12063,7 @@ const PricebookView = ({ pricebookPage, setPricebookPage }) => {
 </head>
 <body>
   <div class="wrap">
-    <h1>Pending POS Packet</h1>
+    <h1>Pending To POS Endpoint Reconcile</h1>
     <p>${item.id} · ${item.store}</p>
     <div class="meta">
       <div><strong>Mercury Route</strong>${item.route}</div>
@@ -12676,7 +12676,7 @@ const PricebookView = ({ pricebookPage, setPricebookPage }) => {
           <div className="pricebook-table-card">
             <div className="pricebook-toolbar">
               <div>
-                <div className="pricebook-detail-title">Pending POS changes</div>
+                <div className="pricebook-detail-title">Pending To POS Endpoint Reconcile</div>
                 <div className="pricebook-detail-sub">Use StoreCheck as the owner-facing review rail while Mercury still redirects this route away from the queue.</div>
               </div>
               {renderExportButtons(exportPending)}
@@ -12730,7 +12730,7 @@ const PricebookView = ({ pricebookPage, setPricebookPage }) => {
           <div className="pricebook-detail-card">
             {selectedPendingRow ? (
               <>
-                <div className="pricebook-detail-title">Selected POS packet</div>
+                <div className="pricebook-detail-title">Selected Pending To POS Endpoint Review</div>
                 <div className="pricebook-detail-sub">{selectedPendingRow.id} · {selectedPendingRow.store} · {selectedPendingRow.route}</div>
                 <div className="pricebook-metric-list">
                   <div className="pricebook-metric"><span>Item</span><span>{selectedPendingRow.item}</span></div>
@@ -12744,10 +12744,10 @@ const PricebookView = ({ pricebookPage, setPricebookPage }) => {
                 </div>
                 <div className="pricebook-actions" style={{ marginTop: 16 }}>
                   <button className="pricebook-btn" onClick={() => openPendingPacket()}>
-                    <Icon name="report" size={15} /> Preview packet
+                    <Icon name="report" size={15} /> Preview route packet
                   </button>
                   <button className="pricebook-btn" onClick={() => savePendingPacket()}>
-                    <Icon name="cash" size={15} /> Save packet
+                    <Icon name="cash" size={15} /> Save route packet
                   </button>
                   <button className="pricebook-btn" onClick={() => holdPendingPacket()}>
                     <Icon name="alert" size={15} /> Hold
@@ -12775,7 +12775,7 @@ const PricebookView = ({ pricebookPage, setPricebookPage }) => {
                 </div>
 
                 <div className="pricebook-draft" style={{ marginTop: 18 }}>
-                  <h3>Pending push events</h3>
+                  <h3>Pending To POS Route Events</h3>
                   <div className="purchase-queue-list">
                     {selectedPendingEvents.map((event) => (
                       <div className="purchase-queue-row" key={event.id}>
