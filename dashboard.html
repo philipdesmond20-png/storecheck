@@ -21176,7 +21176,7 @@ const ReportsView = ({ currentLocation, reportPage, setReportPage }) => {
     if (!item) return;
     setSelectedDayDownloadId(item.id);
     openReportSurface(
-      'Day Download Endpoint Depth',
+      'Day Download Endpoint Reconcile',
       `${currentLocation.name} · ${item.shiftDate} · ${item.packet}`,
       selectedDayDownloadAction.previewRows
     );
